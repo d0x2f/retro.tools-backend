@@ -1,0 +1,5 @@
+CREATE TABLE rank (
+  id CHAR(16) PRIMARY KEY,
+  board_id CHAR(16) REFERENCES board NOT NULL,
+  name VARCHAR NOT NULL DEFAULT ''
+)

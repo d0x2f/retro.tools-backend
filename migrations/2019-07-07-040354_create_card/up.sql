@@ -1,0 +1,6 @@
+CREATE TABLE card (
+  id CHAR(16) PRIMARY KEY,
+  rank_id CHAR(16) REFERENCES rank NOT NULL,
+  name VARCHAR NOT NULL DEFAULT '',
+  description VARCHAR NOT NULL DEFAULT ''
+)

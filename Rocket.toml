@@ -1,0 +1,2 @@
+[global.databases.postgres]
+url = "postgres://postgres:postgres@localhost/retrograde"

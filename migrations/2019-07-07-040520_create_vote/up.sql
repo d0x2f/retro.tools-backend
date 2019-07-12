@@ -1,0 +1,5 @@
+CREATE TABLE vote (
+  id SERIAL PRIMARY KEY,
+  card_id CHAR(16) REFERENCES card NOT NULL,
+  user_token VARCHAR NOT NULL
+)
