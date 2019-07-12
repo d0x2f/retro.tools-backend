@@ -1,1 +1,1 @@
-delete function random_string
+drop function random_string

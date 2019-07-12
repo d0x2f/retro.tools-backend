@@ -30,40 +30,39 @@ use rocket_contrib::json::{Json, JsonValue};
 #[database("postgres")]
 struct DatabaseConnection(PgConnection);
 
-struct CallerId(String);
+struct ParticipantId(String);
 
 #[derive(Debug)]
 enum CookieError {
     Error,
 }
 
-impl<'a, 'r> FromRequest<'a, 'r> for CallerId {
+impl<'a, 'r> FromRequest<'a, 'r> for ParticipantId {
     type Error = CookieError;
 
+    // TODO: session fixation
     fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
         let cookie = request.cookies().get_private("id");
         if let Some(cookie) = cookie {
-            return Outcome::Success(CallerId {
+            return Outcome::Success(ParticipantId {
                 0: String::from(cookie.value()),
             });
         }
-        let caller_id: String = thread_rng().sample_iter(&Alphanumeric).take(16).collect();
+        let participant_id: String = thread_rng().sample_iter(&Alphanumeric).take(16).collect();
         request
             .cookies()
-            .add_private(Cookie::new("id", caller_id.clone()));
-        Outcome::Success(CallerId { 0: caller_id })
+            .add_private(Cookie::new("id", participant_id.clone()));
+        Outcome::Success(ParticipantId { 0: participant_id })
     }
 }
 
 #[post("/boards", data = "<new_board>")]
 fn post_board(
-    _caller_id: CallerId,
+    participant_id: ParticipantId,
     postgres: DatabaseConnection,
     new_board: Json<NewBoard>,
 ) -> Result<JsonValue, Status> {
-    // TODO:
-    //   - add the caller as a board admin participant
-    put_board(&postgres, &new_board)
+    put_board(&postgres, new_board.into_inner(), &participant_id.0)
         .map(|board| json!(board))
         .map_err(|error| {
             error!("{}", error.to_string());
@@ -72,10 +71,11 @@ fn post_board(
 }
 
 #[get("/boards")]
-fn get_boards(_caller_id: CallerId, postgres: DatabaseConnection) -> Result<JsonValue, Status> {
-    // TODO:
-    //   - only return boards for which the caller is a participant
-    persistence::get_boards(&postgres)
+fn get_boards(
+    participant_id: ParticipantId,
+    postgres: DatabaseConnection,
+) -> Result<JsonValue, Status> {
+    persistence::get_boards(&postgres, &participant_id.0)
         .map(|boards| json!(boards))
         .map_err(|error| {
             error!("{}", error.to_string());
@@ -85,26 +85,26 @@ fn get_boards(_caller_id: CallerId, postgres: DatabaseConnection) -> Result<Json
 
 #[get("/boards/<id>")]
 fn get_board(postgres: DatabaseConnection, id: String) -> Result<JsonValue, Status> {
-    let boards = persistence::get_board(&postgres, id).map_err(|error| {
+    let boards = persistence::get_board(&postgres, &id).map_err(|error| {
         error!("{}", error.to_string());
         Status::InternalServerError
     })?;
-    if boards.len() > 0 {
+    if !boards.is_empty() {
         return Ok(json!(boards[0]));
     }
-    return Err(Status::NotFound);
+    Err(Status::NotFound)
 }
 
 #[patch("/boards/<id>", data = "<update_board>")]
 fn patch_board(
-    _caller_id: CallerId,
+    _participant_id: ParticipantId,
     postgres: DatabaseConnection,
     id: String,
     update_board: Json<UpdateBoard>,
 ) -> Result<JsonValue, Status> {
     // TODO:
     //   - check that the caller is the board's owner
-    persistence::patch_board(&postgres, id, &update_board)
+    persistence::patch_board(&postgres, &id, &update_board)
         .map(|board| json!(board))
         .map_err(|error| {
             error!("{}", error.to_string());
@@ -114,13 +114,13 @@ fn patch_board(
 
 #[delete("/boards/<id>")]
 fn delete_board(
-    _caller_id: CallerId,
+    _participant_id: ParticipantId,
     postgres: DatabaseConnection,
     id: String,
 ) -> Result<&'static str, Status> {
     // TODO:
     //   - check that the caller is the board's owner
-    persistence::delete_board(&postgres, id)
+    persistence::delete_board(&postgres, &id)
         .map(|_| "")
         .map_err(|error| {
             error!("{}", error.to_string());

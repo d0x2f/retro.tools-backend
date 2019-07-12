@@ -18,10 +18,10 @@ table! {
 }
 
 table! {
-    participant (id) {
+    participant (id, board_id) {
         id -> Bpchar,
-        owner -> Bool,
         board_id -> Bpchar,
+        owner -> Bool,
     }
 }
 
