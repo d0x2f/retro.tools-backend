@@ -1,9 +1,6 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 
-pub mod models;
-pub mod persistence;
-pub mod schema;
-
+#[macro_use]
 extern crate rocket;
 #[macro_use]
 extern crate rocket_contrib;
@@ -15,25 +12,25 @@ extern crate env_logger;
 extern crate log;
 extern crate rand;
 
-use self::models::*;
-use self::persistence::*;
+mod boards;
+mod models;
+mod persistence;
+mod schema;
+
 use diesel::PgConnection;
-use log::error;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use rocket::http::Cookie;
-use rocket::http::Status;
 use rocket::request::FromRequest;
 use rocket::*;
-use rocket_contrib::json::{Json, JsonValue};
 
 #[database("postgres")]
-struct DatabaseConnection(PgConnection);
+pub struct DatabaseConnection(PgConnection);
 
-struct ParticipantId(String);
+pub struct ParticipantId(String);
 
 #[derive(Debug)]
-enum CookieError {
+pub enum CookieError {
     Error,
 }
 
@@ -53,100 +50,6 @@ impl<'a, 'r> FromRequest<'a, 'r> for ParticipantId {
         cookies.add(Cookie::new("id", participant_id.clone()));
         Outcome::Success(ParticipantId { 0: participant_id })
     }
-}
-
-#[post("/boards", data = "<new_board>")]
-fn post_board(
-    participant_id: ParticipantId,
-    postgres: DatabaseConnection,
-    new_board: Json<NewBoard>,
-) -> Result<JsonValue, Status> {
-    put_board(&postgres, new_board.into_inner(), &participant_id.0)
-        .map(|board| json!(board))
-        .map_err(|error| {
-            error!("{}", error.to_string());
-            Status::InternalServerError
-        })
-}
-
-#[get("/boards")]
-fn get_boards(
-    participant_id: ParticipantId,
-    postgres: DatabaseConnection,
-) -> Result<JsonValue, Status> {
-    persistence::get_boards(&postgres, &participant_id.0)
-        .map(|boards| json!(boards))
-        .map_err(|error| {
-            error!("{}", error.to_string());
-            Status::InternalServerError
-        })
-}
-
-#[get("/boards/<id>")]
-fn get_board(
-    participant_id: ParticipantId,
-    postgres: DatabaseConnection,
-    id: String,
-) -> Result<JsonValue, Status> {
-    let boards = persistence::get_board(&postgres, &id, &participant_id.0).map_err(|error| {
-        error!("{}", error.to_string());
-        Status::InternalServerError
-    })?;
-    if !boards.is_empty() {
-        return Ok(json!(boards[0]));
-    }
-    Err(Status::NotFound)
-}
-
-#[patch("/boards/<id>", data = "<update_board>")]
-fn patch_board(
-    participant_id: ParticipantId,
-    postgres: DatabaseConnection,
-    id: String,
-    update_board: Json<UpdateBoard>,
-) -> Result<JsonValue, Status> {
-    let owner = persistence::does_participant_own_board(&postgres, &id, &participant_id.0)
-        .map_err(|error| {
-            error!("{}", error.to_string());
-            Status::InternalServerError
-        })?;
-
-    if !owner {
-        error!("Permission denied.");
-        return Err(Status::Unauthorized);
-    }
-
-    persistence::patch_board(&postgres, &id, &update_board)
-        .map(|board| json!(board))
-        .map_err(|error| {
-            error!("{}", error.to_string());
-            Status::InternalServerError
-        })
-}
-
-#[delete("/boards/<id>")]
-fn delete_board(
-    participant_id: ParticipantId,
-    postgres: DatabaseConnection,
-    id: String,
-) -> Result<&'static str, Status> {
-    let owner = persistence::does_participant_own_board(&postgres, &id, &participant_id.0)
-        .map_err(|error| {
-            error!("{}", error.to_string());
-            Status::InternalServerError
-        })?;
-
-    if !owner {
-        error!("Permission denied.");
-        return Err(Status::Unauthorized);
-    }
-
-    persistence::delete_board(&postgres, &id)
-        .map(|_| "")
-        .map_err(|error| {
-            error!("{}", error.to_string());
-            Status::InternalServerError
-        })
 }
 
 #[catch(500)]
@@ -173,7 +76,13 @@ fn main() {
     rocket::ignite()
         .mount(
             "/",
-            routes![post_board, get_boards, get_board, patch_board, delete_board],
+            routes![
+                boards::post_board,
+                boards::get_boards,
+                boards::get_board,
+                boards::patch_board,
+                boards::delete_board
+            ],
         )
         .register(catchers![
             internal_error,
