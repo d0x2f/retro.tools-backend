@@ -42,16 +42,15 @@ impl<'a, 'r> FromRequest<'a, 'r> for ParticipantId {
 
     // TODO: session fixation
     fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
-        let cookie = request.cookies().get_private("id");
+        let mut cookies = request.cookies();
+        let cookie = cookies.get("id");
         if let Some(cookie) = cookie {
             return Outcome::Success(ParticipantId {
                 0: String::from(cookie.value()),
             });
         }
         let participant_id: String = thread_rng().sample_iter(&Alphanumeric).take(16).collect();
-        request
-            .cookies()
-            .add_private(Cookie::new("id", participant_id.clone()));
+        cookies.add(Cookie::new("id", participant_id.clone()));
         Outcome::Success(ParticipantId { 0: participant_id })
     }
 }
@@ -84,8 +83,12 @@ fn get_boards(
 }
 
 #[get("/boards/<id>")]
-fn get_board(postgres: DatabaseConnection, id: String) -> Result<JsonValue, Status> {
-    let boards = persistence::get_board(&postgres, &id).map_err(|error| {
+fn get_board(
+    participant_id: ParticipantId,
+    postgres: DatabaseConnection,
+    id: String,
+) -> Result<JsonValue, Status> {
+    let boards = persistence::get_board(&postgres, &id, &participant_id.0).map_err(|error| {
         error!("{}", error.to_string());
         Status::InternalServerError
     })?;
@@ -97,13 +100,22 @@ fn get_board(postgres: DatabaseConnection, id: String) -> Result<JsonValue, Stat
 
 #[patch("/boards/<id>", data = "<update_board>")]
 fn patch_board(
-    _participant_id: ParticipantId,
+    participant_id: ParticipantId,
     postgres: DatabaseConnection,
     id: String,
     update_board: Json<UpdateBoard>,
 ) -> Result<JsonValue, Status> {
-    // TODO:
-    //   - check that the caller is the board's owner
+    let owner = persistence::does_participant_own_board(&postgres, &id, &participant_id.0)
+        .map_err(|error| {
+            error!("{}", error.to_string());
+            Status::InternalServerError
+        })?;
+
+    if !owner {
+        error!("Permission denied.");
+        return Err(Status::Unauthorized);
+    }
+
     persistence::patch_board(&postgres, &id, &update_board)
         .map(|board| json!(board))
         .map_err(|error| {
@@ -114,12 +126,21 @@ fn patch_board(
 
 #[delete("/boards/<id>")]
 fn delete_board(
-    _participant_id: ParticipantId,
+    participant_id: ParticipantId,
     postgres: DatabaseConnection,
     id: String,
 ) -> Result<&'static str, Status> {
-    // TODO:
-    //   - check that the caller is the board's owner
+    let owner = persistence::does_participant_own_board(&postgres, &id, &participant_id.0)
+        .map_err(|error| {
+            error!("{}", error.to_string());
+            Status::InternalServerError
+        })?;
+
+    if !owner {
+        error!("Permission denied.");
+        return Err(Status::Unauthorized);
+    }
+
     persistence::delete_board(&postgres, &id)
         .map(|_| "")
         .map_err(|error| {
@@ -138,6 +159,11 @@ fn not_found() -> &'static str {
     ""
 }
 
+#[catch(401)]
+fn unauthorised() -> &'static str {
+    ""
+}
+
 #[catch(400)]
 fn bad_request() -> &'static str {
     ""
@@ -149,7 +175,12 @@ fn main() {
             "/",
             routes![post_board, get_boards, get_board, patch_board, delete_board],
         )
-        .register(catchers![internal_error, not_found, bad_request])
+        .register(catchers![
+            internal_error,
+            not_found,
+            unauthorised,
+            bad_request
+        ])
         .attach(DatabaseConnection::fairing())
         .launch();
 }
