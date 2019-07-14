@@ -39,7 +39,7 @@ pub fn get_board(
     postgres: &PgConnection,
     board_id: &str,
     participant_id: &str,
-) -> Result<Vec<Board>, Error> {
+) -> Result<Option<Board>, Error> {
     use super::schema::board::dsl::*;
 
     let new_participant = NewParticipant {
@@ -49,7 +49,12 @@ pub fn get_board(
     };
 
     put_participant(postgres, &new_participant)?;
-    board.find(board_id).load(postgres)
+    let result = board.find(board_id).first(postgres);
+    match result {
+        Ok(r) => Ok(Some(r)),
+        Err(Error::NotFound) => Ok(None),
+        Err(e) => Err(e),
+    }
 }
 
 pub fn patch_board(
@@ -83,7 +88,7 @@ pub fn put_participant(
         .execute(postgres)
 }
 
-pub fn does_participant_own_board(
+pub fn participant_owns_board(
     postgres: &PgConnection,
     participant_id: &str,
     board_id: &str,
@@ -99,4 +104,69 @@ pub fn does_participant_own_board(
     }
 
     Ok(found_participants[0].owner)
+}
+
+pub fn rank_in_board(
+    postgres: &PgConnection,
+    rank_id: &str,
+    board_id: &str,
+) -> Result<bool, Error> {
+    let result = get_rank(postgres, rank_id);
+    match result {
+        Ok(r) => {
+            if let Some(rank) = r {
+                return Ok(rank.board_id == board_id);
+            }
+            Ok(false)
+        }
+        Err(Error::NotFound) => Ok(false),
+        Err(e) => Err(e),
+    }
+}
+
+pub fn put_rank(postgres: &PgConnection, new_rank: NewRank) -> Result<Rank, Error> {
+    use super::schema::rank;
+
+    diesel::insert_into(rank::table)
+        .values(new_rank)
+        .get_result(postgres)
+}
+
+pub fn get_ranks(postgres: &PgConnection, board_id: &str) -> Result<Vec<Rank>, Error> {
+    use super::schema::rank::dsl;
+
+    super::schema::board::dsl::board
+        .inner_join(dsl::rank)
+        .filter(super::schema::board::dsl::id.eq(board_id))
+        .select((dsl::id, dsl::board_id, dsl::name))
+        .load(postgres)
+}
+
+pub fn get_rank(postgres: &PgConnection, rank_id: &str) -> Result<Option<Rank>, Error> {
+    use super::schema::rank::dsl::*;
+
+    let result = rank.find(rank_id).first(postgres);
+    match result {
+        Ok(r) => Ok(Some(r)),
+        Err(Error::NotFound) => Ok(None),
+        Err(e) => Err(e),
+    }
+}
+
+pub fn patch_rank(
+    postgres: &PgConnection,
+    rank_id: &str,
+    update_rank: &UpdateRank,
+) -> Result<Rank, Error> {
+    use super::schema::rank::dsl::*;
+
+    diesel::update(rank.find(rank_id))
+        .set(update_rank)
+        .get_result(postgres)
+}
+
+pub fn delete_rank(postgres: &PgConnection, rank_id: &str) -> Result<usize, Error> {
+    use super::schema::rank::dsl::*;
+
+    diesel::delete(rank.find(rank_id)).execute(postgres)
 }

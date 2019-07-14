@@ -39,12 +39,12 @@ pub fn get_board(
     postgres: DatabaseConnection,
     id: String,
 ) -> Result<JsonValue, Status> {
-    let boards = persistence::get_board(&postgres, &id, &participant_id.0).map_err(|error| {
+    let result = persistence::get_board(&postgres, &id, &participant_id.0).map_err(|error| {
         error!("{}", error.to_string());
         Status::InternalServerError
     })?;
-    if !boards.is_empty() {
-        return Ok(json!(boards[0]));
+    if let Some(board) = result {
+        return Ok(json!(board));
     }
     Err(Status::NotFound)
 }
@@ -56,14 +56,14 @@ pub fn patch_board(
     id: String,
     update_board: Json<UpdateBoard>,
 ) -> Result<JsonValue, Status> {
-    let owner = persistence::does_participant_own_board(&postgres, &id, &participant_id.0)
-        .map_err(|error| {
+    let owner = persistence::participant_owns_board(&postgres, &id, &participant_id.0).map_err(
+        |error| {
             error!("{}", error.to_string());
             Status::InternalServerError
-        })?;
+        },
+    )?;
 
     if !owner {
-        error!("Permission denied.");
         return Err(Status::Unauthorized);
     }
 
@@ -80,20 +80,20 @@ pub fn delete_board(
     participant_id: ParticipantId,
     postgres: DatabaseConnection,
     id: String,
-) -> Result<&'static str, Status> {
-    let owner = persistence::does_participant_own_board(&postgres, &id, &participant_id.0)
-        .map_err(|error| {
+) -> Result<(), Status> {
+    let owner = persistence::participant_owns_board(&postgres, &id, &participant_id.0).map_err(
+        |error| {
             error!("{}", error.to_string());
             Status::InternalServerError
-        })?;
+        },
+    )?;
 
     if !owner {
-        error!("Permission denied.");
         return Err(Status::Unauthorized);
     }
 
     persistence::delete_board(&postgres, &id)
-        .map(|_| "")
+        .map(|_| ())
         .map_err(|error| {
             error!("{}", error.to_string());
             Status::InternalServerError

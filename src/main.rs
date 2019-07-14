@@ -15,6 +15,7 @@ extern crate rand;
 mod boards;
 mod models;
 mod persistence;
+mod ranks;
 mod schema;
 
 use diesel::PgConnection;
@@ -57,6 +58,11 @@ fn internal_error() -> &'static str {
     ""
 }
 
+#[catch(422)]
+fn unprocessible_entity() -> &'static str {
+    ""
+}
+
 #[catch(404)]
 fn not_found() -> &'static str {
     ""
@@ -81,11 +87,17 @@ fn main() {
                 boards::get_boards,
                 boards::get_board,
                 boards::patch_board,
-                boards::delete_board
+                boards::delete_board,
+                ranks::post_rank,
+                ranks::get_ranks,
+                ranks::get_rank,
+                ranks::patch_rank,
+                ranks::delete_rank
             ],
         )
         .register(catchers![
             internal_error,
+            unprocessible_entity,
             not_found,
             unauthorised,
             bad_request
