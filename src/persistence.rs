@@ -35,20 +35,8 @@ pub fn get_boards(postgres: &PgConnection, participant_id: &str) -> Result<Vec<B
         .load(postgres)
 }
 
-pub fn get_board(
-    postgres: &PgConnection,
-    board_id: &str,
-    participant_id: &str,
-) -> Result<Option<Board>, Error> {
+pub fn get_board(postgres: &PgConnection, board_id: &str) -> Result<Option<Board>, Error> {
     use super::schema::board::dsl::*;
-
-    let new_participant = NewParticipant {
-        id: Some(participant_id),
-        owner: false,
-        board_id: board_id,
-    };
-
-    put_participant(postgres, &new_participant)?;
     let result = board.find(board_id).first(postgres);
     match result {
         Ok(r) => Ok(Some(r)),
@@ -96,7 +84,7 @@ pub fn participant_owns_board(
     use super::schema::participant;
 
     let found_participants: Vec<Participant> = participant::dsl::participant
-        .find((board_id, participant_id)) // Not sure why this needs to be backwards
+        .find((participant_id, board_id))
         .load(postgres)?;
 
     if found_participants.is_empty() {

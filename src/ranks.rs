@@ -1,28 +1,21 @@
 use super::models::*;
 use super::persistence;
+use super::BoardOwner;
 use super::DatabaseConnection;
 use super::ParticipantId;
+use super::RankInBoard;
 use log::error;
 use rocket::http::Status;
 use rocket_contrib::json::{Json, JsonValue};
 
 #[post("/boards/<board_id>/ranks", data = "<post_rank>")]
 pub fn post_rank(
-    participant_id: ParticipantId,
+    _participant_id: ParticipantId,
+    _board_owner: BoardOwner,
     postgres: DatabaseConnection,
     board_id: String,
     post_rank: Json<PostRank>,
 ) -> Result<JsonValue, Status> {
-    let owner = persistence::participant_owns_board(&postgres, &board_id, &participant_id.0)
-        .map_err(|error| {
-            error!("{}", error.to_string());
-            Status::InternalServerError
-        })?;
-
-    if !owner {
-        return Err(Status::Unauthorized);
-    }
-
     let new_rank = NewRank {
         id: None,
         name: post_rank.name,
@@ -54,6 +47,7 @@ pub fn get_ranks(
 #[get("/boards/<_board_id>/ranks/<rank_id>")]
 pub fn get_rank(
     _participant_id: ParticipantId,
+    _rank_in_board: RankInBoard,
     postgres: DatabaseConnection,
     _board_id: String,
     rank_id: String,
@@ -65,34 +59,16 @@ pub fn get_rank(
     Ok(json!(rank))
 }
 
-#[patch("/boards/<board_id>/ranks/<rank_id>", data = "<update_rank>")]
+#[patch("/boards/<_board_id>/ranks/<rank_id>", data = "<update_rank>")]
 pub fn patch_rank(
-    participant_id: ParticipantId,
+    _participant_id: ParticipantId,
+    _board_owner: BoardOwner,
+    _rank_in_board: RankInBoard,
     postgres: DatabaseConnection,
-    board_id: String,
+    _board_id: String,
     rank_id: String,
     update_rank: Json<UpdateRank>,
 ) -> Result<JsonValue, Status> {
-    let owner = persistence::participant_owns_board(&postgres, &board_id, &participant_id.0)
-        .map_err(|error| {
-            error!("{}", error.to_string());
-            Status::InternalServerError
-        })?;
-
-    if !owner {
-        return Err(Status::Unauthorized);
-    }
-
-    let rank_in_board =
-        persistence::rank_in_board(&postgres, &rank_id, &board_id).map_err(|error| {
-            error!("{}", error.to_string());
-            Status::InternalServerError
-        })?;
-
-    if !rank_in_board {
-        return Err(Status::NotFound);
-    }
-
     persistence::patch_rank(&postgres, &rank_id, &update_rank)
         .map(|board| json!(board))
         .map_err(|error| {
@@ -101,33 +77,15 @@ pub fn patch_rank(
         })
 }
 
-#[delete("/boards/<board_id>/ranks/<rank_id>")]
+#[delete("/boards/<_board_id>/ranks/<rank_id>")]
 pub fn delete_rank(
-    participant_id: ParticipantId,
+    _participant_id: ParticipantId,
+    _board_owner: BoardOwner,
+    _rank_in_board: RankInBoard,
     postgres: DatabaseConnection,
-    board_id: String,
+    _board_id: String,
     rank_id: String,
 ) -> Result<(), Status> {
-    let owner = persistence::participant_owns_board(&postgres, &board_id, &participant_id.0)
-        .map_err(|error| {
-            error!("{}", error.to_string());
-            Status::InternalServerError
-        })?;
-
-    if !owner {
-        return Err(Status::Unauthorized);
-    }
-
-    let rank_in_board =
-        persistence::rank_in_board(&postgres, &rank_id, &board_id).map_err(|error| {
-            error!("{}", error.to_string());
-            Status::InternalServerError
-        })?;
-
-    if !rank_in_board {
-        return Err(Status::NotFound);
-    }
-
     persistence::delete_rank(&postgres, &rank_id)
         .map(|_| ())
         .map_err(|error| {

@@ -1,5 +1,6 @@
 use super::models::*;
 use super::persistence;
+use super::BoardOwner;
 use super::DatabaseConnection;
 use super::ParticipantId;
 use log::error;
@@ -33,17 +34,27 @@ pub fn get_boards(
         })
 }
 
-#[get("/boards/<id>")]
+#[get("/boards/<board_id>")]
 pub fn get_board(
     participant_id: ParticipantId,
     postgres: DatabaseConnection,
-    id: String,
+    board_id: String,
 ) -> Result<JsonValue, Status> {
-    let result = persistence::get_board(&postgres, &id, &participant_id.0).map_err(|error| {
+    let result = persistence::get_board(&postgres, &board_id).map_err(|error| {
         error!("{}", error.to_string());
         Status::InternalServerError
     })?;
     if let Some(board) = result {
+        let new_participant = NewParticipant {
+            id: Some(&participant_id.0),
+            owner: false,
+            board_id: &board_id,
+        };
+
+        persistence::put_participant(&postgres, &new_participant).map_err(|error| {
+            error!("{}", error.to_string());
+            Status::InternalServerError
+        })?;
         return Ok(json!(board));
     }
     Err(Status::NotFound)
@@ -51,22 +62,12 @@ pub fn get_board(
 
 #[patch("/boards/<id>", data = "<update_board>")]
 pub fn patch_board(
-    participant_id: ParticipantId,
+    _participant_id: ParticipantId,
+    _board_owner: BoardOwner,
     postgres: DatabaseConnection,
     id: String,
     update_board: Json<UpdateBoard>,
 ) -> Result<JsonValue, Status> {
-    let owner = persistence::participant_owns_board(&postgres, &id, &participant_id.0).map_err(
-        |error| {
-            error!("{}", error.to_string());
-            Status::InternalServerError
-        },
-    )?;
-
-    if !owner {
-        return Err(Status::Unauthorized);
-    }
-
     persistence::patch_board(&postgres, &id, &update_board)
         .map(|board| json!(board))
         .map_err(|error| {
@@ -77,21 +78,11 @@ pub fn patch_board(
 
 #[delete("/boards/<id>")]
 pub fn delete_board(
-    participant_id: ParticipantId,
+    _participant_id: ParticipantId,
+    _board_owner: BoardOwner,
     postgres: DatabaseConnection,
     id: String,
 ) -> Result<(), Status> {
-    let owner = persistence::participant_owns_board(&postgres, &id, &participant_id.0).map_err(
-        |error| {
-            error!("{}", error.to_string());
-            Status::InternalServerError
-        },
-    )?;
-
-    if !owner {
-        return Err(Status::Unauthorized);
-    }
-
     persistence::delete_board(&postgres, &id)
         .map(|_| ())
         .map_err(|error| {
