@@ -73,7 +73,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for BoardOwner {
             }
             return Outcome::Failure((Status::Unauthorized, ()));
         }
-        return Outcome::Failure((Status::InternalServerError, ()));
+        Outcome::Failure((Status::InternalServerError, ()))
     }
 }
 
@@ -88,11 +88,8 @@ impl<'a, 'r> FromRequest<'a, 'r> for RankInBoard {
             if let Some(rank_id) = rank_id_result {
                 let postgres = request.guard::<DatabaseConnection>()?;
 
-                let rank_in_board = match persistence::rank_in_board(
-                    &postgres,
-                    &rank_id,
-                    &board_id,
-                ) {
+                let rank_in_board = match persistence::rank_in_board(&postgres, &rank_id, &board_id)
+                {
                     Ok(r) => r,
                     Err(_) => return Outcome::Failure((Status::InternalServerError, ())),
                 };
@@ -102,7 +99,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for RankInBoard {
                 return Outcome::Failure((Status::NotFound, ()));
             }
         }
-        return Outcome::Failure((Status::InternalServerError, ()));
+        Outcome::Failure((Status::InternalServerError, ()))
     }
 }
 
