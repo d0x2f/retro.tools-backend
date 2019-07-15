@@ -1,6 +1,7 @@
 use super::schema::board;
 use super::schema::participant;
 use super::schema::rank;
+use super::schema::card;
 
 #[derive(Queryable, Identifiable, Serialize)]
 #[table_name = "board"]
@@ -61,8 +62,7 @@ pub struct UpdateRank {
     pub name: String,
 }
 
-#[derive(Insertable, Deserialize)]
-#[table_name = "rank"]
+#[derive(Deserialize)]
 pub struct PostRank<'a> {
     pub id: Option<&'a str>,
     pub name: &'a str,
@@ -74,4 +74,36 @@ pub struct NewRank<'a> {
     pub id: Option<&'a str>,
     pub board_id: &'a str,
     pub name: &'a str,
+}
+
+#[derive(Queryable, Identifiable, Serialize)]
+#[table_name = "card"]
+pub struct Card {
+    pub id: String,             // char(16)
+    pub rank_id: String,        // char(16)
+    pub name: String,           // varchar
+    pub description: String,    // varchar
+}
+
+#[derive(AsChangeset, Deserialize)]
+#[table_name = "card"]
+pub struct UpdateCard {
+    pub name: Option<String>,
+    pub description: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct PostCard<'a> {
+    pub id: Option<&'a str>,
+    pub name: &'a str,
+    pub description: &'a str,
+}
+
+#[derive(Insertable, Deserialize)]
+#[table_name = "card"]
+pub struct NewCard<'a> {
+    pub id: Option<&'a str>,
+    pub rank_id: &'a str,
+    pub name: &'a str,
+    pub description: &'a str,
 }

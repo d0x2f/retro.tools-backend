@@ -16,6 +16,7 @@ mod boards;
 mod models;
 mod persistence;
 mod ranks;
+mod cards;
 mod schema;
 
 use diesel::PgConnection;
@@ -33,6 +34,7 @@ pub struct DatabaseConnection(PgConnection);
 pub struct ParticipantId(String);
 pub struct BoardOwner();
 pub struct RankInBoard();
+pub struct CardInRank();
 
 impl<'a, 'r> FromRequest<'a, 'r> for ParticipantId {
     type Error = ();
@@ -103,6 +105,32 @@ impl<'a, 'r> FromRequest<'a, 'r> for RankInBoard {
     }
 }
 
+impl<'a, 'r> FromRequest<'a, 'r> for CardInRank {
+    type Error = ();
+
+    fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, ()> {
+        let rank_id_result = request.get_param::<String>(3).and_then(|r| r.ok());
+        let card_id_result = request.get_param::<String>(5).and_then(|r| r.ok());
+
+        if let Some(card_id) = card_id_result {
+            if let Some(rank_id) = rank_id_result {
+                let postgres = request.guard::<DatabaseConnection>()?;
+
+                let card_in_rank = match persistence::card_in_rank(&postgres, &card_id, &rank_id)
+                {
+                    Ok(r) => r,
+                    Err(_) => return Outcome::Failure((Status::InternalServerError, ())),
+                };
+                if card_in_rank {
+                    return Outcome::Success(CardInRank {});
+                }
+                return Outcome::Failure((Status::NotFound, ()));
+            }
+        }
+        Outcome::Failure((Status::InternalServerError, ()))
+    }
+}
+
 #[catch(500)]
 fn internal_error() -> &'static str {
     ""
@@ -142,7 +170,12 @@ fn main() {
                 ranks::get_ranks,
                 ranks::get_rank,
                 ranks::patch_rank,
-                ranks::delete_rank
+                ranks::delete_rank,
+                cards::post_card,
+                cards::get_cards,
+                cards::get_card,
+                cards::patch_card,
+                cards::delete_card
             ],
         )
         .register(catchers![

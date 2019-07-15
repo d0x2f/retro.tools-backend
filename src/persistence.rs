@@ -3,6 +3,60 @@ use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use diesel::result::Error;
 
+pub fn participant_owns_board(
+    postgres: &PgConnection,
+    participant_id: &str,
+    board_id: &str,
+) -> Result<bool, Error> {
+    use super::schema::participant;
+
+    let found_participants: Vec<Participant> = participant::dsl::participant
+        .find((participant_id, board_id))
+        .load(postgres)?;
+
+    if found_participants.is_empty() {
+        return Ok(false);
+    }
+
+    Ok(found_participants[0].owner)
+}
+
+pub fn rank_in_board(
+    postgres: &PgConnection,
+    rank_id: &str,
+    board_id: &str,
+) -> Result<bool, Error> {
+    let result = get_rank(postgres, rank_id);
+    match result {
+        Ok(r) => {
+            if let Some(rank) = r {
+                return Ok(rank.board_id == board_id);
+            }
+            Ok(false)
+        }
+        Err(Error::NotFound) => Ok(false),
+        Err(e) => Err(e),
+    }
+}
+
+pub fn card_in_rank(
+    postgres: &PgConnection,
+    card_id: &str,
+    rank_id: &str,
+) -> Result<bool, Error> {
+    let result = get_card(postgres, card_id);
+    match result {
+        Ok(c) => {
+            if let Some(card) = c {
+                return Ok(card.rank_id == rank_id);
+            }
+            Ok(false)
+        }
+        Err(Error::NotFound) => Ok(false),
+        Err(e) => Err(e),
+    }
+}
+
 pub fn put_board(
     postgres: &PgConnection,
     new_board: NewBoard,
@@ -76,42 +130,6 @@ pub fn put_participant(
         .execute(postgres)
 }
 
-pub fn participant_owns_board(
-    postgres: &PgConnection,
-    participant_id: &str,
-    board_id: &str,
-) -> Result<bool, Error> {
-    use super::schema::participant;
-
-    let found_participants: Vec<Participant> = participant::dsl::participant
-        .find((participant_id, board_id))
-        .load(postgres)?;
-
-    if found_participants.is_empty() {
-        return Ok(false);
-    }
-
-    Ok(found_participants[0].owner)
-}
-
-pub fn rank_in_board(
-    postgres: &PgConnection,
-    rank_id: &str,
-    board_id: &str,
-) -> Result<bool, Error> {
-    let result = get_rank(postgres, rank_id);
-    match result {
-        Ok(r) => {
-            if let Some(rank) = r {
-                return Ok(rank.board_id == board_id);
-            }
-            Ok(false)
-        }
-        Err(Error::NotFound) => Ok(false),
-        Err(e) => Err(e),
-    }
-}
-
 pub fn put_rank(postgres: &PgConnection, new_rank: NewRank) -> Result<Rank, Error> {
     use super::schema::rank;
 
@@ -157,4 +175,51 @@ pub fn delete_rank(postgres: &PgConnection, rank_id: &str) -> Result<usize, Erro
     use super::schema::rank::dsl::*;
 
     diesel::delete(rank.find(rank_id)).execute(postgres)
+}
+
+pub fn put_card(postgres: &PgConnection, new_card: NewCard) -> Result<Card, Error> {
+    use super::schema::card;
+
+    diesel::insert_into(card::table)
+        .values(new_card)
+        .get_result(postgres)
+}
+
+pub fn get_cards(postgres: &PgConnection, rank_id: &str) -> Result<Vec<Card>, Error> {
+    use super::schema::card::dsl;
+
+    super::schema::rank::dsl::rank
+        .inner_join(dsl::card)
+        .filter(super::schema::rank::dsl::id.eq(rank_id))
+        .select((dsl::id, dsl::rank_id, dsl::name, dsl::description))
+        .load(postgres)
+}
+
+pub fn get_card(postgres: &PgConnection, card_id: &str) -> Result<Option<Card>, Error> {
+    use super::schema::card::dsl::*;
+
+    let result = card.find(card_id).first(postgres);
+    match result {
+        Ok(r) => Ok(Some(r)),
+        Err(Error::NotFound) => Ok(None),
+        Err(e) => Err(e),
+    }
+}
+
+pub fn patch_card(
+    postgres: &PgConnection,
+    card_id: &str,
+    update_card: &UpdateCard,
+) -> Result<Card, Error> {
+    use super::schema::card::dsl::*;
+
+    diesel::update(card.find(card_id))
+        .set(update_card)
+        .get_result(postgres)
+}
+
+pub fn delete_card(postgres: &PgConnection, card_id: &str) -> Result<usize, Error> {
+    use super::schema::card::dsl::*;
+
+    diesel::delete(card.find(card_id)).execute(postgres)
 }
