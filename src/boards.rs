@@ -1,8 +1,8 @@
-use super::models::*;
-use super::persistence;
 use super::guards::BoardOwner;
 use super::guards::DatabaseConnection;
 use super::guards::ParticipantId;
+use super::models::*;
+use super::persistence;
 use log::error;
 use rocket::http::Status;
 use rocket_contrib::json::{Json, JsonValue};
@@ -45,13 +45,13 @@ pub fn get_board(
         Status::InternalServerError
     })?;
     if let Some(board) = result {
-        let new_participant = NewParticipant {
-            id: Some(&participant_id.0),
+        let new_participant = NewParticipantBoard {
+            participant_id: Some(&participant_id.0),
             owner: false,
             board_id: &board_id,
         };
 
-        persistence::put_participant(&postgres, &new_participant).map_err(|error| {
+        persistence::put_participant_board(&postgres, &new_participant).map_err(|error| {
             error!("{}", error.to_string());
             Status::InternalServerError
         })?;

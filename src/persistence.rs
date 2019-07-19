@@ -8,9 +8,9 @@ pub fn participant_owns_board(
     participant_id: &str,
     board_id: &str,
 ) -> Result<bool, Error> {
-    use super::schema::participant;
+    use super::schema::participant_board;
 
-    let found_participants: Vec<Participant> = participant::dsl::participant
+    let found_participants: Vec<ParticipantBoard> = participant_board::dsl::participant_board
         .find((participant_id, board_id))
         .load(postgres)?;
 
@@ -26,22 +26,23 @@ pub fn rank_in_board(
     rank_id: &str,
     board_id: &str,
 ) -> Result<bool, Error> {
-    Ok(get_rank(&postgres, &rank_id)?.ok_or(Error::NotFound)?.board_id == board_id)
+    Ok(get_rank(&postgres, &rank_id)?
+        .ok_or(Error::NotFound)?
+        .board_id
+        == board_id)
 }
 
-pub fn card_in_rank(
-    postgres: &PgConnection,
-    card_id: &str,
-    rank_id: &str,
-) -> Result<bool, Error> {
-    Ok(get_card(&postgres, &card_id)?.ok_or(Error::NotFound)?.rank_id == rank_id)
+pub fn card_in_rank(postgres: &PgConnection, card_id: &str, rank_id: &str) -> Result<bool, Error> {
+    Ok(get_card(&postgres, &card_id)?
+        .ok_or(Error::NotFound)?
+        .rank_id
+        == rank_id)
 }
 
-pub fn cards_open(
-    postgres: &PgConnection,
-    board_id: &str,
-) -> Result<bool, Error> {
-    Ok(get_board(&postgres, &board_id)?.ok_or(Error::NotFound)?.cards_open)
+pub fn cards_open(postgres: &PgConnection, board_id: &str) -> Result<bool, Error> {
+    Ok(get_board(&postgres, &board_id)?
+        .ok_or(Error::NotFound)?
+        .cards_open)
 }
 
 pub fn put_board(
@@ -55,13 +56,13 @@ pub fn put_board(
         .values(new_board)
         .get_result(postgres)?;
 
-    let new_participant = NewParticipant {
-        id: Some(participant_id),
+    let new_participant = NewParticipantBoard {
+        participant_id: Some(participant_id),
         owner: true,
         board_id: &board.id,
     };
 
-    put_participant(postgres, &new_participant)?;
+    put_participant_board(postgres, &new_participant)?;
 
     Ok(board)
 }
@@ -69,9 +70,9 @@ pub fn put_board(
 pub fn get_boards(postgres: &PgConnection, participant_id: &str) -> Result<Vec<Board>, Error> {
     use super::schema::board::dsl::*;
 
-    super::schema::participant::dsl::participant
+    super::schema::participant_board::dsl::participant_board
         .inner_join(board)
-        .filter(super::schema::participant::dsl::id.eq(participant_id))
+        .filter(super::schema::participant_board::dsl::participant_id.eq(participant_id))
         .select((id, name, max_votes, voting_open, cards_open))
         .load(postgres)
 }
@@ -104,15 +105,21 @@ pub fn delete_board(postgres: &PgConnection, board_id: &str) -> Result<usize, Er
     diesel::delete(board.find(board_id)).execute(postgres)
 }
 
-pub fn put_participant(
-    postgres: &PgConnection,
-    new_participant: &NewParticipant,
-) -> Result<usize, Error> {
+pub fn create_participant(postgres: &PgConnection) -> Result<Participant, Error> {
     use super::schema::participant::dsl::*;
-
     diesel::insert_into(participant)
+        .default_values()
+        .get_result(postgres)
+}
+
+pub fn put_participant_board(
+    postgres: &PgConnection,
+    new_participant: &NewParticipantBoard,
+) -> Result<usize, Error> {
+    use super::schema::participant_board::dsl::*;
+    diesel::insert_into(participant_board)
         .values(new_participant)
-        .on_conflict((id, board_id))
+        .on_conflict((participant_id, board_id))
         .do_nothing()
         .execute(postgres)
 }

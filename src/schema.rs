@@ -18,8 +18,14 @@ table! {
 }
 
 table! {
-    participant (id, board_id) {
+    participant (id) {
         id -> Bpchar,
+    }
+}
+
+table! {
+    participant_board (participant_id, board_id) {
+        participant_id -> Bpchar,
         board_id -> Bpchar,
         owner -> Bool,
     }
@@ -37,19 +43,15 @@ table! {
     vote (id) {
         id -> Int4,
         card_id -> Bpchar,
-        user_token -> Varchar,
+        participant_id -> Bpchar,
     }
 }
 
 joinable!(card -> rank (rank_id));
-joinable!(participant -> board (board_id));
+joinable!(participant_board -> board (board_id));
+joinable!(participant_board -> participant (participant_id));
 joinable!(rank -> board (board_id));
 joinable!(vote -> card (card_id));
+joinable!(vote -> participant (participant_id));
 
-allow_tables_to_appear_in_same_query!(
-    board,
-    card,
-    participant,
-    rank,
-    vote,
-);
+allow_tables_to_appear_in_same_query!(board, card, participant, participant_board, rank, vote,);

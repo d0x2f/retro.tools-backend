@@ -1,14 +1,14 @@
-use super::models::*;
-use super::persistence;
 use super::guards::BoardOwner;
+use super::guards::CardInRank;
 use super::guards::DatabaseConnection;
 use super::guards::ParticipantId;
 use super::guards::RankInBoard;
-use super::guards::CardInRank;
+use super::models::*;
+use super::persistence;
+use diesel::result::Error;
 use log::error;
 use rocket::http::Status;
 use rocket_contrib::json::{Json, JsonValue};
-use diesel::result::Error;
 
 #[post("/boards/<board_id>/ranks/<rank_id>/cards", data = "<post_card>")]
 pub fn post_card(
@@ -20,11 +20,11 @@ pub fn post_card(
     rank_id: String,
     post_card: Json<PostCard>,
 ) -> Result<JsonValue, Status> {
-    // Check that voting is open for the board
+    // Check that cards are open for the board
     let cards_open = match persistence::cards_open(&postgres, &board_id) {
         Ok(b) => Ok(b),
         Err(Error::NotFound) => Err(Status::NotFound),
-        Err(_) =>  Err(Status::InternalServerError)
+        Err(_) => Err(Status::InternalServerError),
     }?;
 
     if !cards_open {
@@ -79,7 +79,10 @@ pub fn get_card(
     Ok(json!(card))
 }
 
-#[patch("/boards/<_board_id>/ranks/<_rank_id>/cards/<card_id>", data = "<update_card>")]
+#[patch(
+    "/boards/<_board_id>/ranks/<_rank_id>/cards/<card_id>",
+    data = "<update_card>"
+)]
 #[allow(clippy::too_many_arguments)]
 pub fn patch_card(
     _participant_id: ParticipantId,

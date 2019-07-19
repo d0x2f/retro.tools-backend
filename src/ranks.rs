@@ -1,9 +1,9 @@
-use super::models::*;
-use super::persistence;
 use super::guards::BoardOwner;
 use super::guards::DatabaseConnection;
 use super::guards::ParticipantId;
 use super::guards::RankInBoard;
+use super::models::*;
+use super::persistence;
 use log::error;
 use rocket::http::Status;
 use rocket_contrib::json::{Json, JsonValue};

@@ -1,7 +1,9 @@
 use super::schema::board;
-use super::schema::participant;
-use super::schema::rank;
 use super::schema::card;
+use super::schema::participant;
+use super::schema::participant_board;
+use super::schema::rank;
+use super::schema::vote;
 
 #[derive(Queryable, Identifiable, Serialize)]
 #[table_name = "board"]
@@ -35,15 +37,20 @@ pub struct NewBoard<'a> {
 #[derive(Queryable, Identifiable, Serialize)]
 #[table_name = "participant"]
 pub struct Participant {
-    pub id: String,       // char(16)
-    pub board_id: String, // char(16)
-    pub owner: bool,      // bool
+    pub id: String, // char(16)
+}
+
+#[derive(Queryable, Serialize)]
+pub struct ParticipantBoard {
+    pub participant_id: String, // char(16)
+    pub board_id: String,       // char(16)
+    pub owner: bool,            // bool
 }
 
 #[derive(Insertable, Deserialize)]
-#[table_name = "participant"]
-pub struct NewParticipant<'a> {
-    pub id: Option<&'a str>,
+#[table_name = "participant_board"]
+pub struct NewParticipantBoard<'a> {
+    pub participant_id: Option<&'a str>,
     pub board_id: &'a str,
     pub owner: bool,
 }
@@ -79,10 +86,10 @@ pub struct NewRank<'a> {
 #[derive(Queryable, Identifiable, Serialize)]
 #[table_name = "card"]
 pub struct Card {
-    pub id: String,             // char(16)
-    pub rank_id: String,        // char(16)
-    pub name: String,           // varchar
-    pub description: String,    // varchar
+    pub id: String,          // char(16)
+    pub rank_id: String,     // char(16)
+    pub name: String,        // varchar
+    pub description: String, // varchar
 }
 
 #[derive(AsChangeset, Deserialize)]
@@ -106,4 +113,28 @@ pub struct NewCard<'a> {
     pub rank_id: &'a str,
     pub name: &'a str,
     pub description: &'a str,
+}
+
+#[derive(Queryable, Identifiable, Serialize)]
+#[table_name = "vote"]
+pub struct Vote {
+    pub id: String,          // char(16)
+    pub rank_id: String,     // char(16)
+    pub name: String,        // varchar
+    pub description: String, // varchar
+}
+
+#[derive(Deserialize)]
+pub struct PostVote<'a> {
+    pub id: Option<&'a str>,
+    pub name: &'a str,
+    pub description: &'a str,
+}
+
+#[derive(Insertable, Deserialize)]
+#[table_name = "vote"]
+pub struct NewVote<'a> {
+    pub id: Option<i32>,
+    pub card_id: &'a str,
+    pub participant_id: &'a str,
 }

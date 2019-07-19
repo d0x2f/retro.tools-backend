@@ -1,7 +1,5 @@
 use diesel::PgConnection;
 use log::info;
-use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
 use rocket::http::Cookie;
 use rocket::http::Status;
 use rocket::request::FromRequest;
@@ -27,9 +25,13 @@ impl<'a, 'r> FromRequest<'a, 'r> for ParticipantId {
                 0: String::from(cookie.value()),
             });
         }
-        let participant_id: String = thread_rng().sample_iter(&Alphanumeric).take(16).collect();
-        cookies.add(Cookie::new("id", participant_id.clone()));
-        Outcome::Success(ParticipantId { 0: participant_id })
+        let postgres = request.guard::<DatabaseConnection>()?;
+        let participant = match super::persistence::create_participant(&postgres) {
+            Ok(p) => p,
+            Err(_) => return Outcome::Failure((Status::InternalServerError, ())),
+        };
+        cookies.add(Cookie::new("id", participant.id.clone()));
+        Outcome::Success(ParticipantId { 0: participant.id })
     }
 }
 
@@ -47,7 +49,9 @@ impl<'a, 'r> FromRequest<'a, 'r> for BoardOwner {
                 &board_id,
             ) {
                 Ok(r) => r,
-                Err(diesel::result::Error::NotFound) => return Outcome::Failure((Status::NotFound, ())),
+                Err(diesel::result::Error::NotFound) => {
+                    return Outcome::Failure((Status::NotFound, ()))
+                }
                 Err(_) => return Outcome::Failure((Status::InternalServerError, ())),
             };
             if participant_owns_board {
@@ -70,12 +74,14 @@ impl<'a, 'r> FromRequest<'a, 'r> for RankInBoard {
             if let Some(rank_id) = rank_id_result {
                 let postgres = request.guard::<DatabaseConnection>()?;
 
-                let rank_in_board = match super::persistence::rank_in_board(&postgres, &rank_id, &board_id)
-                {
-                    Ok(r) => r,
-                    Err(diesel::result::Error::NotFound) => return Outcome::Failure((Status::NotFound, ())),
-                    Err(_) => return Outcome::Failure((Status::InternalServerError, ())),
-                };
+                let rank_in_board =
+                    match super::persistence::rank_in_board(&postgres, &rank_id, &board_id) {
+                        Ok(r) => r,
+                        Err(diesel::result::Error::NotFound) => {
+                            return Outcome::Failure((Status::NotFound, ()))
+                        }
+                        Err(_) => return Outcome::Failure((Status::InternalServerError, ())),
+                    };
                 if rank_in_board {
                     return Outcome::Success(RankInBoard {});
                 }
@@ -97,12 +103,14 @@ impl<'a, 'r> FromRequest<'a, 'r> for CardInRank {
             if let Some(rank_id) = rank_id_result {
                 let postgres = request.guard::<DatabaseConnection>()?;
 
-                let card_in_rank = match super::persistence::card_in_rank(&postgres, &card_id, &rank_id)
-                {
-                    Ok(r) => r,
-                    Err(diesel::result::Error::NotFound) => return Outcome::Failure((Status::NotFound, ())),
-                    Err(_) => return Outcome::Failure((Status::InternalServerError, ())),
-                };
+                let card_in_rank =
+                    match super::persistence::card_in_rank(&postgres, &card_id, &rank_id) {
+                        Ok(r) => r,
+                        Err(diesel::result::Error::NotFound) => {
+                            return Outcome::Failure((Status::NotFound, ()))
+                        }
+                        Err(_) => return Outcome::Failure((Status::InternalServerError, ())),
+                    };
                 if card_in_rank {
                     return Outcome::Success(CardInRank {});
                 }
