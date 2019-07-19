@@ -26,17 +26,7 @@ pub fn rank_in_board(
     rank_id: &str,
     board_id: &str,
 ) -> Result<bool, Error> {
-    let result = get_rank(postgres, rank_id);
-    match result {
-        Ok(r) => {
-            if let Some(rank) = r {
-                return Ok(rank.board_id == board_id);
-            }
-            Ok(false)
-        }
-        Err(Error::NotFound) => Ok(false),
-        Err(e) => Err(e),
-    }
+    Ok(get_rank(&postgres, &rank_id)?.ok_or(Error::NotFound)?.board_id == board_id)
 }
 
 pub fn card_in_rank(
@@ -44,17 +34,14 @@ pub fn card_in_rank(
     card_id: &str,
     rank_id: &str,
 ) -> Result<bool, Error> {
-    let result = get_card(postgres, card_id);
-    match result {
-        Ok(c) => {
-            if let Some(card) = c {
-                return Ok(card.rank_id == rank_id);
-            }
-            Ok(false)
-        }
-        Err(Error::NotFound) => Ok(false),
-        Err(e) => Err(e),
-    }
+    Ok(get_card(&postgres, &card_id)?.ok_or(Error::NotFound)?.rank_id == rank_id)
+}
+
+pub fn cards_open(
+    postgres: &PgConnection,
+    board_id: &str,
+) -> Result<bool, Error> {
+    Ok(get_board(&postgres, &board_id)?.ok_or(Error::NotFound)?.cards_open)
 }
 
 pub fn put_board(

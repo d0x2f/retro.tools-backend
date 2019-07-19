@@ -68,6 +68,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for BoardOwner {
                 &board_id,
             ) {
                 Ok(r) => r,
+                Err(diesel::result::Error::NotFound) => return Outcome::Failure((Status::NotFound, ())),
                 Err(_) => return Outcome::Failure((Status::InternalServerError, ())),
             };
             if participant_owns_board {
@@ -93,6 +94,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for RankInBoard {
                 let rank_in_board = match persistence::rank_in_board(&postgres, &rank_id, &board_id)
                 {
                     Ok(r) => r,
+                    Err(diesel::result::Error::NotFound) => return Outcome::Failure((Status::NotFound, ())),
                     Err(_) => return Outcome::Failure((Status::InternalServerError, ())),
                 };
                 if rank_in_board {
@@ -119,6 +121,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for CardInRank {
                 let card_in_rank = match persistence::card_in_rank(&postgres, &card_id, &rank_id)
                 {
                     Ok(r) => r,
+                    Err(diesel::result::Error::NotFound) => return Outcome::Failure((Status::NotFound, ())),
                     Err(_) => return Outcome::Failure((Status::InternalServerError, ())),
                 };
                 if card_in_rank {
@@ -143,6 +146,11 @@ fn unprocessible_entity() -> &'static str {
 
 #[catch(404)]
 fn not_found() -> &'static str {
+    ""
+}
+
+#[catch(403)]
+fn forbidden() -> &'static str {
     ""
 }
 
@@ -182,6 +190,7 @@ fn main() {
             internal_error,
             unprocessible_entity,
             not_found,
+            forbidden,
             unauthorised,
             bad_request
         ])

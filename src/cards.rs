@@ -8,22 +8,34 @@ use super::CardInRank;
 use log::error;
 use rocket::http::Status;
 use rocket_contrib::json::{Json, JsonValue};
+use diesel::result::Error;
 
-#[post("/boards/<_board_id>/ranks/<rank_id>/cards", data = "<post_card>")]
+#[post("/boards/<board_id>/ranks/<rank_id>/cards", data = "<post_card>")]
 pub fn post_card(
     _participant_id: ParticipantId,
     _board_owner: BoardOwner,
     _rank_in_board: RankInBoard,
     postgres: DatabaseConnection,
-    _board_id: String,
+    board_id: String,
     rank_id: String,
     post_card: Json<PostCard>,
 ) -> Result<JsonValue, Status> {
+    // Check that voting is open for the board
+    let cards_open = match persistence::cards_open(&postgres, &board_id) {
+        Ok(b) => Ok(b),
+        Err(Error::NotFound) => Err(Status::NotFound),
+        Err(_) =>  Err(Status::InternalServerError)
+    }?;
+
+    if !cards_open {
+        return Err(Status::Forbidden);
+    }
+
     let new_card = NewCard {
         id: None,
         name: post_card.name,
         description: post_card.description,
-        rank_id: rank_id.as_str(),
+        rank_id: &rank_id,
     };
 
     persistence::put_card(&postgres, new_card)

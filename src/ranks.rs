@@ -19,7 +19,7 @@ pub fn post_rank(
     let new_rank = NewRank {
         id: None,
         name: post_rank.name,
-        board_id: board_id.as_str(),
+        board_id: &board_id,
     };
 
     persistence::put_rank(&postgres, new_rank)
