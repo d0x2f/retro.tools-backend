@@ -40,10 +40,10 @@ table! {
 }
 
 table! {
-    vote (id) {
-        id -> Int4,
-        card_id -> Bpchar,
+    vote (card_id, participant_id) {
         participant_id -> Bpchar,
+        card_id -> Bpchar,
+        count -> Int2,
     }
 }
 
@@ -54,4 +54,11 @@ joinable!(rank -> board (board_id));
 joinable!(vote -> card (card_id));
 joinable!(vote -> participant (participant_id));
 
-allow_tables_to_appear_in_same_query!(board, card, participant, participant_board, rank, vote,);
+allow_tables_to_appear_in_same_query!(
+    board,
+    card,
+    participant,
+    participant_board,
+    rank,
+    vote,
+);

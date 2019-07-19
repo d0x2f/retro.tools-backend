@@ -45,6 +45,12 @@ pub fn cards_open(postgres: &PgConnection, board_id: &str) -> Result<bool, Error
         .cards_open)
 }
 
+pub fn voting_open(postgres: &PgConnection, board_id: &str) -> Result<bool, Error> {
+    Ok(get_board(&postgres, &board_id)?
+        .ok_or(Error::NotFound)?
+        .voting_open)
+}
+
 pub fn put_board(
     postgres: &PgConnection,
     new_board: NewBoard,
@@ -216,4 +222,19 @@ pub fn delete_card(postgres: &PgConnection, card_id: &str) -> Result<usize, Erro
     use super::schema::card::dsl::*;
 
     diesel::delete(card.find(card_id)).execute(postgres)
+}
+
+pub fn put_vote(
+    postgres: &PgConnection,
+    _board_id: &str,
+    new_vote: NewVote,
+) -> Result<Vote, Error> {
+    use super::schema::vote::dsl::*;
+
+    diesel::insert_into(vote)
+        .values(new_vote)
+        .on_conflict((participant_id, card_id))
+        .do_update()
+        .set(count.eq(count + 1))
+        .get_result(postgres)
 }

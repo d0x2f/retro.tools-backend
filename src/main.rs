@@ -20,6 +20,7 @@ mod models;
 mod persistence;
 mod ranks;
 mod schema;
+mod votes;
 
 use rocket::*;
 
@@ -42,7 +43,8 @@ fn main() {
                 cards::get_cards,
                 cards::get_card,
                 cards::patch_card,
-                cards::delete_card
+                cards::delete_card,
+                votes::post_vote
             ],
         )
         .register(catchers![

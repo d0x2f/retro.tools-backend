@@ -115,26 +115,16 @@ pub struct NewCard<'a> {
     pub description: &'a str,
 }
 
-#[derive(Queryable, Identifiable, Serialize)]
-#[table_name = "vote"]
+#[derive(Queryable, Serialize)]
 pub struct Vote {
-    pub id: String,          // char(16)
-    pub rank_id: String,     // char(16)
-    pub name: String,        // varchar
-    pub description: String, // varchar
-}
-
-#[derive(Deserialize)]
-pub struct PostVote<'a> {
-    pub id: Option<&'a str>,
-    pub name: &'a str,
-    pub description: &'a str,
+    pub participant_id: String, // char(16)
+    pub card_id: String,        // char(16)
+    pub count: i16              // smallint
 }
 
 #[derive(Insertable, Deserialize)]
 #[table_name = "vote"]
 pub struct NewVote<'a> {
-    pub id: Option<i32>,
-    pub card_id: &'a str,
     pub participant_id: &'a str,
+    pub card_id: &'a str,
 }
