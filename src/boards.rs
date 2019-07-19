@@ -1,8 +1,8 @@
 use super::models::*;
 use super::persistence;
-use super::BoardOwner;
-use super::DatabaseConnection;
-use super::ParticipantId;
+use super::guards::BoardOwner;
+use super::guards::DatabaseConnection;
+use super::guards::ParticipantId;
 use log::error;
 use rocket::http::Status;
 use rocket_contrib::json::{Json, JsonValue};
