@@ -44,7 +44,8 @@ fn main() {
                 cards::get_card,
                 cards::patch_card,
                 cards::delete_card,
-                votes::post_vote
+                votes::post_vote,
+                votes::delete_vote
             ],
         )
         .register(catchers![

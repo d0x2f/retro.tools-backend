@@ -10,15 +10,11 @@ pub fn participant_owns_board(
 ) -> Result<bool, Error> {
     use super::schema::participant_board;
 
-    let found_participants: Vec<ParticipantBoard> = participant_board::dsl::participant_board
+    let participant: ParticipantBoard = participant_board::dsl::participant_board
         .find((participant_id, board_id))
-        .load(postgres)?;
+        .first(postgres)?;
 
-    if found_participants.is_empty() {
-        return Ok(false);
-    }
-
-    Ok(found_participants[0].owner)
+    Ok(participant.owner)
 }
 
 pub fn rank_in_board(
@@ -233,8 +229,31 @@ pub fn put_vote(
 
     diesel::insert_into(vote)
         .values(new_vote)
-        .on_conflict((participant_id, card_id))
+        .on_conflict((card_id, participant_id))
         .do_update()
-        .set(count.eq(count + 1))
+        .set(count.eq(count))   // Hack to get the vote back in the result
+        .get_result(postgres)
+}
+
+pub fn get_vote(
+    postgres: &PgConnection,
+    card_id: &str,
+    participant_id: &str,
+) -> Result<Option<Vote>, Error> {
+    use super::schema::vote::dsl;
+
+    let result = dsl::vote.find((card_id, participant_id)).first(postgres);
+    match result {
+        Ok(r) => Ok(Some(r)),
+        Err(Error::NotFound) => Ok(None),
+        Err(e) => Err(e),
+    }
+}
+
+pub fn patch_vote(postgres: &PgConnection, update_vote: &UpdateVote) -> Result<Vote, Error> {
+    use super::schema::vote::dsl::*;
+
+    diesel::update(vote.find((update_vote.card_id, update_vote.participant_id)))
+        .set(count.eq(update_vote.count))
         .get_result(postgres)
 }

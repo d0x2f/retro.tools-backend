@@ -1,5 +1,4 @@
 use diesel::PgConnection;
-use log::info;
 use rocket::http::Cookie;
 use rocket::http::Status;
 use rocket::request::FromRequest;
@@ -42,7 +41,6 @@ impl<'a, 'r> FromRequest<'a, 'r> for BoardOwner {
         let participant_id = request.guard::<ParticipantId>()?;
         if let Some(board_id) = request.get_param::<String>(1).and_then(|r| r.ok()) {
             let postgres = request.guard::<DatabaseConnection>()?;
-            info!("{}", board_id);
             let participant_owns_board = match super::persistence::participant_owns_board(
                 &postgres,
                 &participant_id.0,
