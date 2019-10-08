@@ -2,6 +2,32 @@
 
 This project is a restful backend for retrograde, an online agile retrospective tool.
 
+# Running Locally
+
+1. Start a postgres instance:
+
+```sh
+$ docker run --name postgres -e POSTGRES_PASSWORD=postgres -d -p 5432:5432 postgres:11
+```
+
+2. Create a "retrograde" database:
+
+```sh
+$ psql -h 127.0.0.1 -U postgres -c "create database retrograde;"
+```
+
+3. Run the database migrations using diesel:
+
+```sh
+$ diesel migration run
+```
+
+4. Start retrograde:
+
+```sh
+cargo run
+```
+
 # MVP:
   - make a board
   - view board as owner
