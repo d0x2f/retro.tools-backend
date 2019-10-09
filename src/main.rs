@@ -32,7 +32,11 @@ use std::collections::HashMap;
 use std::env;
 
 fn main() -> Result<(), Error> {
-  let allowed_origins = AllowedOrigins::some_exact(&["http://127.0.0.1:5000"]);
+  let allowed_origins = AllowedOrigins::some_regex(&[
+    "^http://127.0.0.1:(.*)$",
+    "^http://localhost:(.*)$",
+    "^https://(.*).dyl.dog$",
+  ]);
 
   let cors_fairing = rocket_cors::CorsOptions {
     allowed_origins,
