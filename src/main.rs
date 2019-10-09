@@ -1,5 +1,6 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 
+extern crate openssl;
 #[macro_use]
 extern crate rocket;
 #[macro_use]
@@ -22,10 +23,13 @@ mod ranks;
 mod schema;
 mod votes;
 
+use rocket::config::{Config, Environment, Value};
 use rocket::http::Method;
 use rocket::*;
 use rocket_cors;
 use rocket_cors::{AllowedOrigins, Error};
+use std::collections::HashMap;
+use std::env;
 
 fn main() -> Result<(), Error> {
   let allowed_origins = AllowedOrigins::some_exact(&["http://127.0.0.1:5000"]);
@@ -41,7 +45,38 @@ fn main() -> Result<(), Error> {
   }
   .to_cors()?;
 
-  rocket::ignite()
+  let port = env::var("PORT")
+    .unwrap_or("8000".to_owned())
+    .parse()
+    .unwrap();
+
+  let connection_string = env::var("PSQL_CONNECTION_STRING")
+    .unwrap_or("postgres://postgres:postgres@postgres/retrograde".to_owned());
+
+  let environment = match env::var("ENVIRONMENT")
+    .unwrap_or("development".to_owned())
+    .as_str()
+  {
+    "production" => Environment::Production,
+    _ => Environment::Development,
+  };
+
+  let mut database_config = HashMap::new();
+  let mut databases = HashMap::new();
+
+  database_config.insert("url", Value::from(connection_string));
+  databases.insert("postgres", Value::from(database_config));
+
+  let config = Config::build(environment)
+    .address("0.0.0.0")
+    .port(port)
+    .extra("databases", databases)
+    .finalize()
+    .unwrap();
+
+  println!("{}", port);
+
+  rocket::custom(config)
     .mount(
       "/",
       routes![

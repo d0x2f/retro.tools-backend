@@ -1,0 +1,27 @@
+version: '3.7'
+
+services:
+  api:
+    build:
+      context: .
+    depends_on:
+      - postgres
+    links:
+      - postgres
+    ports:
+      - 80:8000
+    environment:
+      PORT: 8000
+      PSQL_CONNECTION_STRING: postgres://postgres:postgres@postgres/retrograde
+
+  postgres:
+    image: postgres:11
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres:/var/lib/postgresql/data
+
+volumes:
+  postgres:
