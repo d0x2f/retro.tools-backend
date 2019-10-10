@@ -356,16 +356,6 @@ ALTER TABLE ONLY public.vote
 
 
 --
--- Name: SCHEMA public; Type: ACL; Schema: -; Owner: cloudsqlsuperuser
---
-
-REVOKE ALL ON SCHEMA public FROM cloudsqladmin;
-REVOKE ALL ON SCHEMA public FROM PUBLIC;
-GRANT ALL ON SCHEMA public TO cloudsqlsuperuser;
-GRANT ALL ON SCHEMA public TO PUBLIC;
-
-
---
 -- PostgreSQL database dump complete
 --
 
