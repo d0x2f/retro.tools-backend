@@ -20,7 +20,7 @@ $ source $HOME/.cargo/env
 
 ```sh
 $ sudo apt update
-$ sudo apt install build-essential libpq-dev
+$ sudo apt install build-essential libpq-dev postgresql-client
 ```
 
 4. Select the nightly rust toolchain
@@ -32,6 +32,7 @@ $ rustup default nightly
 5. Build retrograde and install project dependencies:
 
 ```sh
+$ cargo install diesel_cli --no-default-features --features postgres
 $ cargo build
 ```
 
