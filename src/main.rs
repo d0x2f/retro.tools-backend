@@ -57,6 +57,10 @@ fn main() -> Result<(), Error> {
   let connection_string = env::var("PSQL_CONNECTION_STRING")
     .unwrap_or("postgres://postgres:postgres@postgres/retrograde".to_owned());
 
+  // TODO: panic if in production mode and no key was given.
+  let secret_key =
+    env::var("SECRET_KEY").unwrap_or("p5jimVesy/p+q3ZF5xwuiQ7G0mBEHmaVBBz7mWXqqqg=".to_owned());
+
   let environment = match env::var("ENVIRONMENT")
     .unwrap_or("development".to_owned())
     .as_str()
@@ -74,6 +78,7 @@ fn main() -> Result<(), Error> {
   let config = Config::build(environment)
     .address("0.0.0.0")
     .port(port)
+    .secret_key(secret_key)
     .extra("databases", databases)
     .finalize()
     .unwrap();
