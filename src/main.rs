@@ -2,6 +2,8 @@
 
 extern crate openssl;
 #[macro_use]
+extern crate diesel_migrations;
+#[macro_use]
 extern crate rocket;
 #[macro_use]
 extern crate rocket_contrib;
@@ -10,6 +12,7 @@ extern crate serde_derive;
 #[macro_use]
 extern crate diesel;
 extern crate env_logger;
+#[macro_use]
 extern crate log;
 extern crate rand;
 
@@ -24,21 +27,39 @@ mod schema;
 mod votes;
 
 use rocket::config::{Config, Environment, Value};
+use rocket::fairing::AdHoc;
 use rocket::http::Method;
 use rocket::*;
 use rocket_cors;
+use rocket_cors::Cors;
 use rocket_cors::{AllowedOrigins, Error};
 use std::collections::HashMap;
 use std::env;
 
-fn main() -> Result<(), Error> {
+embed_migrations!();
+
+fn run_db_migrations(rocket: Rocket) -> Result<Rocket, Rocket> {
+  let conn = guards::DatabaseConnection::get_one(&rocket).expect("database connection");
+  match embedded_migrations::run(&*conn) {
+    Ok(()) => Ok(rocket),
+    Err(e) => {
+      error!("Failed to run database migrations: {:?}", e);
+      Err(rocket)
+    }
+  }
+}
+
+// TODO:
+//   - Only add localhost if environment isn't production.
+//   - Take production origin as an environment var.
+fn create_cors_fairing() -> Cors {
   let allowed_origins = AllowedOrigins::some_regex(&[
     "^http://127.0.0.1:(.*)$",
     "^http://localhost:(.*)$",
-    "^https://(.*).dyl.dog$",
+    "^https?://(.*).dyl.dog$",
   ]);
 
-  let cors_fairing = rocket_cors::CorsOptions {
+  rocket_cors::CorsOptions {
     allowed_origins,
     allowed_methods: vec![Method::Get, Method::Post, Method::Patch, Method::Delete]
       .into_iter()
@@ -47,15 +68,18 @@ fn main() -> Result<(), Error> {
     allow_credentials: true,
     ..Default::default()
   }
-  .to_cors()?;
+  .to_cors()
+  .expect("cors object")
+}
 
+fn build_config() -> Config {
   let port = env::var("PORT")
     .unwrap_or("8000".to_owned())
     .parse()
     .unwrap();
 
   let connection_string = env::var("PSQL_CONNECTION_STRING")
-    .unwrap_or("postgres://postgres:postgres@postgres/retrograde".to_owned());
+    .unwrap_or("postgres://postgres:postgres@127.0.0.1/retrograde".to_owned());
 
   // TODO: panic if in production mode and no key was given.
   let secret_key =
@@ -75,17 +99,20 @@ fn main() -> Result<(), Error> {
   database_config.insert("url", Value::from(connection_string));
   databases.insert("postgres", Value::from(database_config));
 
-  let config = Config::build(environment)
+  Config::build(environment)
     .address("0.0.0.0")
     .port(port)
     .secret_key(secret_key)
     .extra("databases", databases)
     .finalize()
-    .unwrap();
+    .unwrap()
+}
 
-  println!("{}", port);
-
-  rocket::custom(config)
+fn main() -> Result<(), Error> {
+  rocket::custom(build_config())
+    .attach(guards::DatabaseConnection::fairing())
+    .attach(create_cors_fairing())
+    .attach(AdHoc::on_attach("Database Migrations", run_db_migrations))
     .mount(
       "/",
       routes![
@@ -116,8 +143,6 @@ fn main() -> Result<(), Error> {
       catchers::unauthorised,
       catchers::bad_request
     ])
-    .attach(guards::DatabaseConnection::fairing())
-    .attach(cors_fairing)
     .launch();
 
   Ok(())
