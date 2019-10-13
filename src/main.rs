@@ -81,6 +81,11 @@ fn build_config() -> Config {
   let connection_string = env::var("PSQL_CONNECTION_STRING")
     .unwrap_or("postgres://postgres:postgres@127.0.0.1/retrograde".to_owned());
 
+  let connection_pool_size: i32 = env::var("PSQL_CONNECTION_POOL_SIZE")
+    .unwrap_or("1".to_owned())
+    .parse()
+    .unwrap();
+
   // TODO: panic if in production mode and no key was given.
   let secret_key =
     env::var("SECRET_KEY").unwrap_or("p5jimVesy/p+q3ZF5xwuiQ7G0mBEHmaVBBz7mWXqqqg=".to_owned());
@@ -97,6 +102,7 @@ fn build_config() -> Config {
   let mut databases = HashMap::new();
 
   database_config.insert("url", Value::from(connection_string));
+  database_config.insert("pool_size", Value::from(connection_pool_size));
   databases.insert("postgres", Value::from(database_config));
 
   Config::build(environment)

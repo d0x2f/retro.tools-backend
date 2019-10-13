@@ -1,2 +1,3 @@
 [global.databases.postgres]
 url = "postgres://postgres:postgres@localhost/retrograde"
+pool_size = 1
