@@ -115,6 +115,8 @@ fn build_config() -> Config {
 }
 
 fn main() -> Result<(), Error> {
+  env_logger::init();
+
   rocket::custom(build_config())
     .attach(guards::DatabaseConnection::fairing())
     .attach(create_cors_fairing())
@@ -133,10 +135,12 @@ fn main() -> Result<(), Error> {
         ranks::patch_rank,
         ranks::delete_rank,
         cards::post_card,
-        cards::get_cards,
+        cards::get_board_cards,
+        cards::get_rank_cards,
         cards::get_card,
         cards::patch_card,
         cards::delete_card,
+        votes::get_votes,
         votes::post_vote,
         votes::delete_vote
       ],
