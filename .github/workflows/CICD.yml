@@ -1,21 +1,25 @@
 name: CI/CD
 
-on: [push]
+on:
+  push:
+    branches:
+    - master
 
 jobs:
   cicd:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macOS-latest]
-        rust: [nightly]
+    runs-on: ubuntu-latest
 
     steps:
-    - uses: hecrj/setup-rust-action@v1
-      with:
-        rust-version: ${{ matrix.rust }}
     - uses: actions/checkout@v1
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+    - name: Setup Google Cloud
+      uses: actions/gcloud/auth@master
+      env:
+        GCLOUD_AUTH: ${{ secrets.GCP_ACCOUNT_CREDENTIALS }}
+    - name: Docker build
+      uses: docker://gcr.io/cloud-builders/docker
+      with:
+        args: build . -t gcr.io/retrograde/retrograde:latest
+    - name: Docker push
+      uses: docker://gcr.io/cloud-builders/docker
+      with:
+        args: push gcr.io/retrograde/retrograde:latest
