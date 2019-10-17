@@ -90,3 +90,72 @@ pub fn delete_board(
       Status::InternalServerError
     })
 }
+
+#[cfg(test)]
+mod tests {
+
+  use super::super::models::Board;
+  use super::super::test_setup;
+  use rocket::http::ContentType;
+  use rocket::http::Status;
+
+  #[test]
+  fn test_post_board() {
+    let client = test_setup();
+    // Create a board
+    let mut response = client
+      .post("/boards")
+      .header(ContentType::JSON)
+      .body(
+        r#"{ "name": "test board", "max_votes": 37, "voting_open": false, "cards_open": true }"#,
+      )
+      .dispatch();
+
+    let response_board: Board =
+      serde_json::from_str(response.body_string().unwrap().as_str()).unwrap();
+
+    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response_board.name, "test board");
+    assert_eq!(response_board.max_votes, 37);
+    assert_eq!(response_board.voting_open, false);
+    assert_eq!(response_board.cards_open, true);
+  }
+
+  #[test]
+  fn test_get_boards_empty() {
+    let client = test_setup();
+    let request = client.get("/boards");
+    let mut response = request.dispatch();
+
+    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response.body_string(), Some("[]".into()));
+  }
+
+  #[test]
+  fn test_get_boards() {
+    let client = test_setup();
+
+    // Create a board
+    let test_response = client
+      .post("/boards")
+      .header(ContentType::JSON)
+      .body(r#"{ "name": "test", "max_votes": 47, "voting_open": true, "cards_open": false }"#)
+      .dispatch();
+
+    assert_eq!(test_response.status(), Status::Ok);
+
+    // Get the boards
+    let request = client.get("/boards");
+    let mut response = request.dispatch();
+    let response_boards: Vec<Board> =
+      serde_json::from_str(response.body_string().unwrap().as_str()).unwrap();
+
+    assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response_boards.len(), 1);
+    assert_eq!(response_boards[0].name, "test");
+    assert_eq!(response_boards[0].max_votes, 47);
+    assert_eq!(response_boards[0].voting_open, true);
+    assert_eq!(response_boards[0].cards_open, false);
+  }
+
+}

@@ -16,13 +16,7 @@ $ docker run --name postgres -e POSTGRES_PASSWORD=postgres -d -p 5432:5432 postg
 $ psql -h 127.0.0.1 -U postgres -c "create database retrograde;"
 ```
 
-3. Run the database migrations using diesel:
-
-```sh
-$ diesel migration run
-```
-
-4. Start retrograde:
+3. Start retrograde:
 
 ```sh
 cargo run

@@ -5,7 +5,7 @@ use super::schema::participant_board;
 use super::schema::rank;
 use super::schema::vote;
 
-#[derive(Queryable, Identifiable, Serialize)]
+#[derive(Queryable, Identifiable, Serialize, Deserialize)]
 #[table_name = "board"]
 pub struct Board {
   pub id: String,        // char(16)

@@ -74,24 +74,24 @@ fn create_cors_fairing() -> Cors {
 
 fn build_config() -> Config {
   let port = env::var("PORT")
-    .unwrap_or("8000".to_owned())
+    .unwrap_or_else(|_| "8000".to_owned())
     .parse()
     .unwrap();
 
   let connection_string = env::var("PSQL_CONNECTION_STRING")
-    .unwrap_or("postgres://postgres:postgres@127.0.0.1/retrograde".to_owned());
+    .unwrap_or_else(|_| "postgres://postgres:postgres@127.0.0.1/retrograde".to_owned());
 
   let connection_pool_size: i32 = env::var("PSQL_CONNECTION_POOL_SIZE")
-    .unwrap_or("1".to_owned())
+    .unwrap_or_else(|_| "1".to_owned())
     .parse()
     .unwrap();
 
   // TODO: panic if in production mode and no key was given.
-  let secret_key =
-    env::var("SECRET_KEY").unwrap_or("p5jimVesy/p+q3ZF5xwuiQ7G0mBEHmaVBBz7mWXqqqg=".to_owned());
+  let secret_key = env::var("SECRET_KEY")
+    .unwrap_or_else(|_| "p5jimVesy/p+q3ZF5xwuiQ7G0mBEHmaVBBz7mWXqqqg=".to_owned());
 
   let environment = match env::var("ENVIRONMENT")
-    .unwrap_or("development".to_owned())
+    .unwrap_or_else(|_| "development".to_owned())
     .as_str()
   {
     "production" => Environment::Production,
@@ -114,10 +114,8 @@ fn build_config() -> Config {
     .unwrap()
 }
 
-fn main() -> Result<(), Error> {
-  env_logger::init();
-
-  rocket::custom(build_config())
+fn rocket(config: Config) -> Rocket {
+  rocket::custom(config)
     .attach(guards::DatabaseConnection::fairing())
     .attach(create_cors_fairing())
     .attach(AdHoc::on_attach("Database Migrations", run_db_migrations))
@@ -153,7 +151,52 @@ fn main() -> Result<(), Error> {
       catchers::unauthorised,
       catchers::bad_request
     ])
-    .launch();
+}
 
+#[cfg(test)]
+use rocket::local::Client;
+
+#[cfg(test)]
+fn test_cleanup() {
+  use diesel::pg::PgConnection;
+  use diesel::RunQueryDsl;
+  use rocket_contrib::databases::diesel::Connection;
+  use schema::board;
+
+  let dbstring: String = "postgres://postgres:postgres@127.0.0.1/retrograde".into();
+  let db = PgConnection::establish(&dbstring).expect("database connection");
+
+  diesel::delete(board::table)
+    .execute(&db)
+    .expect("database cleanup");
+}
+
+#[cfg(test)]
+fn test_setup() -> Client {
+  test_cleanup();
+  let mut database_config = HashMap::new();
+  let mut databases = HashMap::new();
+
+  database_config.insert(
+    "url",
+    Value::from("postgres://postgres:postgres@127.0.0.1/retrograde"),
+  );
+  database_config.insert("pool_size", Value::from(1));
+  databases.insert("postgres", Value::from(database_config));
+
+  let config = Config::build(Environment::Development)
+    .address("0.0.0.0")
+    .port(80)
+    .secret_key("apnUQicUZ8QRDN1+rlIGdvhfdabLCTg4aGd0MHFQIPQ=")
+    .extra("databases", databases)
+    .finalize()
+    .unwrap();
+
+  Client::new(rocket(config)).expect("valid rocket instance")
+}
+
+fn main() -> Result<(), Error> {
+  env_logger::init();
+  rocket(build_config()).launch();
   Ok(())
 }
