@@ -154,26 +154,44 @@ fn rocket(config: Config) -> Rocket {
 }
 
 #[cfg(test)]
+extern crate parking_lot;
+
+#[cfg(test)]
+use parking_lot::Mutex;
+#[cfg(test)]
 use rocket::local::Client;
+
+#[cfg(test)]
+static DB_LOCK: Mutex<()> = Mutex::new(());
 
 #[cfg(test)]
 fn test_cleanup() {
   use diesel::pg::PgConnection;
   use diesel::RunQueryDsl;
   use rocket_contrib::databases::diesel::Connection;
-  use schema::board;
+  use schema::{board, participant};
 
   let dbstring: String = "postgres://postgres:postgres@127.0.0.1/retrograde".into();
   let db = PgConnection::establish(&dbstring).expect("database connection");
+  embedded_migrations::run(&db).expect("database migrations");
 
   diesel::delete(board::table)
     .execute(&db)
-    .expect("database cleanup");
+    .expect("database cleanup (board)");
+  diesel::delete(participant::table)
+    .execute(&db)
+    .expect("database cleanup (participant)");
 }
 
 #[cfg(test)]
-fn test_setup() -> Client {
+fn run_test<F>(test: F)
+where
+  F: FnOnce(Client),
+{
+  let _lock = DB_LOCK.lock();
+
   test_cleanup();
+
   let mut database_config = HashMap::new();
   let mut databases = HashMap::new();
 
@@ -192,7 +210,9 @@ fn test_setup() -> Client {
     .finalize()
     .unwrap();
 
-  Client::new(rocket(config)).expect("valid rocket instance")
+  let client = Client::new(rocket(config)).expect("valid rocket instance");
+
+  test(client);
 }
 
 fn main() -> Result<(), Error> {

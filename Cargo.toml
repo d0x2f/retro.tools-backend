@@ -21,3 +21,6 @@ diesel_migrations = "1.4.0"
 version = "0.4"
 default-features = false
 features = ["json", "diesel_postgres_pool"]
+
+[dev-dependencies]
+parking_lot = { version = "0.9", features = ["nightly"] }
