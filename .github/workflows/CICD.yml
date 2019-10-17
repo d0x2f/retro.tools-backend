@@ -18,13 +18,17 @@ jobs:
           POSTGRES_DB: retrograde
     steps:
     - uses: actions/checkout@v1
+    - id: component
+      uses: actions-rs/components-nightly@v1
+      with:
+        component: clippy
     - name: Install nightly
       uses: actions-rs/toolchain@v1
       with:
-          toolchain: nightly
+          toolchain: ${{ steps.component.outputs.toolchain }}
           default: true
-    - name: Install dependencies
-      run: sudo apt-get install libpq-dev
+    - run: rustup component add clippy
+    - run: sudo apt-get install libpq-dev
     - name: Check
       uses: actions-rs/cargo@v1
       with:
@@ -38,9 +42,10 @@ jobs:
       with:
         command: test
     - name: Run clippy
-      uses: actions-rs/cargo@v1
+      uses: actions-rs/clippy-check@v1
       with:
-        command: clippy -- -Dwarnings
+        token: ${{ secrets.GITHUB_TOKEN }}
+        args: --all-features -- -Dwarnings
 
   cd:
     runs-on: ubuntu-latest

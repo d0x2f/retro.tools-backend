@@ -136,13 +136,13 @@ mod tests {
   #[test]
   fn test_get_boards() {
     run_test(|client: Client| {
-      let test_response = client
+      let create_response = client
         .post("/boards")
         .header(ContentType::JSON)
         .body(r#"{ "name": "test", "max_votes": 47, "voting_open": true, "cards_open": false }"#)
         .dispatch();
 
-      assert_eq!(test_response.status(), Status::Ok);
+      assert_eq!(create_response.status(), Status::Ok);
 
       // Get the boards
       let request = client.get("/boards");
