@@ -14,8 +14,8 @@ jobs:
         ports:
         - 5432:5432
         env:
-          POSTGRES_PASSWORD=postgres
-          POSTGRES_DB=retrograde
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: retrograde
     steps:
     - uses: actions/checkout@v1
     - name: Install nightly
