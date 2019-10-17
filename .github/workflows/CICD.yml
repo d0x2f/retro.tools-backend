@@ -16,7 +16,7 @@ jobs:
           toolchain: nightly
           default: true
     - name: Install dependencies
-      run: apt install libpq-dev
+      run: sudo apt-get install libpq-dev
     - name: Check
       uses: actions-rs/cargo@v1
       with:
