@@ -24,3 +24,7 @@ jobs:
       with:
         entrypoint: /bin/sh
         args: "-c \"gcloud auth configure-docker && docker push gcr.io/retrograde/retrograde:latest\""
+    - name: Deploy cloud run revision
+      uses: actions/gcloud/cli@master
+      with:
+        args: gcloud beta run deploy retrograde --image gcr.io/retrograde/retrograde:latest --platform managed --region=asia-northeast1
