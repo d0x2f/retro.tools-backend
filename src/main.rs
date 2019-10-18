@@ -16,6 +16,9 @@ extern crate env_logger;
 extern crate log;
 extern crate rand;
 
+#[cfg(test)]
+mod testing;
+
 mod boards;
 mod cards;
 mod catchers;
@@ -31,8 +34,8 @@ use rocket::fairing::AdHoc;
 use rocket::http::Method;
 use rocket::*;
 use rocket_cors;
+use rocket_cors::{ AllowedOrigins, Error };
 use rocket_cors::Cors;
-use rocket_cors::{AllowedOrigins, Error};
 use std::collections::HashMap;
 use std::env;
 
@@ -151,68 +154,6 @@ fn rocket(config: Config) -> Rocket {
       catchers::unauthorised,
       catchers::bad_request
     ])
-}
-
-#[cfg(test)]
-extern crate parking_lot;
-
-#[cfg(test)]
-use parking_lot::Mutex;
-#[cfg(test)]
-use rocket::local::Client;
-
-#[cfg(test)]
-static DB_LOCK: Mutex<()> = Mutex::new(());
-
-#[cfg(test)]
-fn test_cleanup() {
-  use diesel::pg::PgConnection;
-  use diesel::RunQueryDsl;
-  use rocket_contrib::databases::diesel::Connection;
-  use schema::{board, participant};
-
-  let dbstring: String = "postgres://postgres:postgres@127.0.0.1/retrograde".into();
-  let db = PgConnection::establish(&dbstring).expect("database connection");
-  embedded_migrations::run(&db).expect("database migrations");
-
-  diesel::delete(board::table)
-    .execute(&db)
-    .expect("database cleanup (board)");
-  diesel::delete(participant::table)
-    .execute(&db)
-    .expect("database cleanup (participant)");
-}
-
-#[cfg(test)]
-fn run_test<F>(test: F)
-where
-  F: FnOnce(Client),
-{
-  let _lock = DB_LOCK.lock();
-
-  test_cleanup();
-
-  let mut database_config = HashMap::new();
-  let mut databases = HashMap::new();
-
-  database_config.insert(
-    "url",
-    Value::from("postgres://postgres:postgres@127.0.0.1/retrograde"),
-  );
-  database_config.insert("pool_size", Value::from(1));
-  databases.insert("postgres", Value::from(database_config));
-
-  let config = Config::build(Environment::Development)
-    .address("0.0.0.0")
-    .port(80)
-    .secret_key("apnUQicUZ8QRDN1+rlIGdvhfdabLCTg4aGd0MHFQIPQ=")
-    .extra("databases", databases)
-    .finalize()
-    .unwrap();
-
-  let client = Client::new(rocket(config)).expect("valid rocket instance");
-
-  test(client);
 }
 
 fn main() -> Result<(), Error> {

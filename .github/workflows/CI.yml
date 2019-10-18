@@ -1,0 +1,46 @@
+name: CI/CD
+
+on:
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:11
+        ports:
+        - 5432:5432
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: retrograde
+    steps:
+    - uses: actions/checkout@v1
+    - id: component
+      uses: actions-rs/components-nightly@v1
+      with:
+        component: clippy
+    - name: Install nightly
+      uses: actions-rs/toolchain@v1
+      with:
+          toolchain: ${{ steps.component.outputs.toolchain }}
+          default: true
+    - run: rustup component add clippy
+    - run: sudo apt-get install libpq-dev
+    - name: Check
+      uses: actions-rs/cargo@v1
+      with:
+        command: check
+    - name: Build
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+    - name: Run tests
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+    - name: Run clippy
+      uses: actions-rs/clippy-check@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        args: --all-features -- -Dwarnings
