@@ -1,13 +1,13 @@
 extern crate parking_lot;
 
+use super::models::{Board, NewBoard, NewRank, Rank};
 use super::schema::{board, participant};
 use super::{embedded_migrations, guards, rocket};
 use parking_lot::Mutex;
 use rocket::config::{Config, Environment, Value};
+use rocket::http::ContentType;
 use rocket::local::Client;
 use std::collections::HashMap;
-use super::models::{Board, NewBoard, Rank, NewRank};
-use rocket::http::ContentType;
 
 static DB_LOCK: Mutex<()> = Mutex::new(());
 
@@ -29,6 +29,8 @@ pub fn run_test<F>(test: F)
 where
   F: FnOnce(Client, &PgConnection),
 {
+  let _lock = DB_LOCK.lock();
+
   let mut database_config = HashMap::new();
   let mut databases = HashMap::new();
 
@@ -51,13 +53,12 @@ where
   let db = guards::DatabaseConnection::get_one(&rocket).expect("database connection");
   let client = Client::new(rocket).expect("valid rocket instance");
 
-  let _lock = DB_LOCK.lock();
   test_cleanup(&db);
   test(client, &db);
 }
 
 /// Create a board
-pub fn create_board(client: &Client, board: &NewBoard ) -> Board {
+pub fn create_board(client: &Client, board: &NewBoard) -> Board {
   let mut response = client
     .post("/boards")
     .header(ContentType::JSON)
