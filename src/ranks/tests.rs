@@ -40,7 +40,7 @@ fn test_post_rank() {
     assert_eq!(response.status(), Status::Ok);
     assert_eq!(response_rank.name, "test rank");
 
-    // Ensure the database contains only the new board
+    // Ensure the database contains only the new rank
     let db_ranks = rank_table.load::<Rank>(db).unwrap();
 
     assert_eq!(db_ranks.len(), 1);
@@ -85,9 +85,9 @@ fn test_get_ranks() {
         ..Default::default()
       },
     );
-    create_rank(
-      &client,
-      &NewRank {
+    let rank = create_rank(
+      db,
+      NewRank {
         id: None,
         board_id: &board.id,
         name: "test rank",
@@ -102,6 +102,7 @@ fn test_get_ranks() {
 
     assert_eq!(response.status(), Status::Ok);
     assert_eq!(response_ranks.len(), 1);
+    assert_eq!(response_ranks[0].id, rank.id);
     assert_eq!(response_ranks[0].name, "test rank");
     assert_eq!(response_ranks[0].board_id, board.id);
 
@@ -127,21 +128,22 @@ fn test_get_rank() {
       },
     );
     let rank = create_rank(
-      &client,
-      &NewRank {
+      db,
+      NewRank {
         id: None,
         board_id: &board.id,
         name: "test rank",
       },
     );
 
-    // Get the ranks
+    // Get the rank
     let request = client.get(format!("/boards/{}/ranks/{}", board.id, rank.id));
     let mut response = request.dispatch();
     let response_rank: Rank =
       serde_json::from_str(response.body_string().unwrap().as_str()).unwrap();
 
     assert_eq!(response.status(), Status::Ok);
+    assert_eq!(response_rank.id, rank.id);
     assert_eq!(response_rank.name, "test rank");
     assert_eq!(response_rank.board_id, board.id);
 
@@ -167,8 +169,8 @@ fn test_patch_rank() {
       },
     );
     let rank = create_rank(
-      &client,
-      &NewRank {
+      db,
+      NewRank {
         id: None,
         board_id: &board.id,
         name: "test rank",
@@ -215,8 +217,8 @@ fn test_delete_rank() {
       },
     );
     let rank = create_rank(
-      &client,
-      &NewRank {
+      db,
+      NewRank {
         id: None,
         board_id: &board.id,
         name: "test rank",

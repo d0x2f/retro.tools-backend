@@ -1,6 +1,7 @@
 extern crate parking_lot;
 
-use super::models::{Board, NewBoard, NewRank, Rank};
+use super::models::{Board, Card, NewBoard, NewCard, NewRank, Rank};
+use super::persistence::{put_card, put_rank};
 use super::schema::{board, participant};
 use super::{embedded_migrations, guards, rocket};
 use parking_lot::Mutex;
@@ -68,11 +69,11 @@ pub fn create_board(client: &Client, board: &NewBoard) -> Board {
 }
 
 /// Create a rank
-pub fn create_rank(client: &Client, rank: &NewRank) -> Rank {
-  let mut response = client
-    .post(format!("/boards/{}/ranks", rank.board_id))
-    .header(ContentType::JSON)
-    .body(serde_json::to_string(rank).unwrap())
-    .dispatch();
-  serde_json::from_str(response.body_string().unwrap().as_str()).unwrap()
+pub fn create_rank(db: &PgConnection, rank: NewRank) -> Rank {
+  put_rank(db, rank).unwrap()
+}
+
+/// Create a card
+pub fn create_card(db: &PgConnection, card: NewCard) -> Card {
+  put_card(db, card).unwrap()
 }

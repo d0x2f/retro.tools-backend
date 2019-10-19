@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use super::guards::BoardOwner;
 use super::guards::CardInRank;
 use super::guards::DatabaseConnection;
