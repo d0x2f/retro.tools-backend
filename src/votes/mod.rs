@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use super::guards::BoardOwner;
 use super::guards::CardInRank;
 use super::guards::DatabaseConnection;
@@ -25,10 +28,7 @@ pub fn post_vote(
 ) -> Result<JsonValue, Status> {
   let board = match persistence::get_board(&postgres, &board_id) {
     Ok(Some(b)) => Ok(b),
-    Ok(None) => {
-      error!("{}", "test");
-      return Err(Status::NotFound);
-    }
+    Ok(None) => Err(Status::NotFound),
     Err(Error::NotFound) => Err(Status::NotFound),
     Err(error) => {
       error!("{}", error.to_string());
@@ -48,7 +48,7 @@ pub fn post_vote(
     count: Some(0),
   };
 
-  let vote = persistence::put_vote(&postgres, &board_id, new_vote).map_err(|error| {
+  let vote = persistence::put_vote(&postgres, new_vote).map_err(|error| {
     error!("{}", error.to_string());
     Status::InternalServerError
   })?;

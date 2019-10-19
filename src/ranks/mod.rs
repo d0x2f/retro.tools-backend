@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use super::guards::BoardOwner;
 use super::guards::DatabaseConnection;
 use super::guards::ParticipantId;

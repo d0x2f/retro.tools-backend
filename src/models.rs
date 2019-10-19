@@ -15,7 +15,7 @@ pub struct Board {
   pub cards_open: bool,  // bool
 }
 
-#[derive(AsChangeset, Deserialize)]
+#[derive(AsChangeset, Serialize, Deserialize)]
 #[table_name = "board"]
 pub struct UpdateBoard {
   pub name: Option<String>,
@@ -24,7 +24,7 @@ pub struct UpdateBoard {
   pub cards_open: Option<bool>,
 }
 
-#[derive(Insertable, Deserialize)]
+#[derive(Insertable, Serialize, Deserialize, Default)]
 #[table_name = "board"]
 pub struct NewBoard<'a> {
   pub id: Option<&'a str>,
@@ -55,7 +55,7 @@ pub struct NewParticipantBoard<'a> {
   pub owner: bool,
 }
 
-#[derive(Queryable, Identifiable, Serialize)]
+#[derive(Queryable, Identifiable, Serialize, Deserialize)]
 #[table_name = "rank"]
 pub struct Rank {
   pub id: String,       // char(16)
@@ -63,7 +63,7 @@ pub struct Rank {
   pub name: String,     // varchar
 }
 
-#[derive(AsChangeset, Deserialize)]
+#[derive(AsChangeset, Serialize, Deserialize)]
 #[table_name = "rank"]
 pub struct UpdateRank {
   pub name: String,
@@ -75,7 +75,7 @@ pub struct PostRank<'a> {
   pub name: &'a str,
 }
 
-#[derive(Insertable, Deserialize)]
+#[derive(Insertable, Serialize, Deserialize)]
 #[table_name = "rank"]
 pub struct NewRank<'a> {
   pub id: Option<&'a str>,
@@ -83,7 +83,7 @@ pub struct NewRank<'a> {
   pub name: &'a str,
 }
 
-#[derive(Queryable, Identifiable, Serialize)]
+#[derive(Queryable, Identifiable, Serialize, Deserialize)]
 #[table_name = "card"]
 pub struct Card {
   pub id: String,          // char(16)
@@ -92,7 +92,7 @@ pub struct Card {
   pub description: String, // varchar
 }
 
-#[derive(AsChangeset, Deserialize)]
+#[derive(AsChangeset, Serialize, Deserialize)]
 #[table_name = "card"]
 pub struct UpdateCard {
   pub name: Option<String>,
@@ -106,7 +106,7 @@ pub struct PostCard<'a> {
   pub description: &'a str,
 }
 
-#[derive(Insertable, Deserialize)]
+#[derive(Insertable, Serialize, Deserialize)]
 #[table_name = "card"]
 pub struct NewCard<'a> {
   pub id: Option<&'a str>,
@@ -115,7 +115,7 @@ pub struct NewCard<'a> {
   pub description: &'a str,
 }
 
-#[derive(AsChangeset, Queryable, Serialize)]
+#[derive(AsChangeset, Queryable, Serialize, Deserialize)]
 #[table_name = "vote"]
 pub struct Vote {
   pub participant_id: String, // char(16)

@@ -243,7 +243,6 @@ pub fn delete_card(postgres: &PgConnection, card_id: &str) -> Result<usize, Erro
 
 pub fn put_vote(
   postgres: &PgConnection,
-  _board_id: &str,
   new_vote: NewVote,
 ) -> Result<Vote, Error> {
   use super::schema::vote::dsl::*;
