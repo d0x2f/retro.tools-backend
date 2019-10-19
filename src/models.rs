@@ -115,7 +115,7 @@ pub struct NewCard<'a> {
   pub description: &'a str,
 }
 
-#[derive(AsChangeset, Queryable, Serialize)]
+#[derive(AsChangeset, Queryable, Serialize, Deserialize)]
 #[table_name = "vote"]
 pub struct Vote {
   pub participant_id: String, // char(16)

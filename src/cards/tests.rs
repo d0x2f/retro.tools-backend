@@ -108,7 +108,7 @@ fn test_post_card_forbidden() {
 }
 
 #[test]
-fn test_get_cardss() {
+fn test_get_cards() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board, rank & card
     let board = create_board(
@@ -311,7 +311,10 @@ fn test_delete_card() {
 
     // Delete the card
     let response = client
-      .delete(format!("/boards/{}/ranks/{}/cards/{}", board.id, rank.id, card.id))
+      .delete(format!(
+        "/boards/{}/ranks/{}/cards/{}",
+        board.id, rank.id, card.id
+      ))
       .dispatch();
 
     assert_eq!(response.status(), Status::Ok);
