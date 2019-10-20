@@ -124,20 +124,3 @@ pub fn delete_vote(
       Status::InternalServerError
     })
 }
-
-#[get("/boards/<_board_id>/ranks/<_rank_id>/cards/<card_id>/votes")]
-pub fn get_votes(
-  _participant_id: ParticipantId,
-  _rank_in_board: RankInBoard,
-  _card_in_rank: CardInRank,
-  postgres: DatabaseConnection,
-  _board_id: String,
-  _rank_id: String,
-  card_id: String,
-) -> Result<JsonValue, Status> {
-  let votes = persistence::get_votes(&postgres, &card_id).map_err(|error| {
-    error!("{}", error.to_string());
-    Status::InternalServerError
-  })?;
-  Ok(json!(votes))
-}
