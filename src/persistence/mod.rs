@@ -1,8 +1,10 @@
 use super::models::*;
+use diesel::dsl::{count, sql};
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use diesel::result::Error;
-use diesel::dsl::count;
+
+const VOTES_SQL: &str = "(select coalesce(sum(count), 0) from vote where vote.card_id = card.id) as votes";
 
 pub fn participant_owns_board(
   postgres: &PgConnection,
@@ -183,22 +185,36 @@ pub fn delete_rank(postgres: &PgConnection, rank_id: &str) -> Result<usize, Erro
 }
 
 pub fn put_card(postgres: &PgConnection, new_card: NewCard) -> Result<Card, Error> {
-  use super::schema::card;
+  use super::schema::card::dsl;
 
-  diesel::insert_into(card::table)
+  let inserted_id: String = diesel::insert_into(dsl::card)
     .values(new_card)
-    .get_result(postgres)
+    .returning(dsl::id)
+    .get_result(postgres)?;
+
+  let card = get_card(postgres, &inserted_id);
+  match card {
+    Ok(Some(c)) => Ok(c),
+    Ok(None) => Err(Error::NotFound),
+    Err(e) => Err(e),
+  }
 }
 
 pub fn get_board_cards(postgres: &PgConnection, board_id: &str) -> Result<Vec<Card>, Error> {
-  use super::schema::card;
   use super::schema::board;
+  use super::schema::card::dsl;
 
   super::schema::rank::dsl::rank
-    .inner_join(card::dsl::card)
+    .inner_join(dsl::card)
     .inner_join(board::dsl::board)
     .filter(board::dsl::id.eq(board_id))
-    .select((card::dsl::id, card::dsl::rank_id, card::dsl::name, card::dsl::description))
+    .select((
+      dsl::id,
+      dsl::rank_id,
+      dsl::name,
+      dsl::description,
+      sql(VOTES_SQL),
+    ))
     .load(postgres)
 }
 
@@ -208,14 +224,30 @@ pub fn get_rank_cards(postgres: &PgConnection, rank_id: &str) -> Result<Vec<Card
   super::schema::rank::dsl::rank
     .inner_join(dsl::card)
     .filter(super::schema::rank::dsl::id.eq(rank_id))
-    .select((dsl::id, dsl::rank_id, dsl::name, dsl::description))
+    .select((
+      dsl::id,
+      dsl::rank_id,
+      dsl::name,
+      dsl::description,
+      sql(VOTES_SQL),
+    ))
     .load(postgres)
 }
 
 pub fn get_card(postgres: &PgConnection, card_id: &str) -> Result<Option<Card>, Error> {
-  use super::schema::card::dsl::*;
+  use super::schema::card::dsl;
 
-  let result = card.find(card_id).first(postgres);
+  let result = dsl::card
+    .select((
+      dsl::id,
+      dsl::rank_id,
+      dsl::name,
+      dsl::description,
+      sql(VOTES_SQL),
+    ))
+    .find(card_id)
+    .first(postgres);
+
   match result {
     Ok(r) => Ok(Some(r)),
     Err(Error::NotFound) => Ok(None),
@@ -228,11 +260,19 @@ pub fn patch_card(
   card_id: &str,
   update_card: &UpdateCard,
 ) -> Result<Card, Error> {
-  use super::schema::card::dsl::*;
+  use super::schema::card::dsl;
 
-  diesel::update(card.find(card_id))
+  let inserted_id: String = diesel::update(dsl::card.find(card_id))
     .set(update_card)
-    .get_result(postgres)
+    .returning(dsl::id)
+    .get_result(postgres)?;
+
+  let card = get_card(postgres, &inserted_id);
+  match card {
+    Ok(Some(c)) => Ok(c),
+    Ok(None) => Err(Error::NotFound),
+    Err(e) => Err(e),
+  }
 }
 
 pub fn delete_card(postgres: &PgConnection, card_id: &str) -> Result<usize, Error> {
@@ -241,10 +281,7 @@ pub fn delete_card(postgres: &PgConnection, card_id: &str) -> Result<usize, Erro
   diesel::delete(card.find(card_id)).execute(postgres)
 }
 
-pub fn put_vote(
-  postgres: &PgConnection,
-  new_vote: NewVote,
-) -> Result<Vote, Error> {
+pub fn put_vote(postgres: &PgConnection, new_vote: NewVote) -> Result<Vote, Error> {
   use super::schema::vote::dsl::*;
 
   diesel::insert_into(vote)
@@ -278,13 +315,13 @@ pub fn patch_vote(postgres: &PgConnection, update_vote: &UpdateVote) -> Result<V
     .get_result(postgres)
 }
 
-pub fn get_votes(
-  postgres: &PgConnection,
-  card_id: &str
-) -> Result<i64, Error> {
+pub fn get_votes(postgres: &PgConnection, card_id: &str) -> Result<i64, Error> {
   use super::schema::vote::dsl;
 
-  let result = dsl::vote.select(count(dsl::participant_id)).filter(dsl::card_id.eq(card_id)).first(postgres);
+  let result = dsl::vote
+    .select(count(dsl::participant_id))
+    .filter(dsl::card_id.eq(card_id))
+    .first(postgres);
   match result {
     Ok(r) => Ok(r),
     Err(Error::NotFound) => Ok(0),

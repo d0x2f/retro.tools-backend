@@ -1,8 +1,7 @@
 use super::super::models::{Card, NewBoard, NewCard, NewRank, UpdateCard};
-use super::super::schema::card::dsl::card as card_table;
+use super::super::persistence::get_rank_cards;
 use super::super::testing::{create_board, create_card, create_rank, run_test};
 use diesel::pg::PgConnection;
-use diesel::prelude::*;
 use rocket::http::ContentType;
 use rocket::http::Status;
 use rocket::local::Client;
@@ -50,15 +49,17 @@ fn test_post_card() {
     assert_eq!(response.status(), Status::Ok);
     assert_eq!(response_card.name, "test card");
     assert_eq!(response_card.description, "card description");
+    assert_eq!(response_card.votes, 0);
 
     // Ensure the database contains only the new card
-    let db_cards = card_table.load::<Card>(db).unwrap();
+    let db_cards = get_rank_cards(db, &rank.id).unwrap();
 
     assert_eq!(db_cards.len(), 1);
     assert_eq!(db_cards[0].id, response_card.id);
     assert_eq!(db_cards[0].rank_id, rank.id);
     assert_eq!(db_cards[0].name, "test card");
     assert_eq!(db_cards[0].description, "card description");
+    assert_eq!(db_cards[0].votes, 0);
   });
 }
 
@@ -101,7 +102,7 @@ fn test_post_card_forbidden() {
     assert_eq!(response.status(), Status::Forbidden);
 
     // Ensure the database contains no cards
-    let db_cards = card_table.load::<Card>(db).unwrap();
+    let db_cards = get_rank_cards(db, &rank.id).unwrap();
 
     assert_eq!(db_cards.len(), 0);
   });
@@ -149,15 +150,17 @@ fn test_get_cards() {
     assert_eq!(response_cards[0].rank_id, rank.id);
     assert_eq!(response_cards[0].name, "test card");
     assert_eq!(response_cards[0].description, "card description");
+    assert_eq!(response_cards[0].votes, 0);
 
     // Ensure the database contains the same card
-    let db_cards = card_table.load::<Card>(db).unwrap();
+    let db_cards = get_rank_cards(db, &rank.id).unwrap();
 
     assert_eq!(db_cards.len(), 1);
     assert_eq!(db_cards[0].id, response_cards[0].id);
     assert_eq!(db_cards[0].rank_id, rank.id);
     assert_eq!(db_cards[0].name, "test card");
     assert_eq!(db_cards[0].description, "card description");
+    assert_eq!(db_cards[0].votes, 0);
   });
 }
 
@@ -204,15 +207,17 @@ fn test_get_card() {
     assert_eq!(response_card.rank_id, rank.id);
     assert_eq!(response_card.name, "test card");
     assert_eq!(response_card.description, "card description");
+    assert_eq!(response_card.votes, 0);
 
     // Ensure the database contains the same card
-    let db_cards = card_table.load::<Card>(db).unwrap();
+    let db_cards = get_rank_cards(db, &rank.id).unwrap();
 
     assert_eq!(db_cards.len(), 1);
     assert_eq!(db_cards[0].id, response_card.id);
     assert_eq!(db_cards[0].rank_id, rank.id);
     assert_eq!(db_cards[0].name, "test card");
     assert_eq!(db_cards[0].description, "card description");
+    assert_eq!(db_cards[0].votes, 0);
   });
 }
 
@@ -268,15 +273,17 @@ fn test_patch_card() {
     assert_eq!(response_card.rank_id, rank.id);
     assert_eq!(response_card.name, "card test");
     assert_eq!(response_card.description, "description test");
+    assert_eq!(response_card.votes, 0);
 
     // Ensure the database contains the same card
-    let db_cards = card_table.load::<Card>(db).unwrap();
+    let db_cards = get_rank_cards(db, &rank.id).unwrap();
 
     assert_eq!(db_cards.len(), 1);
     assert_eq!(db_cards[0].id, response_card.id);
     assert_eq!(db_cards[0].rank_id, rank.id);
     assert_eq!(db_cards[0].name, "card test");
     assert_eq!(db_cards[0].description, "description test");
+    assert_eq!(db_cards[0].votes, 0);
   });
 }
 
@@ -320,7 +327,7 @@ fn test_delete_card() {
     assert_eq!(response.status(), Status::Ok);
 
     // Ensure the database doesn't contain any cards
-    let db_cards = card_table.load::<Card>(db).unwrap();
+    let db_cards = get_rank_cards(db, &rank.id).unwrap();
 
     assert_eq!(db_cards.len(), 0);
   });
