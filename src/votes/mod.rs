@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests;
 
-use super::guards::BoardOwner;
 use super::guards::CardInRank;
 use super::guards::DatabaseConnection;
 use super::guards::ParticipantId;
@@ -18,7 +17,6 @@ use std::cmp::{max, min};
 #[allow(clippy::too_many_arguments)]
 pub fn post_vote(
   participant_id: ParticipantId,
-  _board_owner: BoardOwner,
   _rank_in_board: RankInBoard,
   _card_in_rank: CardInRank,
   postgres: DatabaseConnection,
@@ -53,24 +51,22 @@ pub fn post_vote(
     Status::InternalServerError
   })?;
 
-  // If max votes is already exceeded, abort the vote.
+  // If max votes is not yet exceeded, increment the vote.
   // If the vote is greater than the max votes, it was probably
   // made when the limit was previously higher and so should stay.
-  if vote.count >= board.max_votes {
-    return Ok(json!(vote));
+  if vote.count < board.max_votes {
+    // Increment the vote
+    let update_vote = UpdateVote {
+      participant_id: &vote.participant_id,
+      card_id: &vote.card_id,
+      count: min(board.max_votes, vote.count + 1),
+    };
+
+    persistence::patch_vote(&postgres, &update_vote).map_err(|error| {
+      error!("{}", error.to_string());
+      Status::InternalServerError
+    })?;
   }
-
-  // Increment the vote
-  let update_vote = UpdateVote {
-    participant_id: &vote.participant_id,
-    card_id: &vote.card_id,
-    count: min(board.max_votes, vote.count + 1),
-  };
-
-  persistence::patch_vote(&postgres, &update_vote).map_err(|error| {
-    error!("{}", error.to_string());
-    Status::InternalServerError
-  })?;
 
   persistence::get_card(&postgres, &vote.card_id)
     .map(|v| json!(v))
@@ -84,7 +80,6 @@ pub fn post_vote(
 #[allow(clippy::too_many_arguments)]
 pub fn delete_vote(
   participant_id: ParticipantId,
-  _board_owner: BoardOwner,
   _rank_in_board: RankInBoard,
   _card_in_rank: CardInRank,
   postgres: DatabaseConnection,
