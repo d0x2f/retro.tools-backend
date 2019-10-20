@@ -1,4 +1,4 @@
-use super::super::models::{NewBoard, NewCard, NewRank, Vote};
+use super::super::models::{Card, NewBoard, NewCard, NewRank, Vote};
 use super::super::schema::vote::dsl::vote as vote_table;
 use super::super::testing::{create_board, create_card, create_rank, run_test};
 use diesel::pg::PgConnection;
@@ -43,12 +43,15 @@ fn test_post_vote() {
       board.id, rank.id, card.id
     ));
     let mut response = request.dispatch();
-    let response_vote: Vote =
+    let response_card: Card =
       serde_json::from_str(response.body_string().unwrap().as_str()).unwrap();
 
     assert_eq!(response.status(), Status::Ok);
-    assert_eq!(response_vote.card_id, card.id);
-    assert_eq!(response_vote.count, 1);
+    assert_eq!(response_card.id, card.id);
+    assert_eq!(response_card.rank_id, rank.id);
+    assert_eq!(response_card.name, "test card");
+    assert_eq!(response_card.description, "card description");
+    assert_eq!(response_card.votes, 1);
 
     // Ensure the database contains the same vote info
     let db_votes = vote_table.load::<Vote>(db).unwrap();
@@ -202,12 +205,15 @@ fn test_delete_vote() {
         board.id, rank.id, card.id
       ))
       .dispatch();
-    let response_vote: Vote =
+    let response_card: Card =
       serde_json::from_str(response.body_string().unwrap().as_str()).unwrap();
 
     assert_eq!(response.status(), Status::Ok);
-    assert_eq!(response_vote.card_id, card.id);
-    assert_eq!(response_vote.count, 1);
+    assert_eq!(response_card.id, card.id);
+    assert_eq!(response_card.rank_id, rank.id);
+    assert_eq!(response_card.name, "test card");
+    assert_eq!(response_card.description, "card description");
+    assert_eq!(response_card.votes, 1);
 
     // Ensure the database contains the same vote info
     let db_votes = vote_table.load::<Vote>(db).unwrap();
@@ -223,12 +229,15 @@ fn test_delete_vote() {
         board.id, rank.id, card.id
       ))
       .dispatch();
-    let response_vote: Vote =
+    let response_card: Card =
       serde_json::from_str(response.body_string().unwrap().as_str()).unwrap();
 
     assert_eq!(response.status(), Status::Ok);
-    assert_eq!(response_vote.card_id, card.id);
-    assert_eq!(response_vote.count, 0);
+    assert_eq!(response_card.id, card.id);
+    assert_eq!(response_card.rank_id, rank.id);
+    assert_eq!(response_card.name, "test card");
+    assert_eq!(response_card.description, "card description");
+    assert_eq!(response_card.votes, 0);
 
     // Ensure the database contains the same vote info
     let db_votes = vote_table.load::<Vote>(db).unwrap();
@@ -244,12 +253,15 @@ fn test_delete_vote() {
         board.id, rank.id, card.id
       ))
       .dispatch();
-    let response_vote: Vote =
+    let response_card: Card =
       serde_json::from_str(response.body_string().unwrap().as_str()).unwrap();
 
     assert_eq!(response.status(), Status::Ok);
-    assert_eq!(response_vote.card_id, card.id);
-    assert_eq!(response_vote.count, 0);
+    assert_eq!(response_card.id, card.id);
+    assert_eq!(response_card.rank_id, rank.id);
+    assert_eq!(response_card.name, "test card");
+    assert_eq!(response_card.description, "card description");
+    assert_eq!(response_card.votes, 0);
 
     // Ensure the database contains the same vote info
     let db_votes = vote_table.load::<Vote>(db).unwrap();

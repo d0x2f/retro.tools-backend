@@ -67,7 +67,12 @@ pub fn post_vote(
     count: min(board.max_votes, vote.count + 1),
   };
 
-  persistence::patch_vote(&postgres, &update_vote)
+  persistence::patch_vote(&postgres, &update_vote).map_err(|error| {
+    error!("{}", error.to_string());
+    Status::InternalServerError
+  })?;
+
+  persistence::get_card(&postgres, &vote.card_id)
     .map(|v| json!(v))
     .map_err(|error| {
       error!("{}", error.to_string());
@@ -117,7 +122,12 @@ pub fn delete_vote(
     count: max(0, vote.count - 1),
   };
 
-  persistence::patch_vote(&postgres, &update_vote)
+  persistence::patch_vote(&postgres, &update_vote).map_err(|error| {
+    error!("{}", error.to_string());
+    Status::InternalServerError
+  })?;
+
+  persistence::get_card(&postgres, &vote.card_id)
     .map(|v| json!(v))
     .map_err(|error| {
       error!("{}", error.to_string());
