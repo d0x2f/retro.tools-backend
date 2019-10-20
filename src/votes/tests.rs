@@ -101,13 +101,16 @@ fn test_post_vote_over_limit() {
     );
     client.post(&path).dispatch();
     let mut response = client.post(path).dispatch();
-    let response_vote: Vote =
+    let response_card: Card =
       serde_json::from_str(response.body_string().unwrap().as_str()).unwrap();
 
     // Vote count stays as 1 despite two votes made
     assert_eq!(response.status(), Status::Ok);
-    assert_eq!(response_vote.card_id, card.id);
-    assert_eq!(response_vote.count, 1);
+    assert_eq!(response_card.id, card.id);
+    assert_eq!(response_card.rank_id, rank.id);
+    assert_eq!(response_card.name, "test card");
+    assert_eq!(response_card.description, "card description");
+    assert_eq!(response_card.votes, 1);
 
     // Ensure the database contains the same vote info
     let db_votes = vote_table.load::<Vote>(db).unwrap();
