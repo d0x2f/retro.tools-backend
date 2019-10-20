@@ -1,10 +1,11 @@
 use super::models::*;
-use diesel::dsl::{count, sql};
+use diesel::dsl::sql;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use diesel::result::Error;
 
-const VOTES_SQL: &str = "(select coalesce(sum(count), 0) from vote where vote.card_id = card.id) as votes";
+const VOTES_SQL: &str =
+  "(select coalesce(sum(count), 0) from vote where vote.card_id = card.id) as votes";
 
 pub fn participant_owns_board(
   postgres: &PgConnection,
@@ -313,18 +314,4 @@ pub fn patch_vote(postgres: &PgConnection, update_vote: &UpdateVote) -> Result<V
   diesel::update(vote.find((update_vote.card_id, update_vote.participant_id)))
     .set(count.eq(update_vote.count))
     .get_result(postgres)
-}
-
-pub fn get_votes(postgres: &PgConnection, card_id: &str) -> Result<i64, Error> {
-  use super::schema::vote::dsl;
-
-  let result = dsl::vote
-    .select(count(dsl::participant_id))
-    .filter(dsl::card_id.eq(card_id))
-    .first(postgres);
-  match result {
-    Ok(r) => Ok(r),
-    Err(Error::NotFound) => Ok(0),
-    Err(e) => Err(e),
-  }
 }

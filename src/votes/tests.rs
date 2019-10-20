@@ -1,4 +1,4 @@
-use super::super::models::{NewBoard, NewCard, NewRank, Vote};
+use super::super::models::{Card, NewBoard, NewCard, NewRank, Vote};
 use super::super::schema::vote::dsl::vote as vote_table;
 use super::super::testing::{create_board, create_card, create_rank, run_test};
 use diesel::pg::PgConnection;
@@ -43,12 +43,15 @@ fn test_post_vote() {
       board.id, rank.id, card.id
     ));
     let mut response = request.dispatch();
-    let response_vote: Vote =
+    let response_card: Card =
       serde_json::from_str(response.body_string().unwrap().as_str()).unwrap();
 
     assert_eq!(response.status(), Status::Ok);
-    assert_eq!(response_vote.card_id, card.id);
-    assert_eq!(response_vote.count, 1);
+    assert_eq!(response_card.id, card.id);
+    assert_eq!(response_card.rank_id, rank.id);
+    assert_eq!(response_card.name, "test card");
+    assert_eq!(response_card.description, "card description");
+    assert_eq!(response_card.votes, 1);
 
     // Ensure the database contains the same vote info
     let db_votes = vote_table.load::<Vote>(db).unwrap();
@@ -202,12 +205,15 @@ fn test_delete_vote() {
         board.id, rank.id, card.id
       ))
       .dispatch();
-    let response_vote: Vote =
+    let response_card: Card =
       serde_json::from_str(response.body_string().unwrap().as_str()).unwrap();
 
     assert_eq!(response.status(), Status::Ok);
-    assert_eq!(response_vote.card_id, card.id);
-    assert_eq!(response_vote.count, 1);
+    assert_eq!(response_card.id, card.id);
+    assert_eq!(response_card.rank_id, rank.id);
+    assert_eq!(response_card.name, "test card");
+    assert_eq!(response_card.description, "card description");
+    assert_eq!(response_card.votes, 1);
 
     // Ensure the database contains the same vote info
     let db_votes = vote_table.load::<Vote>(db).unwrap();
@@ -223,12 +229,15 @@ fn test_delete_vote() {
         board.id, rank.id, card.id
       ))
       .dispatch();
-    let response_vote: Vote =
+    let response_card: Card =
       serde_json::from_str(response.body_string().unwrap().as_str()).unwrap();
 
     assert_eq!(response.status(), Status::Ok);
-    assert_eq!(response_vote.card_id, card.id);
-    assert_eq!(response_vote.count, 0);
+    assert_eq!(response_card.id, card.id);
+    assert_eq!(response_card.rank_id, rank.id);
+    assert_eq!(response_card.name, "test card");
+    assert_eq!(response_card.description, "card description");
+    assert_eq!(response_card.votes, 0);
 
     // Ensure the database contains the same vote info
     let db_votes = vote_table.load::<Vote>(db).unwrap();
@@ -244,12 +253,15 @@ fn test_delete_vote() {
         board.id, rank.id, card.id
       ))
       .dispatch();
-    let response_vote: Vote =
+    let response_card: Card =
       serde_json::from_str(response.body_string().unwrap().as_str()).unwrap();
 
     assert_eq!(response.status(), Status::Ok);
-    assert_eq!(response_vote.card_id, card.id);
-    assert_eq!(response_vote.count, 0);
+    assert_eq!(response_card.id, card.id);
+    assert_eq!(response_card.rank_id, rank.id);
+    assert_eq!(response_card.name, "test card");
+    assert_eq!(response_card.description, "card description");
+    assert_eq!(response_card.votes, 0);
 
     // Ensure the database contains the same vote info
     let db_votes = vote_table.load::<Vote>(db).unwrap();
@@ -306,83 +318,5 @@ fn test_delete_vote_forbidden() {
     let db_votes = vote_table.load::<Vote>(db).unwrap();
 
     assert_eq!(db_votes.len(), 0);
-  });
-}
-
-#[test]
-fn test_get_votes() {
-  run_test(|client: Client, db: &PgConnection| {
-    // Create a board, rank & card
-    let board = create_board(
-      &client,
-      &NewBoard {
-        name: "test board",
-        voting_open: Some(true),
-        cards_open: Some(true),
-        ..Default::default()
-      },
-    );
-    let rank = create_rank(
-      db,
-      NewRank {
-        id: None,
-        board_id: &board.id,
-        name: "test rank",
-      },
-    );
-    let card = create_card(
-      db,
-      NewCard {
-        id: None,
-        rank_id: &rank.id,
-        name: "test card",
-        description: "card description",
-      },
-    );
-
-    // Get votes
-    let request = client.get(format!(
-      "/boards/{}/ranks/{}/cards/{}/votes",
-      board.id, rank.id, card.id
-    ));
-    let mut response = request.dispatch();
-
-    assert_eq!(response.status(), Status::Ok);
-    assert_eq!(response.body_string().unwrap(), "0");
-
-    // Ensure the database contains the same vote info
-    let db_votes = vote_table.load::<Vote>(db).unwrap();
-
-    assert_eq!(db_votes.len(), 0);
-
-    // Make a vote
-    let request = client.post(format!(
-      "/boards/{}/ranks/{}/cards/{}/vote",
-      board.id, rank.id, card.id
-    ));
-    let mut response = request.dispatch();
-    let response_vote: Vote =
-      serde_json::from_str(response.body_string().unwrap().as_str()).unwrap();
-
-    assert_eq!(response.status(), Status::Ok);
-    assert_eq!(response_vote.card_id, card.id);
-    assert_eq!(response_vote.count, 1);
-
-    // Get votes
-    let request = client.get(format!(
-      "/boards/{}/ranks/{}/cards/{}/votes",
-      board.id, rank.id, card.id
-    ));
-    let mut response = request.dispatch();
-
-    assert_eq!(response.status(), Status::Ok);
-    assert_eq!(response.body_string().unwrap(), "1");
-
-    // Ensure the database contains the same vote info
-    let db_votes = vote_table.load::<Vote>(db).unwrap();
-
-    assert_eq!(db_votes.len(), 1);
-    assert_eq!(db_votes[0].card_id, card.id);
-    assert_eq!(db_votes[0].count, 1);
   });
 }

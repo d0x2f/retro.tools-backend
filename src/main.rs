@@ -141,7 +141,6 @@ fn rocket(config: Config) -> Rocket {
         cards::get_card,
         cards::patch_card,
         cards::delete_card,
-        votes::get_votes,
         votes::post_vote,
         votes::delete_vote
       ],
