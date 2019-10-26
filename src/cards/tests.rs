@@ -240,6 +240,14 @@ fn test_patch_card() {
         name: "test rank",
       },
     );
+    let rank_b = create_rank(
+      db,
+      NewRank {
+        id: None,
+        board_id: &board.id,
+        name: "test rank b",
+      },
+    );
     let card = create_card(
       db,
       NewCard {
@@ -261,6 +269,7 @@ fn test_patch_card() {
         serde_json::to_string(&UpdateCard {
           name: Some("card test".into()),
           description: Some("description test".into()),
+          rank_id: Some(rank_b.id.clone())
         })
         .unwrap(),
       )
@@ -270,17 +279,17 @@ fn test_patch_card() {
 
     assert_eq!(response.status(), Status::Ok);
     assert_eq!(response_card.id, card.id);
-    assert_eq!(response_card.rank_id, rank.id);
+    assert_eq!(response_card.rank_id, rank_b.id);
     assert_eq!(response_card.name, "card test");
     assert_eq!(response_card.description, "description test");
     assert_eq!(response_card.votes, 0);
 
     // Ensure the database contains the same card
-    let db_cards = get_rank_cards(db, &rank.id).unwrap();
+    let db_cards = get_rank_cards(db, &rank_b.id).unwrap();
 
     assert_eq!(db_cards.len(), 1);
     assert_eq!(db_cards[0].id, response_card.id);
-    assert_eq!(db_cards[0].rank_id, rank.id);
+    assert_eq!(db_cards[0].rank_id, rank_b.id);
     assert_eq!(db_cards[0].name, "card test");
     assert_eq!(db_cards[0].description, "description test");
     assert_eq!(db_cards[0].votes, 0);

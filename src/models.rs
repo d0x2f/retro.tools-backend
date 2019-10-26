@@ -98,6 +98,7 @@ pub struct Card {
 pub struct UpdateCard {
   pub name: Option<String>,
   pub description: Option<String>,
+  pub rank_id: Option<String>,
 }
 
 #[derive(Deserialize)]

@@ -97,7 +97,7 @@ pub fn get_card(
 }
 
 #[patch(
-  "/boards/<_board_id>/ranks/<_rank_id>/cards/<card_id>",
+  "/boards/<board_id>/ranks/<rank_id>/cards/<card_id>",
   data = "<update_card>"
 )]
 #[allow(clippy::too_many_arguments)]
@@ -107,11 +107,27 @@ pub fn patch_card(
   _rank_in_board: RankInBoard,
   _card_in_rank: CardInRank,
   postgres: DatabaseConnection,
-  _board_id: String,
-  _rank_id: String,
+  board_id: String,
+  rank_id: String,
   card_id: String,
   update_card: Json<UpdateCard>,
 ) -> Result<JsonValue, Status> {
+  // If a rank id was given and it's different to the current rank,
+  // ensure it's still in the same board.
+  if let Some(new_rank_id) = &update_card.rank_id {
+    if *new_rank_id != rank_id {
+      let new_rank_in_board = match persistence::rank_in_board(&postgres, new_rank_id, &board_id) {
+        Ok(b) => Ok(b),
+        Err(Error::NotFound) => Err(Status::NotFound),
+        Err(_) => Err(Status::InternalServerError),
+      }?;
+
+      if !new_rank_in_board {
+        return Err(Status::Forbidden);
+      }
+    }
+  }
+
   persistence::patch_card(&postgres, &card_id, &update_card)
     .map(|card| json!(card))
     .map_err(|error| {
