@@ -15,7 +15,7 @@ use rocket_contrib::json::{Json, JsonValue};
 
 #[post("/boards/<board_id>/ranks/<rank_id>/cards", data = "<post_card>")]
 pub fn post_card(
-  _participant_id: ParticipantId,
+  participant_id: ParticipantId,
   _board_owner: BoardOwner,
   _rank_in_board: RankInBoard,
   postgres: DatabaseConnection,
@@ -41,7 +41,7 @@ pub fn post_card(
     rank_id: &rank_id,
   };
 
-  persistence::put_card(&postgres, new_card)
+  persistence::put_card(&postgres, new_card, &participant_id.0)
     .map(|card| json!(card))
     .map_err(|error| {
       error!("{}", error.to_string());
@@ -51,11 +51,11 @@ pub fn post_card(
 
 #[get("/boards/<board_id>/cards")]
 pub fn get_board_cards(
-  _participant_id: ParticipantId,
+  participant_id: ParticipantId,
   postgres: DatabaseConnection,
   board_id: String,
 ) -> Result<JsonValue, Status> {
-  persistence::get_board_cards(&postgres, &board_id)
+  persistence::get_board_cards(&postgres, &board_id, &participant_id.0)
     .map(|cards| json!(cards))
     .map_err(|error| {
       error!("{}", error.to_string());
@@ -65,13 +65,13 @@ pub fn get_board_cards(
 
 #[get("/boards/<_board_id>/ranks/<rank_id>/cards")]
 pub fn get_rank_cards(
-  _participant_id: ParticipantId,
+  participant_id: ParticipantId,
   _rank_in_board: RankInBoard,
   postgres: DatabaseConnection,
   _board_id: String,
   rank_id: String,
 ) -> Result<JsonValue, Status> {
-  persistence::get_rank_cards(&postgres, &rank_id)
+  persistence::get_rank_cards(&postgres, &rank_id, &participant_id.0)
     .map(|cards| json!(cards))
     .map_err(|error| {
       error!("{}", error.to_string());
@@ -81,7 +81,7 @@ pub fn get_rank_cards(
 
 #[get("/boards/<_board_id>/ranks/<_rank_id>/cards/<card_id>")]
 pub fn get_card(
-  _participant_id: ParticipantId,
+  participant_id: ParticipantId,
   _rank_in_board: RankInBoard,
   _card_in_rank: CardInRank,
   postgres: DatabaseConnection,
@@ -89,7 +89,7 @@ pub fn get_card(
   _rank_id: String,
   card_id: String,
 ) -> Result<JsonValue, Status> {
-  let card = persistence::get_card(&postgres, &card_id).map_err(|error| {
+  let card = persistence::get_card(&postgres, &card_id, &participant_id.0).map_err(|error| {
     error!("{}", error.to_string());
     Status::InternalServerError
   })?;
@@ -102,7 +102,7 @@ pub fn get_card(
 )]
 #[allow(clippy::too_many_arguments)]
 pub fn patch_card(
-  _participant_id: ParticipantId,
+  participant_id: ParticipantId,
   _board_owner: BoardOwner,
   _rank_in_board: RankInBoard,
   _card_in_rank: CardInRank,
@@ -128,7 +128,7 @@ pub fn patch_card(
     }
   }
 
-  persistence::patch_card(&postgres, &card_id, &update_card)
+  persistence::patch_card(&postgres, &card_id, &update_card, &participant_id.0)
     .map(|card| json!(card))
     .map_err(|error| {
       error!("{}", error.to_string());

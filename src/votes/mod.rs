@@ -68,7 +68,7 @@ pub fn post_vote(
     })?;
   }
 
-  persistence::get_card(&postgres, &vote.card_id)
+  persistence::get_card(&postgres, &vote.card_id, &participant_id.0)
     .map(|v| json!(v))
     .map_err(|error| {
       error!("{}", error.to_string());
@@ -122,7 +122,7 @@ pub fn delete_vote(
     Status::InternalServerError
   })?;
 
-  persistence::get_card(&postgres, &vote.card_id)
+  persistence::get_card(&postgres, &vote.card_id, &participant_id.0)
     .map(|v| json!(v))
     .map_err(|error| {
       error!("{}", error.to_string());

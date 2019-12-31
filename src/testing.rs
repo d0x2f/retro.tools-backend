@@ -75,5 +75,5 @@ pub fn create_rank(db: &PgConnection, rank: NewRank) -> Rank {
 
 /// Create a card
 pub fn create_card(db: &PgConnection, card: NewCard) -> Card {
-  put_card(db, card).unwrap()
+  put_card(db, card, "").unwrap()
 }

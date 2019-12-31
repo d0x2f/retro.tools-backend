@@ -52,7 +52,7 @@ fn test_post_card() {
     assert_eq!(response_card.votes, 0);
 
     // Ensure the database contains only the new card
-    let db_cards = get_rank_cards(db, &rank.id).unwrap();
+    let db_cards = get_rank_cards(db, &rank.id, "").unwrap();
 
     assert_eq!(db_cards.len(), 1);
     assert_eq!(db_cards[0].id, response_card.id);
@@ -102,7 +102,7 @@ fn test_post_card_forbidden() {
     assert_eq!(response.status(), Status::Forbidden);
 
     // Ensure the database contains no cards
-    let db_cards = get_rank_cards(db, &rank.id).unwrap();
+    let db_cards = get_rank_cards(db, &rank.id, "").unwrap();
 
     assert_eq!(db_cards.len(), 0);
   });
@@ -153,7 +153,7 @@ fn test_get_cards() {
     assert_eq!(response_cards[0].votes, 0);
 
     // Ensure the database contains the same card
-    let db_cards = get_rank_cards(db, &rank.id).unwrap();
+    let db_cards = get_rank_cards(db, &rank.id, "").unwrap();
 
     assert_eq!(db_cards.len(), 1);
     assert_eq!(db_cards[0].id, response_cards[0].id);
@@ -210,7 +210,7 @@ fn test_get_card() {
     assert_eq!(response_card.votes, 0);
 
     // Ensure the database contains the same card
-    let db_cards = get_rank_cards(db, &rank.id).unwrap();
+    let db_cards = get_rank_cards(db, &rank.id, "").unwrap();
 
     assert_eq!(db_cards.len(), 1);
     assert_eq!(db_cards[0].id, response_card.id);
@@ -285,7 +285,7 @@ fn test_patch_card() {
     assert_eq!(response_card.votes, 0);
 
     // Ensure the database contains the same card
-    let db_cards = get_rank_cards(db, &rank_b.id).unwrap();
+    let db_cards = get_rank_cards(db, &rank_b.id, "").unwrap();
 
     assert_eq!(db_cards.len(), 1);
     assert_eq!(db_cards[0].id, response_card.id);
@@ -336,7 +336,7 @@ fn test_delete_card() {
     assert_eq!(response.status(), Status::Ok);
 
     // Ensure the database doesn't contain any cards
-    let db_cards = get_rank_cards(db, &rank.id).unwrap();
+    let db_cards = get_rank_cards(db, &rank.id, "").unwrap();
 
     assert_eq!(db_cards.len(), 0);
   });

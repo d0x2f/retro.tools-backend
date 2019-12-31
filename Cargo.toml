@@ -13,8 +13,8 @@ diesel = { version = "1.4", features = ["postgres"] }
 log = "0.4"
 env_logger = "0.7"
 rand = "0.7"
-rocket_cors = "0.5.0"
-openssl = "0.10.25" # Needed for Postgres.
+rocket_cors = "0.5.1"
+openssl = "0.10.26" # Needed for Postgres.
 diesel_migrations = "1.4.0"
 
 [dependencies.rocket_contrib]
@@ -23,4 +23,4 @@ default-features = false
 features = ["json", "diesel_postgres_pool"]
 
 [dev-dependencies]
-parking_lot = { version = "0.9", features = ["nightly"] }
+parking_lot = { version = "0.10", features = ["nightly"] }

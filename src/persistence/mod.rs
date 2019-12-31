@@ -3,9 +3,12 @@ use diesel::dsl::sql;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use diesel::result::Error;
+use diesel::sql_types::Text;
 
 const VOTES_SQL: &str =
   "(select coalesce(sum(count), 0) from vote where vote.card_id = card.id) as votes";
+const VOTED_SQL: &str =
+  "select coalesce(sum(count), 0) > 0 from vote where vote.card_id = card.id and vote.participant_id =";
 
 pub fn participant_owns_board(
   postgres: &PgConnection,
@@ -36,7 +39,7 @@ pub fn rank_in_board(
 
 pub fn card_in_rank(postgres: &PgConnection, card_id: &str, rank_id: &str) -> Result<bool, Error> {
   Ok(
-    get_card(&postgres, &card_id)?
+    get_card(&postgres, &card_id, "")?
       .ok_or(Error::NotFound)?
       .rank_id
       == rank_id,
@@ -185,7 +188,11 @@ pub fn delete_rank(postgres: &PgConnection, rank_id: &str) -> Result<usize, Erro
   diesel::delete(rank.find(rank_id)).execute(postgres)
 }
 
-pub fn put_card(postgres: &PgConnection, new_card: NewCard) -> Result<Card, Error> {
+pub fn put_card(
+  postgres: &PgConnection,
+  new_card: NewCard,
+  participant_id: &str,
+) -> Result<Card, Error> {
   use super::schema::card::dsl;
 
   let inserted_id: String = diesel::insert_into(dsl::card)
@@ -193,7 +200,7 @@ pub fn put_card(postgres: &PgConnection, new_card: NewCard) -> Result<Card, Erro
     .returning(dsl::id)
     .get_result(postgres)?;
 
-  let card = get_card(postgres, &inserted_id);
+  let card = get_card(postgres, &inserted_id, participant_id);
   match card {
     Ok(Some(c)) => Ok(c),
     Ok(None) => Err(Error::NotFound),
@@ -201,7 +208,11 @@ pub fn put_card(postgres: &PgConnection, new_card: NewCard) -> Result<Card, Erro
   }
 }
 
-pub fn get_board_cards(postgres: &PgConnection, board_id: &str) -> Result<Vec<Card>, Error> {
+pub fn get_board_cards(
+  postgres: &PgConnection,
+  board_id: &str,
+  participant_id: &str,
+) -> Result<Vec<Card>, Error> {
   use super::schema::board;
   use super::schema::card::dsl;
 
@@ -215,11 +226,19 @@ pub fn get_board_cards(postgres: &PgConnection, board_id: &str) -> Result<Vec<Ca
       dsl::name,
       dsl::description,
       sql(VOTES_SQL),
+      sql("(")
+        .sql(VOTED_SQL)
+        .bind::<Text, _>(participant_id)
+        .sql(") as voted"),
     ))
     .load(postgres)
 }
 
-pub fn get_rank_cards(postgres: &PgConnection, rank_id: &str) -> Result<Vec<Card>, Error> {
+pub fn get_rank_cards(
+  postgres: &PgConnection,
+  rank_id: &str,
+  participant_id: &str,
+) -> Result<Vec<Card>, Error> {
   use super::schema::card::dsl;
 
   super::schema::rank::dsl::rank
@@ -231,11 +250,19 @@ pub fn get_rank_cards(postgres: &PgConnection, rank_id: &str) -> Result<Vec<Card
       dsl::name,
       dsl::description,
       sql(VOTES_SQL),
+      sql("(")
+        .sql(VOTED_SQL)
+        .bind::<Text, _>(participant_id)
+        .sql(") as voted"),
     ))
     .load(postgres)
 }
 
-pub fn get_card(postgres: &PgConnection, card_id: &str) -> Result<Option<Card>, Error> {
+pub fn get_card(
+  postgres: &PgConnection,
+  card_id: &str,
+  participant_id: &str,
+) -> Result<Option<Card>, Error> {
   use super::schema::card::dsl;
 
   let result = dsl::card
@@ -245,6 +272,10 @@ pub fn get_card(postgres: &PgConnection, card_id: &str) -> Result<Option<Card>, 
       dsl::name,
       dsl::description,
       sql(VOTES_SQL),
+      sql("(")
+        .sql(VOTED_SQL)
+        .bind::<Text, _>(participant_id)
+        .sql(") as voted"),
     ))
     .find(card_id)
     .first(postgres);
@@ -260,6 +291,7 @@ pub fn patch_card(
   postgres: &PgConnection,
   card_id: &str,
   update_card: &UpdateCard,
+  participant_id: &str,
 ) -> Result<Card, Error> {
   use super::schema::card::dsl;
 
@@ -268,7 +300,7 @@ pub fn patch_card(
     .returning(dsl::id)
     .get_result(postgres)?;
 
-  let card = get_card(postgres, &inserted_id);
+  let card = get_card(postgres, &inserted_id, participant_id);
   match card {
     Ok(Some(c)) => Ok(c),
     Ok(None) => Err(Error::NotFound),
