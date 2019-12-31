@@ -111,6 +111,7 @@ fn test_post_vote_over_limit() {
     assert_eq!(response_card.name, "test card");
     assert_eq!(response_card.description, "card description");
     assert_eq!(response_card.votes, 1);
+    assert_eq!(response_card.voted, true);
 
     // Ensure the database contains the same vote info
     let db_votes = vote_table.load::<Vote>(db).unwrap();
@@ -217,6 +218,7 @@ fn test_delete_vote() {
     assert_eq!(response_card.name, "test card");
     assert_eq!(response_card.description, "card description");
     assert_eq!(response_card.votes, 1);
+    assert_eq!(response_card.voted, true);
 
     // Ensure the database contains the same vote info
     let db_votes = vote_table.load::<Vote>(db).unwrap();
@@ -241,6 +243,7 @@ fn test_delete_vote() {
     assert_eq!(response_card.name, "test card");
     assert_eq!(response_card.description, "card description");
     assert_eq!(response_card.votes, 0);
+    assert_eq!(response_card.voted, false);
 
     // Ensure the database contains the same vote info
     let db_votes = vote_table.load::<Vote>(db).unwrap();
