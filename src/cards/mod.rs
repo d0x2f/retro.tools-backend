@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests;
 
-use super::guards::BoardOwner;
 use super::guards::CardInRank;
 use super::guards::DatabaseConnection;
 use super::guards::ParticipantId;
@@ -16,7 +15,6 @@ use rocket_contrib::json::{Json, JsonValue};
 #[post("/boards/<board_id>/ranks/<rank_id>/cards", data = "<post_card>")]
 pub fn post_card(
   participant_id: ParticipantId,
-  _board_owner: BoardOwner,
   _rank_in_board: RankInBoard,
   postgres: DatabaseConnection,
   board_id: String,
@@ -103,7 +101,6 @@ pub fn get_card(
 #[allow(clippy::too_many_arguments)]
 pub fn patch_card(
   participant_id: ParticipantId,
-  _board_owner: BoardOwner,
   _rank_in_board: RankInBoard,
   _card_in_rank: CardInRank,
   postgres: DatabaseConnection,
@@ -137,10 +134,8 @@ pub fn patch_card(
 }
 
 #[delete("/boards/<_board_id>/ranks/<_rank_id>/cards/<card_id>")]
-#[allow(clippy::too_many_arguments)]
 pub fn delete_card(
   _participant_id: ParticipantId,
-  _board_owner: BoardOwner,
   _rank_in_board: RankInBoard,
   _card_in_rank: CardInRank,
   postgres: DatabaseConnection,
