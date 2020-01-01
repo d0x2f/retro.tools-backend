@@ -37,6 +37,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for ParticipantId {
       Cookie::build("id", participant.id.clone())
         .http_only(true)
         .max_age(Duration::days(7))
+        .path("/")
         .finish(),
     );
     Outcome::Success(ParticipantId { 0: participant.id })
