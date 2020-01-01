@@ -3,6 +3,7 @@ use rocket::http::Cookie;
 use rocket::http::Status;
 use rocket::request::FromRequest;
 use rocket::*;
+use time::Duration;
 
 #[database("postgres")]
 pub struct DatabaseConnection(PgConnection);
@@ -32,7 +33,12 @@ impl<'a, 'r> FromRequest<'a, 'r> for ParticipantId {
         return Outcome::Failure((Status::InternalServerError, ()));
       }
     };
-    cookies.add(Cookie::new("id", participant.id.clone()));
+    cookies.add(
+      Cookie::build("id", participant.id.clone())
+        .http_only(true)
+        .max_age(Duration::days(7))
+        .finish(),
+    );
     Outcome::Success(ParticipantId { 0: participant.id })
   }
 }
