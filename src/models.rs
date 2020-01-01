@@ -1,3 +1,5 @@
+use std::time::SystemTime;
+
 use super::schema::board;
 use super::schema::card;
 use super::schema::participant;
@@ -8,11 +10,12 @@ use super::schema::vote;
 #[derive(Queryable, Identifiable, Serialize, Deserialize)]
 #[table_name = "board"]
 pub struct Board {
-  pub id: String,        // char(16)
-  pub name: String,      // varchar
-  pub max_votes: i16,    // tinyint
-  pub voting_open: bool, // bool
-  pub cards_open: bool,  // bool
+  pub id: String,               // char(16)
+  pub name: String,             // varchar
+  pub max_votes: i16,           // tinyint
+  pub voting_open: bool,        // bool
+  pub cards_open: bool,         // bool
+  pub created_at: SystemTime,   // timestamp
 }
 
 #[derive(AsChangeset, Serialize, Deserialize)]

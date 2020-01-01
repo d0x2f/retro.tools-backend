@@ -90,7 +90,7 @@ pub fn get_boards(postgres: &PgConnection, participant_id: &str) -> Result<Vec<B
   super::schema::participant_board::dsl::participant_board
     .inner_join(board)
     .filter(super::schema::participant_board::dsl::participant_id.eq(participant_id))
-    .select((id, name, max_votes, voting_open, cards_open))
+    .select((id, name, max_votes, voting_open, cards_open, created_at))
     .load(postgres)
 }
 

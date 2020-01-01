@@ -5,6 +5,7 @@ table! {
         max_votes -> Int2,
         voting_open -> Bool,
         cards_open -> Bool,
+        created_at -> Timestamp,
     }
 }
 
