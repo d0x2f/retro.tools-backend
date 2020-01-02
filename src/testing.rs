@@ -59,13 +59,16 @@ where
 }
 
 /// Create a board
-pub fn create_board(client: &Client, board: &NewBoard) -> Board {
+pub fn create_board(client: &Client, board: &NewBoard) -> (Board, String) {
   let mut response = client
     .post("/boards")
     .header(ContentType::JSON)
     .body(serde_json::to_string(board).unwrap())
     .dispatch();
-  serde_json::from_str(response.body_string().unwrap().as_str()).unwrap()
+  (
+    serde_json::from_str(response.body_string().unwrap().as_str()).unwrap(),
+    response.cookies()[0].value().to_owned()
+  )
 }
 
 /// Create a rank

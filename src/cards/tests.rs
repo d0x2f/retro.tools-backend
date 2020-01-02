@@ -10,7 +10,7 @@ use rocket::local::Client;
 fn test_post_card() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board & rank
-    let board = create_board(
+    let (board, _) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -67,7 +67,7 @@ fn test_post_card() {
 fn test_post_card_forbidden() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board & rank (cards disallowed)
-    let board = create_board(
+    let (board, _) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -112,7 +112,7 @@ fn test_post_card_forbidden() {
 fn test_get_cards() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board, rank & card
-    let board = create_board(
+    let (board, _) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -168,7 +168,7 @@ fn test_get_cards() {
 fn test_get_card() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board, rank & card
-    let board = create_board(
+    let (board, _) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -225,7 +225,7 @@ fn test_get_card() {
 fn test_patch_card() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board, rank & card
-    let board = create_board(
+    let (board, _) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -300,7 +300,7 @@ fn test_patch_card() {
 fn test_delete_card() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board, rank & card
-    let board = create_board(
+    let (board, _) = create_board(
       &client,
       &NewBoard {
         name: "test board",

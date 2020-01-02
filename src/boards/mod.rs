@@ -43,35 +43,43 @@ pub fn get_board(
   postgres: DatabaseConnection,
   board_id: String,
 ) -> Result<JsonValue, Status> {
-  let result = persistence::get_board(&postgres, &board_id).map_err(|error| {
-    error!("{}", error.to_string());
-    Status::InternalServerError
-  })?;
-  if let Some(board) = result {
-    let new_participant = NewParticipantBoard {
-      participant_id: Some(&participant_id.0),
-      owner: false,
-      board_id: &board_id,
-    };
+  let new_participant = NewParticipantBoard {
+    participant_id: Some(&participant_id.0),
+    owner: false,
+    board_id: &board_id,
+  };
 
+  let participant_result =
     persistence::put_participant_board(&postgres, &new_participant).map_err(|error| {
       error!("{}", error.to_string());
       Status::InternalServerError
-    })?;
-    return Ok(json!(board));
+    });
+
+  if let Err(_) = participant_result {
+    return Err(Status::NotFound);
   }
-  Err(Status::NotFound)
+
+  let result =
+    persistence::get_board(&postgres, &board_id, &participant_id.0).map_err(|error| {
+      error!("{}", error.to_string());
+      Status::InternalServerError
+    })?;
+
+  match result {
+    Some(board) => Ok(json!(board)),
+    _ => Err(Status::NotFound),
+  }
 }
 
 #[patch("/boards/<id>", data = "<update_board>")]
 pub fn patch_board(
-  _participant_id: ParticipantId,
+  participant_id: ParticipantId,
   _board_owner: BoardOwner,
   postgres: DatabaseConnection,
   id: String,
   update_board: Json<UpdateBoard>,
 ) -> Result<JsonValue, Status> {
-  persistence::patch_board(&postgres, &id, &update_board)
+  persistence::patch_board(&postgres, &id, &participant_id.0, &update_board)
     .map(|board| json!(board))
     .map_err(|error| {
       error!("{}", error.to_string());

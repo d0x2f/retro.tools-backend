@@ -24,7 +24,7 @@ pub fn post_vote(
   _rank_id: String,
   card_id: String,
 ) -> Result<JsonValue, Status> {
-  let board = match persistence::get_board(&postgres, &board_id) {
+  let board = match persistence::get_board(&postgres, &board_id, &participant_id.0) {
     Ok(Some(b)) => Ok(b),
     Ok(None) => Err(Status::NotFound),
     Err(Error::NotFound) => Err(Status::NotFound),
@@ -88,7 +88,7 @@ pub fn delete_vote(
   card_id: String,
 ) -> Result<JsonValue, Status> {
   // Check that voting is open for the board
-  let voting_open = match persistence::voting_open(&postgres, &board_id) {
+  let voting_open = match persistence::voting_open(&postgres, &board_id, &participant_id.0) {
     Ok(b) => Ok(b),
     Err(Error::NotFound) => Err(Status::NotFound),
     Err(error) => {

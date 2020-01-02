@@ -22,7 +22,7 @@ pub fn post_card(
   post_card: Json<PostCard>,
 ) -> Result<JsonValue, Status> {
   // Check that cards are open for the board
-  let cards_open = match persistence::cards_open(&postgres, &board_id) {
+  let cards_open = match persistence::cards_open(&postgres, &board_id, &participant_id.0) {
     Ok(b) => Ok(b),
     Err(Error::NotFound) => Err(Status::NotFound),
     Err(_) => Err(Status::InternalServerError),

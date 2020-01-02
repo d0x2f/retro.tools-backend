@@ -1,8 +1,7 @@
 use super::super::models::{Board, NewBoard, UpdateBoard};
-use super::super::schema::board::dsl::board as board_table;
+use super::super::persistence::get_boards;
 use super::super::testing::{create_board, run_test};
 use diesel::pg::PgConnection;
-use diesel::prelude::*;
 use rocket::http::ContentType;
 use rocket::http::Status;
 use rocket::local::Client;
@@ -37,7 +36,9 @@ fn test_post_board() {
     assert_eq!(response_board.cards_open, true);
 
     // Ensure the database contains only the new board
-    let db_boards = board_table.load::<Board>(db).unwrap();
+    let cookies = response.cookies();
+    let id_cookie = cookies[0].value();
+    let db_boards = get_boards(db, id_cookie).unwrap();
 
     assert_eq!(db_boards.len(), 1);
     assert_eq!(db_boards[0].id, response_board.id);
@@ -58,7 +59,9 @@ fn test_get_boards_empty() {
     assert_eq!(response.body_string(), Some("[]".into()));
 
     // Ensure the database contains no boards
-    let db_boards = board_table.load::<Board>(db).unwrap();
+    let cookies = response.cookies();
+    let id_cookie = cookies[0].value();
+    let db_boards = get_boards(db, id_cookie).unwrap();
     assert_eq!(db_boards.len(), 0);
   });
 }
@@ -67,7 +70,7 @@ fn test_get_boards_empty() {
 fn test_get_boards() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a new board
-    let board = create_board(
+    let (board, participant_id) = create_board(
       &client,
       &NewBoard {
         id: None,
@@ -93,7 +96,7 @@ fn test_get_boards() {
     assert_eq!(response_boards[0].cards_open, false);
 
     // Ensure the database contains only the one board
-    let db_boards = board_table.load::<Board>(db).unwrap();
+    let db_boards = get_boards(db, &participant_id).unwrap();
 
     assert_eq!(db_boards.len(), 1);
     assert_eq!(db_boards[0].id, response_boards[0].id);
@@ -120,7 +123,7 @@ fn test_get_board_missing() {
 fn test_get_board() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a new board
-    let created_board = create_board(
+    let (created_board, participant_id) = create_board(
       &client,
       &NewBoard {
         id: None,
@@ -146,7 +149,7 @@ fn test_get_board() {
     assert_eq!(response_board.cards_open, true);
 
     // Ensure the database contains the same board
-    let db_boards = board_table.load::<Board>(db).unwrap();
+    let db_boards = get_boards(db, &participant_id).unwrap();
 
     assert_eq!(db_boards.len(), 1);
     assert_eq!(db_boards[0].id, response_board.id);
@@ -161,7 +164,7 @@ fn test_get_board() {
 fn test_patch_board() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a new board
-    let created_board = create_board(
+    let (created_board, participant_id) = create_board(
       &client,
       &NewBoard {
         id: None,
@@ -199,7 +202,7 @@ fn test_patch_board() {
     assert_eq!(response_board.cards_open, false);
 
     // Ensure the database contains the modified board
-    let db_boards = board_table.load::<Board>(db).unwrap();
+    let db_boards = get_boards(db, &participant_id).unwrap();
 
     assert_eq!(db_boards.len(), 1);
     assert_eq!(db_boards[0].id, created_board.id);
@@ -214,7 +217,7 @@ fn test_patch_board() {
 fn test_delete_board() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a new board
-    let created_board = create_board(
+    let (created_board, participant_id) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -230,7 +233,7 @@ fn test_delete_board() {
     assert_eq!(response.status(), Status::Ok);
 
     // Ensure the database doesn't contain the board
-    let db_boards = board_table.load::<Board>(db).unwrap();
+    let db_boards = get_boards(db, &participant_id).unwrap();
 
     assert_eq!(db_boards.len(), 0);
   });

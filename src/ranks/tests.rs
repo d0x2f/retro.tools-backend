@@ -11,7 +11,7 @@ use rocket::local::Client;
 fn test_post_rank() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board
-    let board = create_board(
+    let (board, _) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -54,7 +54,7 @@ fn test_post_rank() {
 fn test_get_ranks_empty() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board
-    let board = create_board(
+    let (board, _) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -78,7 +78,7 @@ fn test_get_ranks_empty() {
 fn test_get_ranks() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board & rank
-    let board = create_board(
+    let (board, _) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -120,7 +120,7 @@ fn test_get_ranks() {
 fn test_get_rank() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board & rank
-    let board = create_board(
+    let (board, _) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -161,7 +161,7 @@ fn test_get_rank() {
 fn test_patch_rank() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board & rank
-    let board = create_board(
+    let (board, _) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -209,7 +209,7 @@ fn test_patch_rank() {
 fn test_delete_rank() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board & rank
-    let board = create_board(
+    let (board, _) = create_board(
       &client,
       &NewBoard {
         name: "test board",

@@ -10,12 +10,13 @@ use super::schema::vote;
 #[derive(Queryable, Identifiable, Serialize, Deserialize)]
 #[table_name = "board"]
 pub struct Board {
-  pub id: String,               // char(16)
-  pub name: String,             // varchar
-  pub max_votes: i16,           // tinyint
-  pub voting_open: bool,        // bool
-  pub cards_open: bool,         // bool
-  pub created_at: SystemTime,   // timestamp
+  pub id: String,             // char(16)
+  pub name: String,           // varchar
+  pub max_votes: i16,         // tinyint
+  pub voting_open: bool,      // bool
+  pub cards_open: bool,       // bool
+  pub created_at: SystemTime, // timestamp
+  pub owner: bool,            // bool
 }
 
 #[derive(AsChangeset, Serialize, Deserialize)]

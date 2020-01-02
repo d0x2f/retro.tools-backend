@@ -10,7 +10,7 @@ use rocket::local::Client;
 fn test_post_vote() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board, rank & card
-    let board = create_board(
+    let (board, _) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -66,7 +66,7 @@ fn test_post_vote() {
 fn test_post_vote_over_limit() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board, rank & card
-    let board = create_board(
+    let (board, _) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -126,7 +126,7 @@ fn test_post_vote_over_limit() {
 fn test_post_vote_forbidden() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board, rank & card
-    let board = create_board(
+    let (board, _) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -175,7 +175,7 @@ fn test_post_vote_forbidden() {
 fn test_delete_vote() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board, rank & card
-    let board = create_board(
+    let (board, _) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -282,7 +282,7 @@ fn test_delete_vote() {
 fn test_delete_vote_forbidden() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board, rank & card
-    let board = create_board(
+    let (board, _) = create_board(
       &client,
       &NewBoard {
         name: "test board",
