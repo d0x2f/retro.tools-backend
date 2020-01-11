@@ -17,16 +17,12 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: retrograde
     steps:
-    - uses: actions/checkout@v1
-    - id: component
-      uses: actions-rs/components-nightly@v1
+    - uses: actions/checkout@master
+    - uses: actions-rs/toolchain@v1
       with:
-        component: clippy
-    - name: Install nightly
-      uses: actions-rs/toolchain@v1
-      with:
-          toolchain: ${{ steps.component.outputs.toolchain }}
-          default: true
+          toolchain: nightly
+          components: clippy
+          override: true
     - run: rustup component add clippy
     - run: sudo apt-get install libpq-dev
     - name: Check
@@ -52,16 +48,13 @@ jobs:
     needs: ci
     steps:
     - uses: actions/checkout@v1
-    - name: Setup Google Cloud
-      uses: actions/gcloud/auth@master
-      env:
-        GCLOUD_AUTH: ${{ secrets.GCP_ACCOUNT_CREDENTIALS }}
+    - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+      with:
+        version: '270.0.0'
+        service_account_key: ${{ secrets.GCP_ACCOUNT_CREDENTIALS }}
     - name: Docker build
       uses: docker://gcr.io/cloud-builders/docker
       with:
         args: build . -t gcr.io/retrograde/retrograde:latest
     - name: Docker push
-      uses: actions/gcloud/cli@master
-      with:
-        entrypoint: /bin/sh
-        args: "-c \"gcloud auth configure-docker && docker push gcr.io/retrograde/retrograde:latest\""
+      run: gcloud auth configure-docker && docker push gcr.io/retrograde/retrograde:latest

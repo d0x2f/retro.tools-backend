@@ -15,16 +15,12 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: retrograde
     steps:
-    - uses: actions/checkout@v1
-    - id: component
-      uses: actions-rs/components-nightly@v1
+    - uses: actions/checkout@master
+    - uses: actions-rs/toolchain@v1
       with:
-        component: clippy
-    - name: Install nightly
-      uses: actions-rs/toolchain@v1
-      with:
-          toolchain: ${{ steps.component.outputs.toolchain }}
-          default: true
+          toolchain: nightly
+          components: clippy
+          override: true
     - run: rustup component add clippy
     - run: sudo apt-get install libpq-dev
     - name: Check
