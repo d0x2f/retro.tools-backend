@@ -55,7 +55,7 @@ pub fn get_board(
       Status::InternalServerError
     });
 
-  if let Err(_) = participant_result {
+  if participant_result.is_err() {
     return Err(Status::NotFound);
   }
 

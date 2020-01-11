@@ -17,11 +17,39 @@ pub fn participant_owns_board(
 ) -> Result<bool, Error> {
   use super::schema::participant_board;
 
-  let participant: ParticipantBoard = participant_board::dsl::participant_board
+  let participant: Option<ParticipantBoard> = participant_board::dsl::participant_board
     .find((participant_id, board_id))
-    .first(postgres)?;
+    .first(postgres)
+    .optional()?;
 
-  Ok(participant.owner)
+  Ok(match participant {
+    Some(p) => p.owner,
+    _ => false,
+  })
+}
+
+pub fn participant_owns_card(
+  postgres: &PgConnection,
+  participant_id: &str,
+  board_id: &str,
+  card_id: &str,
+) -> Result<bool, Error> {
+  use super::schema::card::dsl;
+
+  if participant_owns_board(postgres, participant_id, board_id)? {
+    return Ok(true);
+  }
+
+  let card_owner: Option<String> = dsl::card
+    .filter(dsl::id.eq(card_id))
+    .select(dsl::participant_id)
+    .first(postgres)
+    .optional()?;
+
+  Ok(match card_owner {
+    Some(owner) => owner == participant_id,
+    _ => false,
+  })
 }
 
 pub fn rank_in_board(
@@ -123,7 +151,7 @@ pub fn get_board(
 ) -> Result<Option<Board>, Error> {
   use super::schema::board::dsl::*;
 
-  let result = super::schema::participant_board::dsl::participant_board
+  super::schema::participant_board::dsl::participant_board
     .inner_join(board)
     .filter(super::schema::participant_board::dsl::participant_id.eq(participant_id))
     .filter(id.eq(board_id))
@@ -136,13 +164,8 @@ pub fn get_board(
       created_at,
       super::schema::participant_board::dsl::owner,
     ))
-    .first(postgres);
-
-  match result {
-    Ok(r) => Ok(Some(r)),
-    Err(Error::NotFound) => Ok(None),
-    Err(e) => Err(e),
-  }
+    .first(postgres)
+    .optional()
 }
 
 pub fn patch_board(
@@ -212,12 +235,7 @@ pub fn get_ranks(postgres: &PgConnection, board_id: &str) -> Result<Vec<Rank>, E
 pub fn get_rank(postgres: &PgConnection, rank_id: &str) -> Result<Option<Rank>, Error> {
   use super::schema::rank::dsl::*;
 
-  let result = rank.find(rank_id).first(postgres);
-  match result {
-    Ok(r) => Ok(Some(r)),
-    Err(Error::NotFound) => Ok(None),
-    Err(e) => Err(e),
-  }
+  rank.find(rank_id).first(postgres).optional()
 }
 
 pub fn patch_rank(
@@ -281,6 +299,7 @@ pub fn get_board_cards(
         .bind::<Text, _>(participant_id)
         .sql(") as voted"),
     ))
+    .order(dsl::created_at.asc())
     .load(postgres)
 }
 
@@ -305,6 +324,7 @@ pub fn get_rank_cards(
         .bind::<Text, _>(participant_id)
         .sql(") as voted"),
     ))
+    .order(dsl::created_at.asc())
     .load(postgres)
 }
 
@@ -315,7 +335,7 @@ pub fn get_card(
 ) -> Result<Option<Card>, Error> {
   use super::schema::card::dsl;
 
-  let result = dsl::card
+  dsl::card
     .select((
       dsl::id,
       dsl::rank_id,
@@ -328,13 +348,8 @@ pub fn get_card(
         .sql(") as voted"),
     ))
     .find(card_id)
-    .first(postgres);
-
-  match result {
-    Ok(r) => Ok(Some(r)),
-    Err(Error::NotFound) => Ok(None),
-    Err(e) => Err(e),
-  }
+    .first(postgres)
+    .optional()
 }
 
 pub fn patch_card(
@@ -382,12 +397,10 @@ pub fn get_vote(
 ) -> Result<Option<Vote>, Error> {
   use super::schema::vote::dsl;
 
-  let result = dsl::vote.find((card_id, participant_id)).first(postgres);
-  match result {
-    Ok(r) => Ok(Some(r)),
-    Err(Error::NotFound) => Ok(None),
-    Err(e) => Err(e),
-  }
+  dsl::vote
+    .find((card_id, participant_id))
+    .first(postgres)
+    .optional()
 }
 
 pub fn patch_vote(postgres: &PgConnection, update_vote: &UpdateVote) -> Result<Vote, Error> {

@@ -120,6 +120,7 @@ pub struct NewCard<'a> {
   pub rank_id: &'a str,
   pub name: &'a str,
   pub description: &'a str,
+  pub participant_id: &'a str,
 }
 
 #[derive(AsChangeset, Queryable, Serialize, Deserialize)]

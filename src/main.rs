@@ -35,8 +35,8 @@ use rocket::fairing::AdHoc;
 use rocket::http::Method;
 use rocket::*;
 use rocket_cors;
-use rocket_cors::{ AllowedOrigins, Error };
 use rocket_cors::Cors;
+use rocket_cors::{AllowedOrigins, Error};
 use std::collections::HashMap;
 use std::env;
 

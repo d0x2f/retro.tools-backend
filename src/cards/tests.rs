@@ -10,7 +10,7 @@ use rocket::local::Client;
 fn test_post_card() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board & rank
-    let (board, _) = create_board(
+    let (board, participant_id) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -37,6 +37,7 @@ fn test_post_card() {
           rank_id: &rank.id,
           name: "test card",
           description: "card description",
+          participant_id: &participant_id,
         })
         .unwrap(),
       )
@@ -67,7 +68,7 @@ fn test_post_card() {
 fn test_post_card_forbidden() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board & rank (cards disallowed)
-    let (board, _) = create_board(
+    let (board, participant_id) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -94,6 +95,7 @@ fn test_post_card_forbidden() {
           rank_id: &rank.id,
           name: "test card",
           description: "card description",
+          participant_id: &participant_id,
         })
         .unwrap(),
       )
@@ -112,7 +114,7 @@ fn test_post_card_forbidden() {
 fn test_get_cards() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board, rank & card
-    let (board, _) = create_board(
+    let (board, participant_id) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -135,6 +137,7 @@ fn test_get_cards() {
         rank_id: &rank.id,
         name: "test card",
         description: "card description",
+        participant_id: &participant_id,
       },
     );
 
@@ -168,7 +171,7 @@ fn test_get_cards() {
 fn test_get_card() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board, rank & card
-    let (board, _) = create_board(
+    let (board, participant_id) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -190,6 +193,7 @@ fn test_get_card() {
         rank_id: &rank.id,
         name: "test card",
         description: "card description",
+        participant_id: &participant_id,
       },
     );
 
@@ -225,7 +229,7 @@ fn test_get_card() {
 fn test_patch_card() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board, rank & card
-    let (board, _) = create_board(
+    let (board, participant_id) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -255,6 +259,7 @@ fn test_patch_card() {
         rank_id: &rank.id,
         name: "test card",
         description: "card description",
+        participant_id: &participant_id,
       },
     );
 
@@ -269,7 +274,7 @@ fn test_patch_card() {
         serde_json::to_string(&UpdateCard {
           name: Some("card test".into()),
           description: Some("description test".into()),
-          rank_id: Some(rank_b.id.clone())
+          rank_id: Some(rank_b.id.clone()),
         })
         .unwrap(),
       )
@@ -300,7 +305,7 @@ fn test_patch_card() {
 fn test_delete_card() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board, rank & card
-    let (board, _) = create_board(
+    let (board, participant_id) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -322,6 +327,7 @@ fn test_delete_card() {
         rank_id: &rank.id,
         name: "test card",
         description: "card description",
+        participant_id: &participant_id,
       },
     );
 
