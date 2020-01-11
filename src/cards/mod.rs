@@ -2,6 +2,7 @@
 mod tests;
 
 use super::guards::CardInRank;
+use super::guards::CardOwner;
 use super::guards::DatabaseConnection;
 use super::guards::ParticipantId;
 use super::guards::RankInBoard;
@@ -37,6 +38,7 @@ pub fn post_card(
     name: post_card.name,
     description: post_card.description,
     rank_id: &rank_id,
+    participant_id: &participant_id.0,
   };
 
   persistence::put_card(&postgres, new_card, &participant_id.0)
@@ -103,6 +105,7 @@ pub fn patch_card(
   participant_id: ParticipantId,
   _rank_in_board: RankInBoard,
   _card_in_rank: CardInRank,
+  _card_owner: CardOwner,
   postgres: DatabaseConnection,
   board_id: String,
   rank_id: String,

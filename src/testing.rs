@@ -26,12 +26,7 @@ fn test_cleanup(db: &PgConnection) {
     .expect("database cleanup (participant)");
 }
 
-pub fn run_test<F>(test: F)
-where
-  F: FnOnce(Client, &PgConnection),
-{
-  let _lock = DB_LOCK.lock();
-
+pub fn create_new_client() -> Client {
   let mut database_config = HashMap::new();
   let mut databases = HashMap::new();
 
@@ -51,8 +46,17 @@ where
     .unwrap();
 
   let rocket = rocket(config);
-  let db = guards::DatabaseConnection::get_one(&rocket).expect("database connection");
-  let client = Client::new(rocket).expect("valid rocket instance");
+  Client::new(rocket).expect("valid rocket instance")
+}
+
+pub fn run_test<F>(test: F)
+where
+  F: FnOnce(Client, &PgConnection),
+{
+  let _lock = DB_LOCK.lock();
+
+  let client = create_new_client();
+  let db = guards::DatabaseConnection::get_one(client.rocket()).expect("database connection");
 
   test_cleanup(&db);
   test(client, &db);
@@ -67,7 +71,7 @@ pub fn create_board(client: &Client, board: &NewBoard) -> (Board, String) {
     .dispatch();
   (
     serde_json::from_str(response.body_string().unwrap().as_str()).unwrap(),
-    response.cookies()[0].value().to_owned()
+    response.cookies()[0].value().to_owned(),
   )
 }
 

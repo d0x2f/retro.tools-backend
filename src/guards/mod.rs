@@ -10,6 +10,7 @@ pub struct DatabaseConnection(PgConnection);
 
 pub struct ParticipantId(pub String);
 pub struct BoardOwner();
+pub struct CardOwner();
 pub struct RankInBoard();
 pub struct CardInRank();
 
@@ -48,25 +49,63 @@ impl<'a, 'r> FromRequest<'a, 'r> for BoardOwner {
   type Error = ();
 
   fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, ()> {
-    let participant_id = request.guard::<ParticipantId>()?;
-    if let Some(board_id) = request.get_param::<String>(1).and_then(|r| r.ok()) {
-      let postgres = request.guard::<DatabaseConnection>()?;
-      let participant_owns_board =
-        match super::persistence::participant_owns_board(&postgres, &participant_id.0, &board_id) {
-          Ok(r) => r,
-          Err(diesel::result::Error::NotFound) => return Outcome::Failure((Status::NotFound, ())),
-          Err(_) => {
-            error!("Database error during BoardOwner guard.");
-            return Outcome::Failure((Status::InternalServerError, ()));
-          }
-        };
-      if participant_owns_board {
-        return Outcome::Success(BoardOwner {});
+    let board_id = match request.get_param::<String>(1) {
+      Some(Ok(id)) => id,
+      _ => {
+        error!("Error in BoardOwner guard - board_id is not available.");
+        return Outcome::Failure((Status::InternalServerError, ()));
       }
-      return Outcome::Failure((Status::Unauthorized, ()));
+    };
+
+    let participant_id = request.guard::<ParticipantId>()?;
+    let postgres = request.guard::<DatabaseConnection>()?;
+
+    match super::persistence::participant_owns_board(&postgres, &participant_id.0, &board_id) {
+      Ok(true) => Outcome::Success(BoardOwner {}),
+      Ok(false) => Outcome::Failure((Status::Unauthorized, ())),
+      Err(_) => {
+        error!("Database error during BoardOwner guard.");
+        Outcome::Failure((Status::InternalServerError, ()))
+      }
     }
-    error!("Error in BoardOwner guard - board_id is not available.");
-    Outcome::Failure((Status::InternalServerError, ()))
+  }
+}
+
+impl<'a, 'r> FromRequest<'a, 'r> for CardOwner {
+  type Error = ();
+
+  fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, ()> {
+    let board_id = match request.get_param::<String>(1) {
+      Some(Ok(id)) => id,
+      _ => {
+        error!("Error in CardOwner guard - board_id is not available.");
+        return Outcome::Failure((Status::InternalServerError, ()));
+      }
+    };
+
+    let card_id = match request.get_param::<String>(5) {
+      Some(Ok(id)) => id,
+      _ => {
+        error!("Error in CardOwner guard - card_id is not available.");
+        return Outcome::Failure((Status::InternalServerError, ()));
+      }
+    };
+
+    let participant_id = request.guard::<ParticipantId>()?;
+    let postgres = request.guard::<DatabaseConnection>()?;
+    match super::persistence::participant_owns_card(
+      &postgres,
+      &participant_id.0,
+      &board_id,
+      &card_id,
+    ) {
+      Ok(true) => Outcome::Success(CardOwner {}),
+      Ok(false) => Outcome::Failure((Status::Unauthorized, ())),
+      Err(_) => {
+        error!("Database error during CardOwner guard.");
+        Outcome::Failure((Status::InternalServerError, ()))
+      }
+    }
   }
 }
 
@@ -74,30 +113,31 @@ impl<'a, 'r> FromRequest<'a, 'r> for RankInBoard {
   type Error = ();
 
   fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, ()> {
-    let board_id_result = request.get_param::<String>(1).and_then(|r| r.ok());
-    let rank_id_result = request.get_param::<String>(3).and_then(|r| r.ok());
+    let board_id = match request.get_param::<String>(1) {
+      Some(Ok(id)) => id,
+      _ => {
+        error!("Error in CardOwner guard - board_id is not available.");
+        return Outcome::Failure((Status::InternalServerError, ()));
+      }
+    };
 
-    if let Some(board_id) = board_id_result {
-      if let Some(rank_id) = rank_id_result {
-        let postgres = request.guard::<DatabaseConnection>()?;
+    let rank_id = match request.get_param::<String>(3) {
+      Some(Ok(id)) => id,
+      _ => {
+        error!("Error in CardOwner guard - rank_id is not available.");
+        return Outcome::Failure((Status::InternalServerError, ()));
+      }
+    };
 
-        let rank_in_board = match super::persistence::rank_in_board(&postgres, &rank_id, &board_id)
-        {
-          Ok(r) => r,
-          Err(diesel::result::Error::NotFound) => return Outcome::Failure((Status::NotFound, ())),
-          Err(_) => {
-            error!("Database error during RankInBoard guard.");
-            return Outcome::Failure((Status::InternalServerError, ()));
-          }
-        };
-        if rank_in_board {
-          return Outcome::Success(RankInBoard {});
-        }
-        return Outcome::Failure((Status::NotFound, ()));
+    let postgres = request.guard::<DatabaseConnection>()?;
+    match super::persistence::rank_in_board(&postgres, &rank_id, &board_id) {
+      Ok(true) => Outcome::Success(RankInBoard {}),
+      Ok(false) => Outcome::Failure((Status::NotFound, ())),
+      Err(_) => {
+        error!("Database error during RankInBoard guard.");
+        Outcome::Failure((Status::InternalServerError, ()))
       }
     }
-    error!("Error in RankInBoard guard - either board_id or rank_id is not available.");
-    Outcome::Failure((Status::InternalServerError, ()))
   }
 }
 
@@ -105,28 +145,31 @@ impl<'a, 'r> FromRequest<'a, 'r> for CardInRank {
   type Error = ();
 
   fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, ()> {
-    let rank_id_result = request.get_param::<String>(3).and_then(|r| r.ok());
-    let card_id_result = request.get_param::<String>(5).and_then(|r| r.ok());
+    let card_id = match request.get_param::<String>(5) {
+      Some(Ok(id)) => id,
+      _ => {
+        error!("Error in CardInRank guard - card_id is not available.");
+        return Outcome::Failure((Status::InternalServerError, ()));
+      }
+    };
 
-    if let Some(card_id) = card_id_result {
-      if let Some(rank_id) = rank_id_result {
-        let postgres = request.guard::<DatabaseConnection>()?;
+    let rank_id = match request.get_param::<String>(3) {
+      Some(Ok(id)) => id,
+      _ => {
+        error!("Error in CardInRank guard - rank_id is not available.");
+        return Outcome::Failure((Status::InternalServerError, ()));
+      }
+    };
 
-        let card_in_rank = match super::persistence::card_in_rank(&postgres, &card_id, &rank_id) {
-          Ok(r) => r,
-          Err(diesel::result::Error::NotFound) => return Outcome::Failure((Status::NotFound, ())),
-          Err(_) => {
-            error!("Database error during CardInRank guard.");
-            return Outcome::Failure((Status::InternalServerError, ()));
-          }
-        };
-        if card_in_rank {
-          return Outcome::Success(CardInRank {});
-        }
-        return Outcome::Failure((Status::NotFound, ()));
+    let postgres = request.guard::<DatabaseConnection>()?;
+
+    match super::persistence::card_in_rank(&postgres, &card_id, &rank_id) {
+      Ok(true) => Outcome::Success(CardInRank {}),
+      Ok(false) => Outcome::Failure((Status::NotFound, ())),
+      Err(_) => {
+        error!("Database error during CardInRank guard.");
+        Outcome::Failure((Status::InternalServerError, ()))
       }
     }
-    error!("Error in RankInBoard guard - either card_id or rank_id is not available.");
-    Outcome::Failure((Status::InternalServerError, ()))
   }
 }

@@ -10,7 +10,7 @@ use rocket::local::Client;
 fn test_post_vote() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board, rank & card
-    let (board, _) = create_board(
+    let (board, participant_id) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -34,6 +34,7 @@ fn test_post_vote() {
         rank_id: &rank.id,
         name: "test card",
         description: "card description",
+        participant_id: &participant_id,
       },
     );
 
@@ -66,7 +67,7 @@ fn test_post_vote() {
 fn test_post_vote_over_limit() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board, rank & card
-    let (board, _) = create_board(
+    let (board, participant_id) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -91,6 +92,7 @@ fn test_post_vote_over_limit() {
         rank_id: &rank.id,
         name: "test card",
         description: "card description",
+        participant_id: &participant_id,
       },
     );
 
@@ -126,7 +128,7 @@ fn test_post_vote_over_limit() {
 fn test_post_vote_forbidden() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board, rank & card
-    let (board, _) = create_board(
+    let (board, participant_id) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -151,6 +153,7 @@ fn test_post_vote_forbidden() {
         rank_id: &rank.id,
         name: "test card",
         description: "card description",
+        participant_id: &participant_id,
       },
     );
 
@@ -175,7 +178,7 @@ fn test_post_vote_forbidden() {
 fn test_delete_vote() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board, rank & card
-    let (board, _) = create_board(
+    let (board, participant_id) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -199,6 +202,7 @@ fn test_delete_vote() {
         rank_id: &rank.id,
         name: "test card",
         description: "card description",
+        participant_id: &participant_id,
       },
     );
 
@@ -282,7 +286,7 @@ fn test_delete_vote() {
 fn test_delete_vote_forbidden() {
   run_test(|client: Client, db: &PgConnection| {
     // Create a board, rank & card
-    let (board, _) = create_board(
+    let (board, participant_id) = create_board(
       &client,
       &NewBoard {
         name: "test board",
@@ -307,6 +311,7 @@ fn test_delete_vote_forbidden() {
         rank_id: &rank.id,
         name: "test card",
         description: "card description",
+        participant_id: &participant_id,
       },
     );
 

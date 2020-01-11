@@ -96,6 +96,7 @@ pub struct Card {
   pub description: String, // varchar
   pub votes: i64,          // count(*)
   pub voted: bool,         // bool
+  pub owner: bool,         // bool
 }
 
 #[derive(AsChangeset, Serialize, Deserialize)]
@@ -120,6 +121,7 @@ pub struct NewCard<'a> {
   pub rank_id: &'a str,
   pub name: &'a str,
   pub description: &'a str,
+  pub participant_id: &'a str,
 }
 
 #[derive(AsChangeset, Queryable, Serialize, Deserialize)]

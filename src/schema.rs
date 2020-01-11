@@ -15,6 +15,8 @@ table! {
         rank_id -> Bpchar,
         name -> Varchar,
         description -> Varchar,
+        participant_id -> Bpchar,
+        created_at -> Timestamp,
     }
 }
 
@@ -48,6 +50,7 @@ table! {
     }
 }
 
+joinable!(card -> participant (participant_id));
 joinable!(card -> rank (rank_id));
 joinable!(participant_board -> board (board_id));
 joinable!(participant_board -> participant (participant_id));
