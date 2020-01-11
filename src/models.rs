@@ -90,13 +90,14 @@ pub struct NewRank<'a> {
 #[derive(Queryable, Identifiable, Serialize, Deserialize)]
 #[table_name = "card"]
 pub struct Card {
-  pub id: String,          // char(16)
-  pub rank_id: String,     // char(16)
-  pub name: String,        // varchar
-  pub description: String, // varchar
-  pub votes: i64,          // count(*)
-  pub voted: bool,         // bool
-  pub owner: bool,         // bool
+  pub id: String,             // char(16)
+  pub rank_id: String,        // char(16)
+  pub name: String,           // varchar
+  pub description: String,    // varchar
+  pub votes: i64,             // count(*)
+  pub voted: bool,            // bool
+  pub owner: bool,            // bool
+  pub created_at: SystemTime, // timestamp
 }
 
 #[derive(AsChangeset, Serialize, Deserialize)]
