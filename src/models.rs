@@ -96,6 +96,7 @@ pub struct Card {
   pub description: String, // varchar
   pub votes: i64,          // count(*)
   pub voted: bool,         // bool
+  pub owner: bool,         // bool
 }
 
 #[derive(AsChangeset, Serialize, Deserialize)]

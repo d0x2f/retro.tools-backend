@@ -298,6 +298,7 @@ pub fn get_board_cards(
         .sql(VOTED_SQL)
         .bind::<Text, _>(participant_id)
         .sql(") as voted"),
+      dsl::participant_id.eq(participant_id),
     ))
     .order(dsl::created_at.asc())
     .load(postgres)
@@ -323,6 +324,7 @@ pub fn get_rank_cards(
         .sql(VOTED_SQL)
         .bind::<Text, _>(participant_id)
         .sql(") as voted"),
+      dsl::participant_id.eq(participant_id),
     ))
     .order(dsl::created_at.asc())
     .load(postgres)
@@ -346,6 +348,7 @@ pub fn get_card(
         .sql(VOTED_SQL)
         .bind::<Text, _>(participant_id)
         .sql(") as voted"),
+      dsl::participant_id.eq(participant_id),
     ))
     .find(card_id)
     .first(postgres)
