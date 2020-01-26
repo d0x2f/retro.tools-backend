@@ -54,13 +54,11 @@ fn run_db_migrations(rocket: Rocket) -> Result<Rocket, Rocket> {
 }
 
 // TODO:
-//   - Only add localhost if environment isn't production.
+//   - Add localhost if environment isn't production.
 //   - Take production origin as an environment var.
 fn create_cors_fairing() -> Cors {
   let allowed_origins = AllowedOrigins::some_regex(&[
-    "^http://127.0.0.1:(.*)$",
-    "^http://localhost:(.*)$",
-    "^https?://(.*).dyl.dog$",
+    "^https?://retro.tools$",
   ]);
 
   rocket_cors::CorsOptions {

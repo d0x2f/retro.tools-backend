@@ -1,0 +1,2 @@
+ALTER TABLE rank
+  DROP COLUMN data;
