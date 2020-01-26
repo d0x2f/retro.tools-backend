@@ -39,6 +39,7 @@ table! {
         id -> Bpchar,
         board_id -> Bpchar,
         name -> Varchar,
+        data -> Jsonb,
     }
 }
 

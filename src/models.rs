@@ -62,21 +62,24 @@ pub struct NewParticipantBoard<'a> {
 #[derive(Queryable, Identifiable, Serialize, Deserialize)]
 #[table_name = "rank"]
 pub struct Rank {
-  pub id: String,       // char(16)
-  pub board_id: String, // char(16)
-  pub name: String,     // varchar
+  pub id: String,                 // char(16)
+  pub board_id: String,           // char(16)
+  pub name: String,               // varchar
+  pub data: serde_json::Value,    // jsonb
 }
 
 #[derive(AsChangeset, Serialize, Deserialize)]
 #[table_name = "rank"]
 pub struct UpdateRank {
-  pub name: String,
+  pub name: Option<String>,
+  pub data: Option<serde_json::Value>,
 }
 
 #[derive(Deserialize)]
 pub struct PostRank<'a> {
   pub id: Option<&'a str>,
   pub name: &'a str,
+  pub data: serde_json::Value,
 }
 
 #[derive(Insertable, Serialize, Deserialize)]
@@ -85,6 +88,7 @@ pub struct NewRank<'a> {
   pub id: Option<&'a str>,
   pub board_id: &'a str,
   pub name: &'a str,
+  pub data: serde_json::Value,
 }
 
 #[derive(Queryable, Identifiable, Serialize, Deserialize)]

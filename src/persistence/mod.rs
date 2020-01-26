@@ -228,7 +228,7 @@ pub fn get_ranks(postgres: &PgConnection, board_id: &str) -> Result<Vec<Rank>, E
   super::schema::board::dsl::board
     .inner_join(dsl::rank)
     .filter(super::schema::board::dsl::id.eq(board_id))
-    .select((dsl::id, dsl::board_id, dsl::name))
+    .select((dsl::id, dsl::board_id, dsl::name, dsl::data))
     .load(postgres)
 }
 
