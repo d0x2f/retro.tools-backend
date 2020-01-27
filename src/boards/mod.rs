@@ -4,11 +4,31 @@ mod tests;
 use super::guards::BoardOwner;
 use super::guards::DatabaseConnection;
 use super::guards::ParticipantId;
+use super::guards::BoardParticipant;
 use super::models::*;
 use super::persistence;
 use log::error;
 use rocket::http::Status;
 use rocket_contrib::json::{Json, JsonValue};
+use std::io::Cursor;
+use rocket::request::Request;
+use rocket::response::{self, Response, Responder};
+use rocket::http::ContentType;
+
+pub struct CSVResponse {
+  filename: String,
+  csv: String
+}
+
+impl<'r> Responder<'r> for CSVResponse {
+  fn respond_to(self, _: &Request) -> response::Result<'r> {
+      Response::build()
+          .sized_body(Cursor::new(self.csv))
+          .raw_header("Content-Disposition", format!("attachment; filename=\"{}\"", self.filename))
+          .header(ContentType::new("text", "csv"))
+          .ok()
+  }
+}
 
 #[post("/boards", data = "<new_board>")]
 pub fn post_board(
@@ -36,23 +56,10 @@ pub fn get_boards(
 #[get("/boards/<board_id>")]
 pub fn get_board(
   participant_id: ParticipantId,
+  _board_participant: BoardParticipant,
   postgres: DatabaseConnection,
   board_id: String,
 ) -> Result<JsonValue, Status> {
-  let new_participant = NewParticipantBoard {
-    participant_id: Some(&participant_id.0),
-    owner: false,
-    board_id: &board_id,
-  };
-
-  let participant_result = map_err!(
-    persistence::put_participant_board(&postgres, &new_participant)
-  );
-
-  if participant_result.is_err() {
-    return Err(Status::NotFound);
-  }
-
   let result = map_err!(persistence::get_board(&postgres, &board_id, &participant_id.0))?;
 
   match result {
@@ -88,46 +95,13 @@ pub fn delete_board(
   )
 }
 
-use std::io::Cursor;
-use rocket::request::Request;
-use rocket::response::{self, Response, Responder};
-use rocket::http::ContentType;
-
-pub struct CSVResponder {
-  filename: String,
-  csv: String
-}
-
-impl<'r> Responder<'r> for CSVResponder {
-  fn respond_to(self, _: &Request) -> response::Result<'r> {
-      Response::build()
-          .sized_body(Cursor::new(self.csv))
-          .raw_header("Content-Disposition", format!("attachment; filename=\"{}\"", self.filename))
-          .header(ContentType::new("text", "csv"))
-          .ok()
-  }
-}
-
 #[get("/boards/<board_id>/csv")]
 pub fn export_csv(
   participant_id: ParticipantId,
+  _board_participant: BoardParticipant,
   postgres: DatabaseConnection,
   board_id: String,
-) -> Result<CSVResponder, Status> {
-  let new_participant = NewParticipantBoard {
-    participant_id: Some(&participant_id.0),
-    owner: false,
-    board_id: &board_id,
-  };
-
-  let participant_result = map_err!(
-    persistence::put_participant_board(&postgres, &new_participant)
-  );
-
-  if participant_result.is_err() {
-    return Err(Status::NotFound);
-  }
-
+) -> Result<CSVResponse, Status> {
   let board = match map_err!(persistence::get_board(&postgres, &board_id, &participant_id.0))? {
     Some(b) => b,
     _ => return Err(Status::NotFound),
@@ -143,7 +117,7 @@ pub fn export_csv(
   let data = map_err!(String::from_utf8(map_err!(writer.into_inner())?))?;
 
   Ok(
-    CSVResponder {
+    CSVResponse {
       filename: format!("{}.csv", board.name),
       csv: data
     }

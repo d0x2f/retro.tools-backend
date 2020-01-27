@@ -4,11 +4,14 @@ use rocket::http::Status;
 use rocket::request::FromRequest;
 use rocket::*;
 use time::Duration;
+use super::models::NewParticipantBoard;
+use super::persistence;
 
 #[database("postgres")]
 pub struct DatabaseConnection(PgConnection);
 
 pub struct ParticipantId(pub String);
+pub struct BoardParticipant();
 pub struct BoardOwner();
 pub struct CardOwner();
 pub struct RankInBoard();
@@ -42,6 +45,34 @@ impl<'a, 'r> FromRequest<'a, 'r> for ParticipantId {
         .finish(),
     );
     Outcome::Success(ParticipantId { 0: participant.id })
+  }
+}
+
+impl<'a, 'r> FromRequest<'a, 'r> for BoardParticipant {
+  type Error = ();
+
+  fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, ()> {
+    let board_id = match request.get_param::<String>(1) {
+      Some(Ok(id)) => id,
+      _ => {
+        error!("Error in BoardParticipant guard - board_id is not available.");
+        return Outcome::Failure((Status::InternalServerError, ()));
+      }
+    };
+
+    let participant_id = request.guard::<ParticipantId>()?;
+    let postgres = request.guard::<DatabaseConnection>()?;
+
+    let new_participant = NewParticipantBoard {
+      participant_id: Some(&participant_id.0),
+      owner: false,
+      board_id: &board_id,
+    };
+
+    match persistence::put_participant_board(&postgres, &new_participant) {
+      Ok(_) => Outcome::Success(BoardParticipant {}),
+      Err(_) => Outcome::Failure((Status::NotFound, ()))
+    }
   }
 }
 
