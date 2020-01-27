@@ -46,10 +46,7 @@ pub fn post_vote(
     count: Some(0),
   };
 
-  let vote = persistence::put_vote(&postgres, new_vote).map_err(|error| {
-    error!("{}", error.to_string());
-    Status::InternalServerError
-  })?;
+  let vote = map_err!(persistence::put_vote(&postgres, new_vote))?;
 
   // If max votes is not yet exceeded, increment the vote.
   // If the vote is greater than the max votes, it was probably
@@ -62,18 +59,13 @@ pub fn post_vote(
       count: min(board.max_votes, vote.count + 1),
     };
 
-    persistence::patch_vote(&postgres, &update_vote).map_err(|error| {
-      error!("{}", error.to_string());
-      Status::InternalServerError
-    })?;
+    map_err!(persistence::patch_vote(&postgres, &update_vote))?;
   }
 
-  persistence::get_card(&postgres, &vote.card_id, &participant_id.0)
-    .map(|v| json!(v))
-    .map_err(|error| {
-      error!("{}", error.to_string());
-      Status::InternalServerError
-    })
+  map_err!(
+    persistence::get_card(&postgres, &vote.card_id, &participant_id.0)
+      .map(|v| json!(v))
+  )
 }
 
 #[delete("/boards/<board_id>/ranks/<_rank_id>/cards/<card_id>/vote")]
@@ -117,15 +109,10 @@ pub fn delete_vote(
     count: max(0, vote.count - 1),
   };
 
-  persistence::patch_vote(&postgres, &update_vote).map_err(|error| {
-    error!("{}", error.to_string());
-    Status::InternalServerError
-  })?;
+  map_err!(persistence::patch_vote(&postgres, &update_vote))?;
 
-  persistence::get_card(&postgres, &vote.card_id, &participant_id.0)
-    .map(|v| json!(v))
-    .map_err(|error| {
-      error!("{}", error.to_string());
-      Status::InternalServerError
-    })
+  map_err!(
+    persistence::get_card(&postgres, &vote.card_id, &participant_id.0)
+      .map(|v| json!(v))
+  )
 }

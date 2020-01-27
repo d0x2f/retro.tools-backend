@@ -41,12 +41,10 @@ pub fn post_card(
     participant_id: &participant_id.0,
   };
 
-  persistence::put_card(&postgres, new_card, &participant_id.0)
-    .map(|card| json!(card))
-    .map_err(|error| {
-      error!("{}", error.to_string());
-      Status::InternalServerError
-    })
+  map_err!(
+    persistence::put_card(&postgres, new_card, &participant_id.0)
+      .map(|card| json!(card))
+  )
 }
 
 #[get("/boards/<board_id>/cards")]
@@ -55,12 +53,10 @@ pub fn get_board_cards(
   postgres: DatabaseConnection,
   board_id: String,
 ) -> Result<JsonValue, Status> {
-  persistence::get_board_cards(&postgres, &board_id, &participant_id.0)
-    .map(|cards| json!(cards))
-    .map_err(|error| {
-      error!("{}", error.to_string());
-      Status::InternalServerError
-    })
+  map_err!(
+    persistence::get_board_cards(&postgres, &board_id, &participant_id.0)
+      .map(|cards| json!(cards))
+  )
 }
 
 #[get("/boards/<_board_id>/ranks/<rank_id>/cards")]
@@ -71,12 +67,10 @@ pub fn get_rank_cards(
   _board_id: String,
   rank_id: String,
 ) -> Result<JsonValue, Status> {
-  persistence::get_rank_cards(&postgres, &rank_id, &participant_id.0)
-    .map(|cards| json!(cards))
-    .map_err(|error| {
-      error!("{}", error.to_string());
-      Status::InternalServerError
-    })
+  map_err!(
+    persistence::get_rank_cards(&postgres, &rank_id, &participant_id.0)
+      .map(|cards| json!(cards))
+  )
 }
 
 #[get("/boards/<_board_id>/ranks/<_rank_id>/cards/<card_id>")]
@@ -89,10 +83,7 @@ pub fn get_card(
   _rank_id: String,
   card_id: String,
 ) -> Result<JsonValue, Status> {
-  let card = persistence::get_card(&postgres, &card_id, &participant_id.0).map_err(|error| {
-    error!("{}", error.to_string());
-    Status::InternalServerError
-  })?;
+  let card = map_err!(persistence::get_card(&postgres, &card_id, &participant_id.0))?;
   Ok(json!(card))
 }
 
@@ -128,12 +119,10 @@ pub fn patch_card(
     }
   }
 
-  persistence::patch_card(&postgres, &card_id, &update_card, &participant_id.0)
-    .map(|card| json!(card))
-    .map_err(|error| {
-      error!("{}", error.to_string());
-      Status::InternalServerError
-    })
+  map_err!(
+    persistence::patch_card(&postgres, &card_id, &update_card, &participant_id.0)
+      .map(|card| json!(card))
+  )
 }
 
 #[delete("/boards/<_board_id>/ranks/<_rank_id>/cards/<card_id>")]
@@ -146,10 +135,8 @@ pub fn delete_card(
   _rank_id: String,
   card_id: String,
 ) -> Result<(), Status> {
-  persistence::delete_card(&postgres, &card_id)
-    .map(|_| ())
-    .map_err(|error| {
-      error!("{}", error.to_string());
-      Status::InternalServerError
-    })
+  map_err!(
+    persistence::delete_card(&postgres, &card_id)
+      .map(|_| ())
+  )
 }

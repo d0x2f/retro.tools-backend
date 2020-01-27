@@ -20,6 +20,9 @@ extern crate time;
 #[cfg(test)]
 mod testing;
 
+#[macro_use]
+mod macros;
+
 mod boards;
 mod cards;
 mod catchers;
@@ -58,7 +61,7 @@ fn run_db_migrations(rocket: Rocket) -> Result<Rocket, Rocket> {
 //   - Take production origin as an environment var.
 fn create_cors_fairing() -> Cors {
   let allowed_origins = AllowedOrigins::some_regex(&[
-    "^https?://retro.tools$",
+    "^https?://retro.tools$"
   ]);
 
   rocket_cors::CorsOptions {
@@ -129,6 +132,7 @@ fn rocket(config: Config) -> Rocket {
         boards::get_board,
         boards::patch_board,
         boards::delete_board,
+        boards::export_csv,
         ranks::post_rank,
         ranks::get_ranks,
         ranks::get_rank,
