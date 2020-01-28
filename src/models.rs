@@ -78,7 +78,7 @@ pub struct UpdateRank {
 #[derive(Deserialize)]
 pub struct PostRank<'a> {
   pub id: Option<&'a str>,
-  pub name: &'a str,
+  pub name: String,
   pub data: serde_json::Value,
 }
 
@@ -113,10 +113,9 @@ pub struct UpdateCard {
 }
 
 #[derive(Deserialize)]
-pub struct PostCard<'a> {
-  pub id: Option<&'a str>,
-  pub name: &'a str,
-  pub description: &'a str,
+pub struct PostCard {
+  pub name: String,
+  pub description: String,
 }
 
 #[derive(Insertable, Serialize, Deserialize)]

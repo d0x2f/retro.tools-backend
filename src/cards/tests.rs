@@ -327,7 +327,7 @@ fn test_patch_card() {
       NewCard {
         id: None,
         rank_id: &rank.id,
-        name: "test card",
+        name: "test\ncard",
         description: "card description",
         participant_id: &participant_id,
       },
@@ -342,7 +342,7 @@ fn test_patch_card() {
       .header(ContentType::JSON)
       .body(
         serde_json::to_string(&UpdateCard {
-          name: Some("card test".into()),
+          name: Some("card\ntest".into()),
           description: Some("description test".into()),
           rank_id: Some(rank_b.id.clone()),
         })
@@ -355,7 +355,7 @@ fn test_patch_card() {
     assert_eq!(response.status(), Status::Ok);
     assert_eq!(response_card.id, card.id);
     assert_eq!(response_card.rank_id, rank_b.id);
-    assert_eq!(response_card.name, "card test");
+    assert_eq!(response_card.name, "card\ntest");
     assert_eq!(response_card.description, "description test");
     assert_eq!(response_card.votes, 0);
 
@@ -365,7 +365,7 @@ fn test_patch_card() {
     assert_eq!(db_cards.len(), 1);
     assert_eq!(db_cards[0].id, response_card.id);
     assert_eq!(db_cards[0].rank_id, rank_b.id);
-    assert_eq!(db_cards[0].name, "card test");
+    assert_eq!(db_cards[0].name, "card\ntest");
     assert_eq!(db_cards[0].description, "description test");
     assert_eq!(db_cards[0].votes, 0);
   });

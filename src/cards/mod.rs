@@ -35,8 +35,8 @@ pub fn post_card(
 
   let new_card = NewCard {
     id: None,
-    name: post_card.name,
-    description: post_card.description,
+    name: &post_card.name,
+    description: &post_card.description,
     rank_id: &rank_id,
     participant_id: &participant_id.0,
   };

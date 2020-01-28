@@ -21,7 +21,7 @@ pub fn post_rank(
 ) -> Result<JsonValue, Status> {
   let new_rank = NewRank {
     id: None,
-    name: post_rank.name,
+    name: &post_rank.name,
     board_id: &board_id,
     data: post_rank.data.clone(),
   };
