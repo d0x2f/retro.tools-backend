@@ -24,19 +24,5 @@ services:
     volumes:
       - postgres:/var/lib/postgresql/data
 
-  prometheus:
-    image: prom/prometheus
-    volumes:
-      - prometheus:/prometheus
-
-  grafana:
-    image: grafana/grafana
-    ports:
-      - 3000:3000
-    volumes:
-      - grafana:/var/lib/grafana
-
 volumes:
   postgres:
-  prometheus:
-  grafana:
