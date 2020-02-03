@@ -9,7 +9,7 @@ services:
     links:
       - postgres
     ports:
-      - 80:8000
+      - 8000:8000
     environment:
       PORT: 8000
       PSQL_CONNECTION_STRING: postgres://postgres:postgres@postgres/retrograde
@@ -20,8 +20,23 @@ services:
       - 5432:5432
     environment:
       - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=retrograde
     volumes:
       - postgres:/var/lib/postgresql/data
 
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - prometheus:/prometheus
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana:/var/lib/grafana
+
 volumes:
   postgres:
+  prometheus:
+  grafana:
