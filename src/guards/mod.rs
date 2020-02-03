@@ -20,14 +20,23 @@ pub struct CardInRank();
 impl<'a, 'r> FromRequest<'a, 'r> for ParticipantId {
   type Error = ();
 
-  // TODO: session fixation
   fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, ()> {
     let mut cookies = request.cookies();
     let cookie = cookies.get("id");
     if let Some(cookie) = cookie {
-      return Outcome::Success(ParticipantId {
-        0: String::from(cookie.value()),
-      });
+      let participant_id = String::from(cookie.value());
+      // Verify the session id is real
+      let postgres = request.guard::<DatabaseConnection>()?;
+      match persistence::get_participant(&postgres, &participant_id) {
+        Ok(Some(_)) => return Outcome::Success(ParticipantId {
+            0: participant_id,
+          }),
+        Ok(None) => (),
+        Err(_) => {
+          error!("Database error during ParticipantId guard.");
+          return Outcome::Failure((Status::InternalServerError, ()));
+        }
+      }
     }
     let postgres = request.guard::<DatabaseConnection>()?;
     let participant = match super::persistence::create_participant(&postgres) {

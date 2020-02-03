@@ -16,6 +16,8 @@ extern crate env_logger;
 extern crate log;
 extern crate rand;
 extern crate time;
+#[macro_use]
+extern crate lazy_static;
 
 #[cfg(test)]
 mod testing;
@@ -23,6 +25,7 @@ mod testing;
 #[macro_use]
 mod macros;
 
+mod metrics;
 mod boards;
 mod cards;
 mod catchers;
@@ -42,6 +45,7 @@ use rocket_cors::Cors;
 use rocket_cors::{AllowedOrigins, Error};
 use std::collections::HashMap;
 use std::env;
+use rocket_prometheus::PrometheusMetrics;
 
 embed_migrations!();
 
@@ -120,10 +124,19 @@ fn build_config() -> Config {
 }
 
 fn rocket(config: Config) -> Rocket {
+  let prometheus = PrometheusMetrics::new();
+  let registry = prometheus.registry();
+  registry.register(Box::new(metrics::PARTICIPANT_COUNT.clone())).expect("metric registration");
+  registry.register(Box::new(metrics::BOARDS_COUNT.clone())).expect("metric registration");
+  registry.register(Box::new(metrics::BOARD_PARTICIPANT_COUNT.clone())).expect("metric registration");
+  registry.register(Box::new(metrics::RANK_COUNT.clone())).expect("metric registration");
+  registry.register(Box::new(metrics::CARD_COUNT.clone())).expect("metric registration");
   rocket::custom(config)
+    .attach(prometheus.clone())
     .attach(guards::DatabaseConnection::fairing())
     .attach(create_cors_fairing())
     .attach(AdHoc::on_attach("Database Migrations", run_db_migrations))
+    .mount("/_metrics", prometheus)
     .mount(
       "/",
       routes![

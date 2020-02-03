@@ -5,6 +5,8 @@ use diesel::prelude::*;
 use diesel::result::Error;
 use diesel::sql_types::Text;
 
+use super::metrics::*;
+
 const VOTES_SQL: &str =
   "(select coalesce(sum(count), 0) from vote where vote.card_id = card.id) as votes";
 const VOTED_SQL: &str =
@@ -110,6 +112,8 @@ pub fn put_board(
     .returning(board::dsl::id)
     .get_result(postgres)?;
 
+  BOARDS_COUNT.inc();
+
   let new_participant = NewParticipantBoard {
     participant_id: Some(participant_id),
     owner: true,
@@ -197,9 +201,18 @@ pub fn delete_board(postgres: &PgConnection, board_id: &str) -> Result<usize, Er
 
 pub fn create_participant(postgres: &PgConnection) -> Result<Participant, Error> {
   use super::schema::participant::dsl::*;
-  diesel::insert_into(participant)
+  let result = diesel::insert_into(participant)
     .default_values()
-    .get_result(postgres)
+    .get_result(postgres);
+
+  if result.is_ok() {
+    PARTICIPANT_COUNT.inc();
+  }
+  result
+}
+
+pub fn get_participant(postgres: &PgConnection, participant_id: &str) -> Result<Option<Participant>, Error> {
+  super::schema::participant::dsl::participant.find(participant_id).first(postgres).optional()
 }
 
 pub fn put_participant_board(
@@ -207,19 +220,31 @@ pub fn put_participant_board(
   new_participant: &NewParticipantBoard,
 ) -> Result<usize, Error> {
   use super::schema::participant_board::dsl::*;
-  diesel::insert_into(participant_board)
+  let result = diesel::insert_into(participant_board)
     .values(new_participant)
     .on_conflict((participant_id, board_id))
     .do_nothing()
-    .execute(postgres)
+    .execute(postgres);
+
+  match result {
+    Ok(0) => (),
+    Ok(_) => BOARD_PARTICIPANT_COUNT.inc(),
+    Err(_) => ()
+  };
+  result
 }
 
 pub fn put_rank(postgres: &PgConnection, new_rank: NewRank) -> Result<Rank, Error> {
   use super::schema::rank;
 
-  diesel::insert_into(rank::table)
+  let result = diesel::insert_into(rank::table)
     .values(new_rank)
-    .get_result(postgres)
+    .get_result(postgres);
+
+  if result.is_ok() {
+    RANK_COUNT.inc();
+  }
+  result
 }
 
 pub fn get_ranks(postgres: &PgConnection, board_id: &str) -> Result<Vec<Rank>, Error> {
@@ -267,6 +292,8 @@ pub fn put_card(
     .values(new_card)
     .returning(dsl::id)
     .get_result(postgres)?;
+
+  CARD_COUNT.inc();
 
   let card = get_card(postgres, &inserted_id, participant_id);
   match card {
