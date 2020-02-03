@@ -1,30 +1,30 @@
 use rocket_prometheus::{
-  prometheus::IntCounter
+  prometheus::{ opts, register_counter, register_int_counter, IntCounter }
 };
 
 lazy_static! {
-  pub static ref PARTICIPANT_COUNT: IntCounter = IntCounter::new(
-    "retrograde_participant_count",
+  pub static ref PARTICIPANT_COUNT: IntCounter = register_int_counter!(
+    "retrograde_participants_total",
     "The number of participants."
   )
   .unwrap();
-  pub static ref BOARDS_COUNT: IntCounter = IntCounter::new(
-    "retrograde_board_count",
+  pub static ref BOARDS_COUNT: IntCounter = register_int_counter!(
+    "retrograde_boards_total",
     "The number of board creations."
   )
   .unwrap();
-  pub static ref BOARD_PARTICIPANT_COUNT: IntCounter = IntCounter::new(
-    "retrograde_board_participant_count",
+  pub static ref BOARD_PARTICIPANT_COUNT: IntCounter = register_int_counter!(
+    "retrograde_board_participants_total",
     "The number of participants who joined a board."
   )
   .unwrap();
-  pub static ref RANK_COUNT: IntCounter = IntCounter::new(
-    "retrograde_rank_count",
+  pub static ref RANK_COUNT: IntCounter = register_int_counter!(
+    "retrograde_ranks_total",
     "The number of ranks."
   )
   .unwrap();
-  pub static ref CARD_COUNT: IntCounter = IntCounter::new(
-    "retrograde_card_count",
+  pub static ref CARD_COUNT: IntCounter = register_int_counter!(
+    "retrograde_cards_total",
     "The number of cards."
   )
   .unwrap();

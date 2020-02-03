@@ -18,6 +18,7 @@ extern crate rand;
 extern crate time;
 #[macro_use]
 extern crate lazy_static;
+extern crate nanoid;
 
 #[cfg(test)]
 mod testing;
@@ -45,7 +46,10 @@ use rocket_cors::Cors;
 use rocket_cors::{AllowedOrigins, Error};
 use std::collections::HashMap;
 use std::env;
-use rocket_prometheus::PrometheusMetrics;
+use rocket_prometheus::{
+  prometheus::{ Registry },
+  PrometheusMetrics
+};
 
 embed_migrations!();
 
@@ -65,7 +69,8 @@ fn run_db_migrations(rocket: Rocket) -> Result<Rocket, Rocket> {
 //   - Take production origin as an environment var.
 fn create_cors_fairing() -> Cors {
   let allowed_origins = AllowedOrigins::some_regex(&[
-    "^https?://retro.tools$"
+    "^https?://retro.tools$",
+    ".*"
   ]);
 
   rocket_cors::CorsOptions {
@@ -124,8 +129,10 @@ fn build_config() -> Config {
 }
 
 fn rocket(config: Config) -> Rocket {
-  let prometheus = PrometheusMetrics::new();
-  let registry = prometheus.registry();
+  let mut labels = HashMap::new();
+  labels.insert("instance_id".to_string(), nanoid::generate(16));
+  let registry = Registry::new_custom(None, Some(labels)).expect("valid prometheus registry");
+  let prometheus = PrometheusMetrics::with_registry(registry.clone());
   registry.register(Box::new(metrics::PARTICIPANT_COUNT.clone())).expect("metric registration");
   registry.register(Box::new(metrics::BOARDS_COUNT.clone())).expect("metric registration");
   registry.register(Box::new(metrics::BOARD_PARTICIPANT_COUNT.clone())).expect("metric registration");
