@@ -34,7 +34,10 @@
             "last"
           ],
           "defaults": {
+            "decimals": 2,
             "mappings": [],
+            "max": 10,
+            "min": 0,
             "thresholds": {
               "mode": "absolute",
               "steps": [
@@ -44,7 +47,7 @@
                 },
                 {
                   "color": "red",
-                  "value": 80
+                  "value": 5
                 }
               ]
             },
@@ -61,7 +64,7 @@
       "pluginVersion": "6.6.0",
       "targets": [
         {
-          "expr": "sum(rate(retrograde_http_requests_total[10m]))",
+          "expr": "sum(rate(retrograde_http_requests_total{endpoint!=\"/_metrics\"}[10m]))",
           "instant": true,
           "interval": "10m",
           "refId": "A"
@@ -79,7 +82,6 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": null,
-      "description": "",
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -87,6 +89,98 @@
         "w": 12,
         "x": 0,
         "y": 8
+      },
+      "hiddenSeries": false,
+      "id": 10,
+      "interval": "10m",
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": false,
+      "linewidth": 1,
+      "nullPointMode": "null as zero",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": true,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": true,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "sum(increase(retrograde_http_requests_total{endpoint!=\"/_metrics\"}[10m])) by (status)",
+          "interval": "10m",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "HTTP Response Codes",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transparent": true,
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": "100",
+          "min": "0",
+          "show": true
+        },
+        {
+          "decimals": null,
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": true,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "description": "",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
       },
       "hiddenSeries": false,
       "id": 8,
@@ -116,7 +210,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(increase(retrograde_http_requests_total[10m])) by (method)",
+          "expr": "sum(increase(retrograde_http_requests_total{endpoint!=\"/_metrics\"}[10m])) by (method)",
           "interval": "10m",
           "legendFormat": "{{method}}",
           "refId": "A"
@@ -132,6 +226,7 @@
         "sort": 0,
         "value_type": "individual"
       },
+      "transparent": true,
       "type": "graph",
       "xaxis": {
         "buckets": null,
@@ -181,7 +276,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 16
+        "y": 24
       },
       "heatmap": {},
       "hideZeroBuckets": true,
@@ -247,7 +342,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 25
+        "y": 33
       },
       "hiddenSeries": false,
       "id": 4,
@@ -352,7 +447,7 @@
     "list": []
   },
   "time": {
-    "from": "now-12h",
+    "from": "now-2d",
     "to": "now"
   },
   "timepicker": {
@@ -372,5 +467,5 @@
   "timezone": "",
   "title": "Retrograde",
   "uid": "eNmbVH8Wz",
-  "version": 1
+  "version": 6
 }
