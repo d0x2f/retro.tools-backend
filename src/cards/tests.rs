@@ -24,7 +24,7 @@ fn test_post_card() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar")
+        data: serde_json::json!("foobar"),
       },
     );
 
@@ -83,7 +83,7 @@ fn test_post_card_forbidden() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar")
+        data: serde_json::json!("foobar"),
       },
     );
 
@@ -130,7 +130,7 @@ fn test_get_cards() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar")
+        data: serde_json::json!("foobar"),
       },
     );
     let card = create_card(
@@ -187,7 +187,7 @@ fn test_get_card() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar")
+        data: serde_json::json!("foobar"),
       },
     );
     let card = create_card(
@@ -250,7 +250,7 @@ fn test_non_author_get_card() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar")
+        data: serde_json::json!("foobar"),
       },
     );
     let card = create_card(
@@ -310,7 +310,7 @@ fn test_patch_card() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar")
+        data: serde_json::json!("foobar"),
       },
     );
     let rank_b = create_rank(
@@ -319,7 +319,7 @@ fn test_patch_card() {
         id: None,
         board_id: &board.id,
         name: "test rank b",
-        data: serde_json::json!("foobar")
+        data: serde_json::json!("foobar"),
       },
     );
     let card = create_card(
@@ -391,7 +391,7 @@ fn test_non_author_patch_card() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar")
+        data: serde_json::json!("foobar"),
       },
     );
     let rank_b = create_rank(
@@ -400,7 +400,7 @@ fn test_non_author_patch_card() {
         id: None,
         board_id: &board.id,
         name: "test rank b",
-        data: serde_json::json!("foobar")
+        data: serde_json::json!("foobar"),
       },
     );
     let card = create_card(
@@ -452,7 +452,7 @@ fn test_delete_card() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar")
+        data: serde_json::json!("foobar"),
       },
     );
     let card = create_card(

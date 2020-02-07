@@ -62,10 +62,7 @@ pub fn post_vote(
     map_err!(persistence::patch_vote(&postgres, &update_vote))?;
   }
 
-  map_err!(
-    persistence::get_card(&postgres, &vote.card_id, &participant_id.0)
-      .map(|v| json!(v))
-  )
+  map_err!(persistence::get_card(&postgres, &vote.card_id, &participant_id.0).map(|v| json!(v)))
 }
 
 #[delete("/boards/<board_id>/ranks/<_rank_id>/cards/<card_id>/vote")]
@@ -111,8 +108,5 @@ pub fn delete_vote(
 
   map_err!(persistence::patch_vote(&postgres, &update_vote))?;
 
-  map_err!(
-    persistence::get_card(&postgres, &vote.card_id, &participant_id.0)
-      .map(|v| json!(v))
-  )
+  map_err!(persistence::get_card(&postgres, &vote.card_id, &participant_id.0).map(|v| json!(v)))
 }

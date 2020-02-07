@@ -1,11 +1,11 @@
+use super::models::NewParticipantBoard;
+use super::persistence;
 use diesel::PgConnection;
 use rocket::http::Cookie;
 use rocket::http::Status;
 use rocket::request::FromRequest;
 use rocket::*;
 use time::Duration;
-use super::models::NewParticipantBoard;
-use super::persistence;
 
 #[database("postgres")]
 pub struct DatabaseConnection(PgConnection);
@@ -28,9 +28,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for ParticipantId {
       // Verify the session id is real
       let postgres = request.guard::<DatabaseConnection>()?;
       match persistence::get_participant(&postgres, &participant_id) {
-        Ok(Some(_)) => return Outcome::Success(ParticipantId {
-            0: participant_id,
-          }),
+        Ok(Some(_)) => return Outcome::Success(ParticipantId { 0: participant_id }),
         Ok(None) => (),
         Err(_) => {
           error!("Database error during ParticipantId guard.");
@@ -80,7 +78,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for BoardParticipant {
 
     match persistence::put_participant_board(&postgres, &new_participant) {
       Ok(_) => Outcome::Success(BoardParticipant {}),
-      Err(_) => Outcome::Failure((Status::NotFound, ()))
+      Err(_) => Outcome::Failure((Status::NotFound, ())),
     }
   }
 }
