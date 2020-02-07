@@ -26,30 +26,28 @@ mod testing;
 #[macro_use]
 mod macros;
 
-mod metrics;
 mod boards;
 mod cards;
 mod catchers;
 mod guards;
+mod metrics;
 mod models;
 mod persistence;
 mod ranks;
 mod schema;
 mod votes;
 
-use rocket::config::{Config, Environment, Value};
+use dotenv;
+use rocket::config::{Config as RocketConfig, Environment, Value};
 use rocket::fairing::AdHoc;
 use rocket::http::Method;
 use rocket::*;
 use rocket_cors;
 use rocket_cors::Cors;
 use rocket_cors::{AllowedOrigins, Error};
+use rocket_prometheus::{prometheus::Registry, PrometheusMetrics};
 use std::collections::HashMap;
 use std::env;
-use rocket_prometheus::{
-  prometheus::{ Registry },
-  PrometheusMetrics
-};
 
 embed_migrations!();
 
@@ -64,13 +62,73 @@ fn run_db_migrations(rocket: Rocket) -> Result<Rocket, Rocket> {
   }
 }
 
-// TODO:
-//   - Add localhost if environment isn't production.
-//   - Take production origin as an environment var.
-fn create_cors_fairing() -> Cors {
-  let allowed_origins = AllowedOrigins::some_regex(&[
-    "^https?://retro.tools$"
-  ]);
+struct Config {
+  port: u16,
+  secret_key: String,
+  connection_string: String,
+  connection_pool_size: u32,
+  environment: Environment,
+  allowed_origins: String,
+}
+
+impl Config {
+  fn new() -> Config {
+    let environment = match env::var("ENVIRONMENT")
+      .unwrap_or_else(|_| "production".to_owned())
+      .as_str()
+    {
+      "production" => Environment::Production,
+      _ => Environment::Development,
+    };
+
+    let secret_key = match env::var("SECRET_KEY") {
+      Err(_) => match environment {
+        Environment::Production => {
+          panic!("No secret key provided despite being in production mode!")
+        }
+        _ => "".to_owned(),
+      },
+      Ok(s) => s,
+    };
+
+    Config {
+      port: env::var("PORT").expect("port").parse().expect("integer"),
+      secret_key,
+      connection_string: env::var("PSQL_CONNECTION_STRING").expect("postgres connection string"),
+      connection_pool_size: env::var("PSQL_CONNECTION_POOL_SIZE")
+        .expect("postgres connection pool size")
+        .parse()
+        .expect("integer"),
+      environment,
+      allowed_origins: env::var("ALLOWED_ORIGINS").expect("allowed origin regex"),
+    }
+  }
+}
+
+fn create_prometheus_fairing() -> PrometheusMetrics {
+  let mut labels = HashMap::new();
+  labels.insert("instance_id".to_string(), nanoid::generate(16));
+  let registry = Registry::new_custom(None, Some(labels)).expect("valid prometheus registry");
+  registry
+    .register(Box::new(metrics::PARTICIPANT_COUNT.clone()))
+    .expect("metric registration");
+  registry
+    .register(Box::new(metrics::BOARDS_COUNT.clone()))
+    .expect("metric registration");
+  registry
+    .register(Box::new(metrics::BOARD_PARTICIPANT_COUNT.clone()))
+    .expect("metric registration");
+  registry
+    .register(Box::new(metrics::RANK_COUNT.clone()))
+    .expect("metric registration");
+  registry
+    .register(Box::new(metrics::CARD_COUNT.clone()))
+    .expect("metric registration");
+  PrometheusMetrics::with_registry(registry)
+}
+
+fn create_cors_fairing(config: &Config) -> Cors {
+  let allowed_origins = AllowedOrigins::some_regex(&[&config.allowed_origins]);
 
   rocket_cors::CorsOptions {
     allowed_origins,
@@ -85,62 +143,29 @@ fn create_cors_fairing() -> Cors {
   .expect("cors object")
 }
 
-fn build_config() -> Config {
-  let port = env::var("PORT")
-    .unwrap_or_else(|_| "8000".to_owned())
-    .parse()
-    .unwrap();
-
-  let connection_string = env::var("PSQL_CONNECTION_STRING")
-    .unwrap_or_else(|_| "postgres://postgres:postgres@127.0.0.1/retrograde".to_owned());
-
-  let connection_pool_size: i32 = env::var("PSQL_CONNECTION_POOL_SIZE")
-    .unwrap_or_else(|_| "1".to_owned())
-    .parse()
-    .unwrap();
-
-  // TODO: panic if in production mode and no key was given.
-  let secret_key = env::var("SECRET_KEY")
-    .unwrap_or_else(|_| "p5jimVesy/p+q3ZF5xwuiQ7G0mBEHmaVBBz7mWXqqqg=".to_owned());
-
-  let environment = match env::var("ENVIRONMENT")
-    .unwrap_or_else(|_| "development".to_owned())
-    .as_str()
-  {
-    "production" => Environment::Production,
-    _ => Environment::Development,
-  };
-
+fn build_rocket_config(config: &Config) -> RocketConfig {
   let mut database_config = HashMap::new();
   let mut databases = HashMap::new();
 
-  database_config.insert("url", Value::from(connection_string));
-  database_config.insert("pool_size", Value::from(connection_pool_size));
+  database_config.insert("url", Value::from(config.connection_string.clone()));
+  database_config.insert("pool_size", Value::from(config.connection_pool_size));
   databases.insert("postgres", Value::from(database_config));
 
-  Config::build(environment)
+  RocketConfig::build(config.environment)
     .address("0.0.0.0")
-    .port(port)
-    .secret_key(secret_key)
+    .port(config.port)
+    .secret_key(&config.secret_key)
     .extra("databases", databases)
     .finalize()
     .unwrap()
 }
 
 fn rocket(config: Config) -> Rocket {
-  let mut labels = HashMap::new();
-  labels.insert("instance_id".to_string(), nanoid::generate(16));
-  let registry = Registry::new_custom(None, Some(labels)).expect("valid prometheus registry");
-  registry.register(Box::new(metrics::PARTICIPANT_COUNT.clone())).expect("metric registration");
-  registry.register(Box::new(metrics::BOARDS_COUNT.clone())).expect("metric registration");
-  registry.register(Box::new(metrics::BOARD_PARTICIPANT_COUNT.clone())).expect("metric registration");
-  registry.register(Box::new(metrics::RANK_COUNT.clone())).expect("metric registration");
-  registry.register(Box::new(metrics::CARD_COUNT.clone())).expect("metric registration");
-  let prometheus = PrometheusMetrics::with_registry(registry);
-  rocket::custom(config)
+  let prometheus = create_prometheus_fairing();
+  rocket::custom(build_rocket_config(&config))
     .attach(prometheus.clone())
     .attach(guards::DatabaseConnection::fairing())
-    .attach(create_cors_fairing())
+    .attach(create_cors_fairing(&config))
     .attach(AdHoc::on_attach("Database Migrations", run_db_migrations))
     .mount("/_metrics", prometheus)
     .mount(
@@ -179,6 +204,7 @@ fn rocket(config: Config) -> Rocket {
 
 fn main() -> Result<(), Error> {
   env_logger::init();
-  rocket(build_config()).launch();
+  dotenv::dotenv().ok();
+  rocket(Config::new()).launch();
   Ok(())
 }
