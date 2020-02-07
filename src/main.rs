@@ -62,7 +62,7 @@ fn run_db_migrations(rocket: Rocket) -> Result<Rocket, Rocket> {
   }
 }
 
-struct Config {
+pub struct Config {
   port: u16,
   secret_key: String,
   connection_string: String,
@@ -72,7 +72,26 @@ struct Config {
 }
 
 impl Config {
-  fn new() -> Config {
+  #[cfg(test)]
+  fn from_values(
+    port: u16,
+    secret_key: String,
+    connection_string: String,
+    connection_pool_size: u32,
+    environment: Environment,
+    allowed_origins: String,
+  ) -> Config {
+    Config {
+      port,
+      secret_key,
+      connection_string,
+      connection_pool_size,
+      environment,
+      allowed_origins,
+    }
+  }
+
+  fn from_env() -> Config {
     let environment = match env::var("ENVIRONMENT")
       .unwrap_or_else(|_| "production".to_owned())
       .as_str()
@@ -205,6 +224,6 @@ fn rocket(config: Config) -> Rocket {
 fn main() -> Result<(), Error> {
   env_logger::init();
   dotenv::dotenv().ok();
-  rocket(Config::new()).launch();
+  rocket(Config::from_env()).launch();
   Ok(())
 }

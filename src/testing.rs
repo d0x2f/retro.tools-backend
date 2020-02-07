@@ -3,12 +3,12 @@ extern crate parking_lot;
 use super::models::{Board, Card, NewBoard, NewCard, NewRank, Rank};
 use super::persistence::{put_card, put_rank};
 use super::schema::{board, participant};
+use super::Config;
 use super::{embedded_migrations, guards, rocket};
 use parking_lot::Mutex;
-use rocket::config::{Config, Environment, Value};
+use rocket::config::Environment;
 use rocket::http::ContentType;
 use rocket::local::Client;
-use std::collections::HashMap;
 
 static DB_LOCK: Mutex<()> = Mutex::new(());
 
@@ -27,23 +27,14 @@ fn test_cleanup(db: &PgConnection) {
 }
 
 pub fn create_new_client() -> Client {
-  let mut database_config = HashMap::new();
-  let mut databases = HashMap::new();
-
-  database_config.insert(
-    "url",
-    Value::from("postgres://postgres:postgres@127.0.0.1/retrograde"),
+  let config = Config::from_values(
+    80,
+    "apnUQicUZ8QRDN1+rlIGdvhfdabLCTg4aGd0MHFQIPQ=".to_owned(),
+    "postgres://postgres:postgres@127.0.0.1/retrograde".to_owned(),
+    2,
+    Environment::Development,
+    ".*".to_owned(),
   );
-  database_config.insert("pool_size", Value::from(2));
-  databases.insert("postgres", Value::from(database_config));
-
-  let config = Config::build(Environment::Development)
-    .address("0.0.0.0")
-    .port(80)
-    .secret_key("apnUQicUZ8QRDN1+rlIGdvhfdabLCTg4aGd0MHFQIPQ=")
-    .extra("databases", databases)
-    .finalize()
-    .unwrap();
 
   let rocket = rocket(config);
   Client::new(rocket).expect("valid rocket instance")
