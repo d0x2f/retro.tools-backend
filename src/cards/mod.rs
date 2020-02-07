@@ -41,10 +41,7 @@ pub fn post_card(
     participant_id: &participant_id.0,
   };
 
-  map_err!(
-    persistence::put_card(&postgres, new_card, &participant_id.0)
-      .map(|card| json!(card))
-  )
+  map_err!(persistence::put_card(&postgres, new_card, &participant_id.0).map(|card| json!(card)))
 }
 
 #[get("/boards/<board_id>/cards")]
@@ -54,8 +51,7 @@ pub fn get_board_cards(
   board_id: String,
 ) -> Result<JsonValue, Status> {
   map_err!(
-    persistence::get_board_cards(&postgres, &board_id, &participant_id.0)
-      .map(|cards| json!(cards))
+    persistence::get_board_cards(&postgres, &board_id, &participant_id.0).map(|cards| json!(cards))
   )
 }
 
@@ -68,8 +64,7 @@ pub fn get_rank_cards(
   rank_id: String,
 ) -> Result<JsonValue, Status> {
   map_err!(
-    persistence::get_rank_cards(&postgres, &rank_id, &participant_id.0)
-      .map(|cards| json!(cards))
+    persistence::get_rank_cards(&postgres, &rank_id, &participant_id.0).map(|cards| json!(cards))
   )
 }
 
@@ -83,7 +78,11 @@ pub fn get_card(
   _rank_id: String,
   card_id: String,
 ) -> Result<JsonValue, Status> {
-  let card = map_err!(persistence::get_card(&postgres, &card_id, &participant_id.0))?;
+  let card = map_err!(persistence::get_card(
+    &postgres,
+    &card_id,
+    &participant_id.0
+  ))?;
   Ok(json!(card))
 }
 
@@ -135,8 +134,5 @@ pub fn delete_card(
   _rank_id: String,
   card_id: String,
 ) -> Result<(), Status> {
-  map_err!(
-    persistence::delete_card(&postgres, &card_id)
-      .map(|_| ())
-  )
+  map_err!(persistence::delete_card(&postgres, &card_id).map(|_| ()))
 }

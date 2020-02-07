@@ -25,7 +25,7 @@ fn test_post_vote() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar")
+        data: serde_json::json!("foobar"),
       },
     );
     let card = create_card(
@@ -84,7 +84,7 @@ fn test_post_vote_over_limit() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar")
+        data: serde_json::json!("foobar"),
       },
     );
     let card = create_card(
@@ -146,7 +146,7 @@ fn test_post_vote_forbidden() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar")
+        data: serde_json::json!("foobar"),
       },
     );
     let card = create_card(
@@ -196,7 +196,7 @@ fn test_delete_vote() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar")
+        data: serde_json::json!("foobar"),
       },
     );
     let card = create_card(
@@ -306,7 +306,7 @@ fn test_delete_vote_forbidden() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar")
+        data: serde_json::json!("foobar"),
       },
     );
     let card = create_card(

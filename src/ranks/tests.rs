@@ -28,7 +28,7 @@ fn test_post_rank() {
           id: None,
           name: "test rank",
           board_id: &board.id,
-          data: serde_json::json!("foobar")
+          data: serde_json::json!("foobar"),
         })
         .unwrap(),
       )
@@ -92,7 +92,7 @@ fn test_get_ranks() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar")
+        data: serde_json::json!("foobar"),
       },
     );
 
@@ -135,7 +135,7 @@ fn test_get_rank() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar")
+        data: serde_json::json!("foobar"),
       },
     );
 
@@ -177,7 +177,7 @@ fn test_patch_rank() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar")
+        data: serde_json::json!("foobar"),
       },
     );
 
@@ -188,7 +188,7 @@ fn test_patch_rank() {
       .body(
         serde_json::to_string(&UpdateRank {
           name: Some("rank test".into()),
-          data: None
+          data: None,
         })
         .unwrap(),
       )
@@ -227,7 +227,7 @@ fn test_delete_rank() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar")
+        data: serde_json::json!("foobar"),
       },
     );
 

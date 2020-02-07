@@ -211,8 +211,14 @@ pub fn create_participant(postgres: &PgConnection) -> Result<Participant, Error>
   result
 }
 
-pub fn get_participant(postgres: &PgConnection, participant_id: &str) -> Result<Option<Participant>, Error> {
-  super::schema::participant::dsl::participant.find(participant_id).first(postgres).optional()
+pub fn get_participant(
+  postgres: &PgConnection,
+  participant_id: &str,
+) -> Result<Option<Participant>, Error> {
+  super::schema::participant::dsl::participant
+    .find(participant_id)
+    .first(postgres)
+    .optional()
 }
 
 pub fn put_participant_board(
@@ -229,7 +235,7 @@ pub fn put_participant_board(
   match result {
     Ok(0) => (),
     Ok(_) => BOARD_PARTICIPANT_COUNT.inc(),
-    Err(_) => ()
+    Err(_) => (),
   };
   result
 }

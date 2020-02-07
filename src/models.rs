@@ -62,10 +62,10 @@ pub struct NewParticipantBoard<'a> {
 #[derive(Queryable, Identifiable, Serialize, Deserialize)]
 #[table_name = "rank"]
 pub struct Rank {
-  pub id: String,                 // char(16)
-  pub board_id: String,           // char(16)
-  pub name: String,               // varchar
-  pub data: serde_json::Value,    // jsonb
+  pub id: String,              // char(16)
+  pub board_id: String,        // char(16)
+  pub name: String,            // varchar
+  pub data: serde_json::Value, // jsonb
 }
 
 #[derive(AsChangeset, Serialize, Deserialize)]
