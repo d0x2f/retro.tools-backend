@@ -6,7 +6,7 @@ The test will create/delete cards and vote on them randomly.
 
 ## Setup
 
-Before you can run a load test there is some initial setup you need to do.
+Before we can run a load test there is some initial setup to do first.
 First we need a board with some ranks and we need both cards_open and voting_open to be true.
 Edit locustfile.py and insert the appropriate IDs into the placeholders at the top of the file.
 
@@ -19,7 +19,6 @@ $ locust -H http://127.0.0.1:8000 -f locustfile.py --no-web -c10  -t 60
 ```
 
 ## Example Output
-
 
 ```
 [2020-02-08 21:53:40,814] navi/INFO/locust.runners: Hatching and swarming 10 users at the rate 1 users/s (0 users already running)...
