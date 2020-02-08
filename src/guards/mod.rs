@@ -27,20 +27,18 @@ impl<'a, 'r> FromRequest<'a, 'r> for ParticipantId {
       let participant_id = String::from(cookie.value());
       // Verify the session id is real
       let postgres = request.guard::<DatabaseConnection>()?;
-      match persistence::get_participant(&postgres, &participant_id) {
+      match persistence::participants::get_participant(&postgres, &participant_id) {
         Ok(Some(_)) => return Outcome::Success(ParticipantId { 0: participant_id }),
         Ok(None) => (),
         Err(_) => {
-          error!("Database error during ParticipantId guard.");
           return Outcome::Failure((Status::InternalServerError, ()));
         }
       }
     }
     let postgres = request.guard::<DatabaseConnection>()?;
-    let participant = match super::persistence::create_participant(&postgres) {
+    let participant = match super::persistence::participants::create_participant(&postgres) {
       Ok(p) => p,
       Err(_) => {
-        error!("Database error during ParticipantId guard.");
         return Outcome::Failure((Status::InternalServerError, ()));
       }
     };
@@ -71,12 +69,12 @@ impl<'a, 'r> FromRequest<'a, 'r> for BoardParticipant {
     let postgres = request.guard::<DatabaseConnection>()?;
 
     let new_participant = NewParticipantBoard {
-      participant_id: Some(&participant_id.0),
+      participant_id: &participant_id.0,
       owner: false,
       board_id: &board_id,
     };
 
-    match persistence::put_participant_board(&postgres, &new_participant) {
+    match persistence::participants::put_participant_board(&postgres, &new_participant) {
       Ok(_) => Outcome::Success(BoardParticipant {}),
       Err(_) => Outcome::Failure((Status::NotFound, ())),
     }
@@ -98,13 +96,14 @@ impl<'a, 'r> FromRequest<'a, 'r> for BoardOwner {
     let participant_id = request.guard::<ParticipantId>()?;
     let postgres = request.guard::<DatabaseConnection>()?;
 
-    match super::persistence::participant_owns_board(&postgres, &participant_id.0, &board_id) {
+    match super::persistence::participants::participant_owns_board(
+      &postgres,
+      &participant_id.0,
+      &board_id,
+    ) {
       Ok(true) => Outcome::Success(BoardOwner {}),
       Ok(false) => Outcome::Failure((Status::Unauthorized, ())),
-      Err(_) => {
-        error!("Database error during BoardOwner guard.");
-        Outcome::Failure((Status::InternalServerError, ()))
-      }
+      Err(_) => Outcome::Failure((Status::InternalServerError, ())),
     }
   }
 }
@@ -131,7 +130,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for CardOwner {
 
     let participant_id = request.guard::<ParticipantId>()?;
     let postgres = request.guard::<DatabaseConnection>()?;
-    match super::persistence::participant_owns_card(
+    match super::persistence::participants::participant_owns_card(
       &postgres,
       &participant_id.0,
       &board_id,
@@ -139,10 +138,8 @@ impl<'a, 'r> FromRequest<'a, 'r> for CardOwner {
     ) {
       Ok(true) => Outcome::Success(CardOwner {}),
       Ok(false) => Outcome::Failure((Status::Unauthorized, ())),
-      Err(_) => {
-        error!("Database error during CardOwner guard.");
-        Outcome::Failure((Status::InternalServerError, ()))
-      }
+      Err(persistence::Error::NotFound) => Outcome::Failure((Status::NotFound, ())),
+      Err(_) => Outcome::Failure((Status::InternalServerError, ())),
     }
   }
 }
@@ -168,9 +165,10 @@ impl<'a, 'r> FromRequest<'a, 'r> for RankInBoard {
     };
 
     let postgres = request.guard::<DatabaseConnection>()?;
-    match super::persistence::rank_in_board(&postgres, &rank_id, &board_id) {
+    match super::persistence::ranks::rank_in_board(&postgres, &rank_id, &board_id) {
       Ok(true) => Outcome::Success(RankInBoard {}),
       Ok(false) => Outcome::Failure((Status::NotFound, ())),
+      Err(persistence::Error::NotFound) => Outcome::Failure((Status::NotFound, ())),
       Err(_) => {
         error!("Database error during RankInBoard guard.");
         Outcome::Failure((Status::InternalServerError, ()))
@@ -201,9 +199,10 @@ impl<'a, 'r> FromRequest<'a, 'r> for CardInRank {
 
     let postgres = request.guard::<DatabaseConnection>()?;
 
-    match super::persistence::card_in_rank(&postgres, &card_id, &rank_id) {
+    match super::persistence::cards::card_in_rank(&postgres, &card_id, &rank_id) {
       Ok(true) => Outcome::Success(CardInRank {}),
       Ok(false) => Outcome::Failure((Status::NotFound, ())),
+      Err(persistence::Error::NotFound) => Outcome::Failure((Status::NotFound, ())),
       Err(_) => {
         error!("Database error during CardInRank guard.");
         Outcome::Failure((Status::InternalServerError, ()))

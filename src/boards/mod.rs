@@ -40,7 +40,7 @@ pub fn post_board(
   new_board: Json<NewBoard>,
 ) -> Result<JsonValue, Status> {
   map_err!(
-    persistence::put_board(&postgres, new_board.into_inner(), &participant_id.0)
+    persistence::boards::put_board(&postgres, new_board.into_inner(), &participant_id.0)
       .map(|board| json!(board))
   )
 }
@@ -50,7 +50,9 @@ pub fn get_boards(
   participant_id: ParticipantId,
   postgres: DatabaseConnection,
 ) -> Result<JsonValue, Status> {
-  map_err!(persistence::get_boards(&postgres, &participant_id.0).map(|boards| json!(boards)))
+  map_err!(
+    persistence::boards::get_boards(&postgres, &participant_id.0).map(|boards| json!(boards))
+  )
 }
 
 #[get("/boards/<board_id>")]
@@ -60,7 +62,7 @@ pub fn get_board(
   postgres: DatabaseConnection,
   board_id: String,
 ) -> Result<JsonValue, Status> {
-  let result = map_err!(persistence::get_board(
+  let result = map_err!(persistence::boards::get_board(
     &postgres,
     &board_id,
     &participant_id.0
@@ -81,7 +83,7 @@ pub fn patch_board(
   update_board: Json<UpdateBoard>,
 ) -> Result<JsonValue, Status> {
   map_err!(
-    persistence::patch_board(&postgres, &id, &participant_id.0, &update_board)
+    persistence::boards::patch_board(&postgres, &id, &participant_id.0, &update_board)
       .map(|board| json!(board))
   )
 }
@@ -93,7 +95,7 @@ pub fn delete_board(
   postgres: DatabaseConnection,
   id: String,
 ) -> Result<(), Status> {
-  map_err!(persistence::delete_board(&postgres, &id).map(|_| ()))
+  map_err!(persistence::boards::delete_board(&postgres, &id).map(|_| ()))
 }
 
 #[get("/boards/<board_id>/csv")]
@@ -103,7 +105,7 @@ pub fn export_csv(
   postgres: DatabaseConnection,
   board_id: String,
 ) -> Result<CSVResponse, Status> {
-  let board = match map_err!(persistence::get_board(
+  let board = match map_err!(persistence::boards::get_board(
     &postgres,
     &board_id,
     &participant_id.0
@@ -112,7 +114,7 @@ pub fn export_csv(
     _ => return Err(Status::NotFound),
   };
 
-  let cards = map_err!(persistence::get_board_cards(
+  let cards = map_err!(persistence::cards::get_board_cards(
     &postgres,
     &board_id,
     &participant_id.0
