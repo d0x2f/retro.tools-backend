@@ -62,7 +62,7 @@ pub fn get_board_cards(
     ))
     .order(dsl::created_at.asc())
     .load(postgres)
-    .map_err(|e| e.into())
+    .map_err(Into::into)
 }
 
 pub fn get_rank_cards(
@@ -90,7 +90,7 @@ pub fn get_rank_cards(
     ))
     .order(dsl::created_at.asc())
     .load(postgres)
-    .map_err(|e| e.into())
+    .map_err(Into::into)
 }
 
 pub fn get_card(
@@ -117,7 +117,7 @@ pub fn get_card(
     .find(card_id)
     .first(postgres)
     .optional()
-    .map_err(|e| e.into())
+    .map_err(Into::into)
 }
 
 pub fn patch_card(
@@ -146,7 +146,7 @@ pub fn delete_card(postgres: &PgConnection, card_id: &str) -> Result<usize, Erro
 
   diesel::delete(card.find(card_id))
     .execute(postgres)
-    .map_err(|e| e.into())
+    .map_err(Into::into)
 }
 
 pub fn card_in_rank(postgres: &PgConnection, card_id: &str, rank_id: &str) -> Result<bool, Error> {

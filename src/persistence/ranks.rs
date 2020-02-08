@@ -11,7 +11,7 @@ pub fn put_rank(postgres: &PgConnection, new_rank: NewRank) -> Result<Rank, Erro
   let result = diesel::insert_into(rank::table)
     .values(new_rank)
     .get_result(postgres)
-    .map_err(|e| e.into());
+    .map_err(Into::into);
 
   if result.is_ok() {
     RANK_COUNT.inc();
@@ -27,7 +27,7 @@ pub fn get_ranks(postgres: &PgConnection, board_id: &str) -> Result<Vec<Rank>, E
     .filter(schema::board::dsl::id.eq(board_id))
     .select((dsl::id, dsl::board_id, dsl::name, dsl::data))
     .load(postgres)
-    .map_err(|e| e.into())
+    .map_err(Into::into)
 }
 
 pub fn get_rank(postgres: &PgConnection, rank_id: &str) -> Result<Option<Rank>, Error> {
@@ -37,7 +37,7 @@ pub fn get_rank(postgres: &PgConnection, rank_id: &str) -> Result<Option<Rank>, 
     .find(rank_id)
     .first(postgres)
     .optional()
-    .map_err(|e| e.into())
+    .map_err(Into::into)
 }
 
 pub fn patch_rank(
@@ -50,7 +50,7 @@ pub fn patch_rank(
   diesel::update(rank.find(rank_id))
     .set(update_rank)
     .get_result(postgres)
-    .map_err(|e| e.into())
+    .map_err(Into::into)
 }
 
 pub fn delete_rank(postgres: &PgConnection, rank_id: &str) -> Result<usize, Error> {
@@ -58,7 +58,7 @@ pub fn delete_rank(postgres: &PgConnection, rank_id: &str) -> Result<usize, Erro
 
   diesel::delete(rank.find(rank_id))
     .execute(postgres)
-    .map_err(|e| e.into())
+    .map_err(Into::into)
 }
 
 pub fn rank_in_board(

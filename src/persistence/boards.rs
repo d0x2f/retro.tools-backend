@@ -50,7 +50,7 @@ pub fn get_boards(postgres: &PgConnection, participant_id: &str) -> Result<Vec<B
       schema::participant_board::dsl::owner,
     ))
     .load(postgres)
-    .map_err(|e| e.into())
+    .map_err(Into::into)
 }
 
 pub fn get_board(
@@ -75,7 +75,7 @@ pub fn get_board(
     ))
     .first(postgres)
     .optional()
-    .map_err(|e| e.into())
+    .map_err(Into::into)
 }
 
 pub fn patch_board(
@@ -104,7 +104,7 @@ pub fn delete_board(postgres: &PgConnection, board_id: &str) -> Result<usize, Er
 
   diesel::delete(board.find(board_id))
     .execute(postgres)
-    .map_err(|e| e.into())
+    .map_err(Into::into)
 }
 
 pub fn cards_open(

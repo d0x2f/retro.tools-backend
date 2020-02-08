@@ -55,7 +55,7 @@ pub fn create_participant(postgres: &PgConnection) -> Result<Participant, Error>
   let result = diesel::insert_into(participant)
     .default_values()
     .get_result(postgres)
-    .map_err(|e| e.into());
+    .map_err(Into::into);
 
   if result.is_ok() {
     PARTICIPANT_COUNT.inc();
@@ -71,7 +71,7 @@ pub fn get_participant(
     .find(participant_id)
     .first(postgres)
     .optional()
-    .map_err(|e| e.into())
+    .map_err(Into::into)
 }
 
 pub fn put_participant_board(
@@ -90,7 +90,7 @@ pub fn put_participant_board(
     .on_conflict((participant_id, board_id))
     .do_nothing()
     .execute(postgres)
-    .map_err(|e| e.into());
+    .map_err(Into::into);
 
   match result {
     Ok(0) => (),
