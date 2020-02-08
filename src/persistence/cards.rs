@@ -5,7 +5,6 @@ use super::Error;
 use diesel::dsl::sql;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
-use diesel::result::Error as DieselError;
 use diesel::sql_types::Text;
 
 const VOTES_SQL: &str =
@@ -20,10 +19,11 @@ pub fn put_card(
 ) -> Result<Card, Error> {
   use schema::card::dsl;
 
-  let inserted_id: String = map_diesel_err!(diesel::insert_into(dsl::card)
+  let inserted_id: String = diesel::insert_into(dsl::card)
     .values(new_card)
     .returning(dsl::id)
-    .get_result(postgres))?;
+    .get_result(postgres)
+    .map_err(Into::<Error>::into)?;
 
   CARD_COUNT.inc();
 
@@ -43,7 +43,7 @@ pub fn get_board_cards(
   use schema::board;
   use schema::card::dsl;
 
-  map_diesel_err!(schema::rank::dsl::rank
+  schema::rank::dsl::rank
     .inner_join(dsl::card)
     .inner_join(board::dsl::board)
     .filter(board::dsl::id.eq(board_id))
@@ -61,7 +61,8 @@ pub fn get_board_cards(
       dsl::created_at,
     ))
     .order(dsl::created_at.asc())
-    .load(postgres))
+    .load(postgres)
+    .map_err(|e| e.into())
 }
 
 pub fn get_rank_cards(
@@ -71,7 +72,7 @@ pub fn get_rank_cards(
 ) -> Result<Vec<Card>, Error> {
   use schema::card::dsl;
 
-  map_diesel_err!(schema::rank::dsl::rank
+  schema::rank::dsl::rank
     .inner_join(dsl::card)
     .filter(schema::rank::dsl::id.eq(rank_id))
     .select((
@@ -88,7 +89,8 @@ pub fn get_rank_cards(
       dsl::created_at,
     ))
     .order(dsl::created_at.asc())
-    .load(postgres))
+    .load(postgres)
+    .map_err(|e| e.into())
 }
 
 pub fn get_card(
@@ -98,7 +100,7 @@ pub fn get_card(
 ) -> Result<Option<Card>, Error> {
   use schema::card::dsl;
 
-  map_diesel_err!(dsl::card
+  dsl::card
     .select((
       dsl::id,
       dsl::rank_id,
@@ -114,7 +116,8 @@ pub fn get_card(
     ))
     .find(card_id)
     .first(postgres)
-    .optional())
+    .optional()
+    .map_err(|e| e.into())
 }
 
 pub fn patch_card(
@@ -125,10 +128,11 @@ pub fn patch_card(
 ) -> Result<Card, Error> {
   use schema::card::dsl;
 
-  let inserted_id: String = map_diesel_err!(diesel::update(dsl::card.find(card_id))
+  let inserted_id: String = diesel::update(dsl::card.find(card_id))
     .set(update_card)
     .returning(dsl::id)
-    .get_result(postgres))?;
+    .get_result(postgres)
+    .map_err(Into::<Error>::into)?;
 
   match get_card(postgres, &inserted_id, participant_id) {
     Ok(Some(c)) => Ok(c),
@@ -140,7 +144,9 @@ pub fn patch_card(
 pub fn delete_card(postgres: &PgConnection, card_id: &str) -> Result<usize, Error> {
   use schema::card::dsl::*;
 
-  map_diesel_err!(diesel::delete(card.find(card_id)).execute(postgres))
+  diesel::delete(card.find(card_id))
+    .execute(postgres)
+    .map_err(|e| e.into())
 }
 
 pub fn card_in_rank(postgres: &PgConnection, card_id: &str, rank_id: &str) -> Result<bool, Error> {

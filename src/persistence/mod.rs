@@ -1,12 +1,10 @@
-#[macro_use]
-mod macros;
-
 pub mod boards;
 pub mod cards;
 pub mod participants;
 pub mod ranks;
 pub mod votes;
 
+use diesel::result::Error as DieselError;
 use std::fmt;
 
 #[derive(Debug)]
@@ -25,5 +23,22 @@ impl fmt::Display for Error {
         Error::Other => "Other Error",
       }
     )
+  }
+}
+
+impl From<DieselError> for Error {
+  fn from(error: DieselError) -> Error {
+    match error {
+      DieselError::NotFound => Error::NotFound,
+      _ => {
+        error!(
+          "Unexpected Error: {} - {}:{}",
+          error.to_string(),
+          file!(),
+          line!()
+        );
+        Error::Other
+      }
+    }
   }
 }

@@ -13,11 +13,11 @@ pub fn participant_owns_board(
 ) -> Result<bool, Error> {
   use schema::participant_board;
 
-  let participant: Option<ParticipantBoard> =
-    map_diesel_err!(participant_board::dsl::participant_board
-      .find((participant_id, board_id))
-      .first(postgres)
-      .optional())?;
+  let participant: Option<ParticipantBoard> = participant_board::dsl::participant_board
+    .find((participant_id, board_id))
+    .first(postgres)
+    .optional()
+    .map_err(Into::<Error>::into)?;
 
   Ok(match participant {
     Some(p) => p.owner,
@@ -37,11 +37,12 @@ pub fn participant_owns_card(
     return Ok(true);
   }
 
-  let card_owner: Option<String> = map_diesel_err!(dsl::card
+  let card_owner: Option<String> = dsl::card
     .filter(dsl::id.eq(card_id))
     .select(dsl::participant_id)
     .first(postgres)
-    .optional())?;
+    .optional()
+    .map_err(Into::<Error>::into)?;
 
   Ok(match card_owner {
     Some(owner) => owner == participant_id,
@@ -51,9 +52,10 @@ pub fn participant_owns_card(
 
 pub fn create_participant(postgres: &PgConnection) -> Result<Participant, Error> {
   use schema::participant::dsl::*;
-  let result = map_diesel_err!(diesel::insert_into(participant)
+  let result = diesel::insert_into(participant)
     .default_values()
-    .get_result(postgres));
+    .get_result(postgres)
+    .map_err(|e| e.into());
 
   if result.is_ok() {
     PARTICIPANT_COUNT.inc();
@@ -65,10 +67,11 @@ pub fn get_participant(
   postgres: &PgConnection,
   participant_id: &str,
 ) -> Result<Option<Participant>, Error> {
-  map_diesel_err!(schema::participant::dsl::participant
+  schema::participant::dsl::participant
     .find(participant_id)
     .first(postgres)
-    .optional())
+    .optional()
+    .map_err(|e| e.into())
 }
 
 pub fn put_participant_board(
@@ -78,15 +81,16 @@ pub fn put_participant_board(
   use schema::participant_board::dsl::*;
 
   // Ensure the board exists
-  if !map_diesel_err!(board_exists(postgres, new_participant.board_id))? {
+  if !board_exists(postgres, new_participant.board_id).map_err(Into::<Error>::into)? {
     return Err(Error::NotFound);
   }
 
-  let result = map_diesel_err!(diesel::insert_into(participant_board)
+  let result = diesel::insert_into(participant_board)
     .values(new_participant)
     .on_conflict((participant_id, board_id))
     .do_nothing()
-    .execute(postgres));
+    .execute(postgres)
+    .map_err(|e| e.into());
 
   match result {
     Ok(0) => (),

@@ -4,14 +4,14 @@ use super::super::schema;
 use super::Error;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
-use diesel::result::Error as DieselError;
 
 pub fn put_rank(postgres: &PgConnection, new_rank: NewRank) -> Result<Rank, Error> {
   use schema::rank;
 
-  let result = map_diesel_err!(diesel::insert_into(rank::table)
+  let result = diesel::insert_into(rank::table)
     .values(new_rank)
-    .get_result(postgres));
+    .get_result(postgres)
+    .map_err(|e| e.into());
 
   if result.is_ok() {
     RANK_COUNT.inc();
@@ -22,17 +22,22 @@ pub fn put_rank(postgres: &PgConnection, new_rank: NewRank) -> Result<Rank, Erro
 pub fn get_ranks(postgres: &PgConnection, board_id: &str) -> Result<Vec<Rank>, Error> {
   use schema::rank::dsl;
 
-  map_diesel_err!(schema::board::dsl::board
+  schema::board::dsl::board
     .inner_join(dsl::rank)
     .filter(schema::board::dsl::id.eq(board_id))
     .select((dsl::id, dsl::board_id, dsl::name, dsl::data))
-    .load(postgres))
+    .load(postgres)
+    .map_err(|e| e.into())
 }
 
 pub fn get_rank(postgres: &PgConnection, rank_id: &str) -> Result<Option<Rank>, Error> {
   use schema::rank::dsl::*;
 
-  map_diesel_err!(rank.find(rank_id).first(postgres).optional())
+  rank
+    .find(rank_id)
+    .first(postgres)
+    .optional()
+    .map_err(|e| e.into())
 }
 
 pub fn patch_rank(
@@ -42,15 +47,18 @@ pub fn patch_rank(
 ) -> Result<Rank, Error> {
   use schema::rank::dsl::*;
 
-  map_diesel_err!(diesel::update(rank.find(rank_id))
+  diesel::update(rank.find(rank_id))
     .set(update_rank)
-    .get_result(postgres))
+    .get_result(postgres)
+    .map_err(|e| e.into())
 }
 
 pub fn delete_rank(postgres: &PgConnection, rank_id: &str) -> Result<usize, Error> {
   use schema::rank::dsl::*;
 
-  map_diesel_err!(diesel::delete(rank.find(rank_id)).execute(postgres))
+  diesel::delete(rank.find(rank_id))
+    .execute(postgres)
+    .map_err(|e| e.into())
 }
 
 pub fn rank_in_board(

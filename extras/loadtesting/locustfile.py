@@ -1,20 +1,21 @@
 from locust import HttpLocust, TaskSet, task
 import random
 
+# Create a board first and fill out these values:
+board = "<board-id>"
+ranks = ("<rank-id>", "<rank-id>", "<rank-id>")
+
 adj = ("adorable", "clueless", "dirty", "odd", "stupid", "smart", "excited", "uncoordinated")
 nouns = ("puppy", "car", "rabbit", "girl", "boy", "government", "monkey", "person")
 verbs = ("runs", "hits", "jumps", "drives", "barfs", "codes", "tests", "juggles", "builds", "mines")
 adv = ("crazily.", "dutifully.", "foolishly.", "merrily.", "occasionally.", "unexceptionally.", "amazingly")
 words = [adj,nouns,verbs,adv]
 
-board = "mBDcdvqipyObonQy"
-ranks = ("wKiUTsNoCCU1R8AD", "INpwJgf9g4lUrCTp", "WCKy5hoItIILQSZj", "qPfA6LJmP5HHHk7m")
-
 class RetrogradeTaskSet(TaskSet):
     cards = []
 
-    # Load the board once to register as a participant
     def on_start(self):
+      """ Load the board once to register as a participant """
       self.load_board()
 
     @task(4)

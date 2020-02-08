@@ -4,7 +4,6 @@ use super::super::schema;
 use super::Error;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
-use diesel::result::Error as DieselError;
 
 pub fn put_board(
   postgres: &PgConnection,
@@ -13,10 +12,10 @@ pub fn put_board(
 ) -> Result<Board, Error> {
   use schema::board;
 
-  let inserted_id: String = map_diesel_err!(diesel::insert_into(board::table)
+  let inserted_id: String = diesel::insert_into(board::table)
     .values(new_board)
     .returning(board::dsl::id)
-    .get_result(postgres))?;
+    .get_result(postgres)?;
 
   BOARDS_COUNT.inc();
 
@@ -38,7 +37,7 @@ pub fn put_board(
 pub fn get_boards(postgres: &PgConnection, participant_id: &str) -> Result<Vec<Board>, Error> {
   use schema::board::dsl::*;
 
-  map_diesel_err!(schema::participant_board::dsl::participant_board
+  schema::participant_board::dsl::participant_board
     .inner_join(board)
     .filter(schema::participant_board::dsl::participant_id.eq(participant_id))
     .select((
@@ -50,7 +49,8 @@ pub fn get_boards(postgres: &PgConnection, participant_id: &str) -> Result<Vec<B
       created_at,
       schema::participant_board::dsl::owner,
     ))
-    .load(postgres))
+    .load(postgres)
+    .map_err(|e| e.into())
 }
 
 pub fn get_board(
@@ -60,7 +60,7 @@ pub fn get_board(
 ) -> Result<Option<Board>, Error> {
   use schema::board::dsl::*;
 
-  map_diesel_err!(schema::participant_board::dsl::participant_board
+  schema::participant_board::dsl::participant_board
     .inner_join(board)
     .filter(schema::participant_board::dsl::participant_id.eq(participant_id))
     .filter(id.eq(board_id))
@@ -74,7 +74,8 @@ pub fn get_board(
       schema::participant_board::dsl::owner,
     ))
     .first(postgres)
-    .optional())
+    .optional()
+    .map_err(|e| e.into())
 }
 
 pub fn patch_board(
@@ -85,10 +86,10 @@ pub fn patch_board(
 ) -> Result<Board, Error> {
   use schema::board::dsl::*;
 
-  let board_id: String = map_diesel_err!(diesel::update(board.find(board_id))
+  let board_id: String = diesel::update(board.find(board_id))
     .set(update_board)
     .returning(id)
-    .get_result(postgres))?;
+    .get_result(postgres)?;
 
   let result = get_board(postgres, &board_id, participant_id);
   match result {
@@ -101,7 +102,9 @@ pub fn patch_board(
 pub fn delete_board(postgres: &PgConnection, board_id: &str) -> Result<usize, Error> {
   use schema::board::dsl::*;
 
-  map_diesel_err!(diesel::delete(board.find(board_id)).execute(postgres))
+  diesel::delete(board.find(board_id))
+    .execute(postgres)
+    .map_err(|e| e.into())
 }
 
 pub fn cards_open(
