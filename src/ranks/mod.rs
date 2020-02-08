@@ -26,7 +26,7 @@ pub fn post_rank(
     data: post_rank.data.clone(),
   };
 
-  map_err!(persistence::put_rank(&postgres, new_rank).map(|rank| json!(rank)))
+  map_err!(persistence::ranks::put_rank(&postgres, new_rank).map(|rank| json!(rank)))
 }
 
 #[get("/boards/<board_id>/ranks")]
@@ -35,7 +35,7 @@ pub fn get_ranks(
   postgres: DatabaseConnection,
   board_id: String,
 ) -> Result<JsonValue, Status> {
-  map_err!(persistence::get_ranks(&postgres, &board_id).map(|ranks| json!(ranks)))
+  map_err!(persistence::ranks::get_ranks(&postgres, &board_id).map(|ranks| json!(ranks)))
 }
 
 #[get("/boards/<_board_id>/ranks/<rank_id>")]
@@ -46,7 +46,7 @@ pub fn get_rank(
   _board_id: String,
   rank_id: String,
 ) -> Result<JsonValue, Status> {
-  let rank = map_err!(persistence::get_rank(&postgres, &rank_id))?;
+  let rank = map_err!(persistence::ranks::get_rank(&postgres, &rank_id))?;
   Ok(json!(rank))
 }
 
@@ -60,7 +60,9 @@ pub fn patch_rank(
   rank_id: String,
   update_rank: Json<UpdateRank>,
 ) -> Result<JsonValue, Status> {
-  map_err!(persistence::patch_rank(&postgres, &rank_id, &update_rank).map(|board| json!(board)))
+  map_err!(
+    persistence::ranks::patch_rank(&postgres, &rank_id, &update_rank).map(|board| json!(board))
+  )
 }
 
 #[delete("/boards/<_board_id>/ranks/<rank_id>")]
@@ -72,5 +74,5 @@ pub fn delete_rank(
   _board_id: String,
   rank_id: String,
 ) -> Result<(), Status> {
-  map_err!(persistence::delete_rank(&postgres, &rank_id).map(|_| ()))
+  map_err!(persistence::ranks::delete_rank(&postgres, &rank_id).map(|_| ()))
 }

@@ -1,5 +1,5 @@
 use super::super::models::{Board, NewBoard, UpdateBoard};
-use super::super::persistence::get_boards;
+use super::super::persistence::boards::get_boards;
 use super::super::testing::{create_board, run_test};
 use diesel::pg::PgConnection;
 use rocket::http::ContentType;

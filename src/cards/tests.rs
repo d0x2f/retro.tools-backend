@@ -1,5 +1,5 @@
 use super::super::models::{Card, NewBoard, NewCard, NewRank, UpdateCard};
-use super::super::persistence::get_rank_cards;
+use super::super::persistence::cards::get_rank_cards;
 use super::super::testing::{create_board, create_card, create_new_client, create_rank, run_test};
 use diesel::pg::PgConnection;
 use rocket::http::ContentType;

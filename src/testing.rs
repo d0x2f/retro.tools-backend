@@ -1,7 +1,7 @@
 extern crate parking_lot;
 
 use super::models::{Board, Card, NewBoard, NewCard, NewRank, Rank};
-use super::persistence::{put_card, put_rank};
+use super::persistence;
 use super::schema::{board, participant};
 use super::Config;
 use super::{embedded_migrations, guards, rocket};
@@ -68,10 +68,10 @@ pub fn create_board(client: &Client, board: &NewBoard) -> (Board, String) {
 
 /// Create a rank
 pub fn create_rank(db: &PgConnection, rank: NewRank) -> Rank {
-  put_rank(db, rank).unwrap()
+  persistence::ranks::put_rank(db, rank).unwrap()
 }
 
 /// Create a card
 pub fn create_card(db: &PgConnection, card: NewCard) -> Card {
-  put_card(db, card, "").unwrap()
+  persistence::cards::put_card(db, card, "").unwrap()
 }

@@ -54,7 +54,7 @@ pub struct ParticipantBoard {
 #[derive(Insertable, Deserialize)]
 #[table_name = "participant_board"]
 pub struct NewParticipantBoard<'a> {
-  pub participant_id: Option<&'a str>,
+  pub participant_id: &'a str,
   pub board_id: &'a str,
   pub owner: bool,
 }
