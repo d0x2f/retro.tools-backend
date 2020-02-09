@@ -22,7 +22,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for ParticipantId {
 
   fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, ()> {
     let mut cookies = request.cookies();
-    let cookie = cookies.get("id");
+    let cookie = cookies.get("__session");
     if let Some(cookie) = cookie {
       let participant_id = String::from(cookie.value());
       // Verify the session id is real
@@ -43,7 +43,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for ParticipantId {
       }
     };
     cookies.add(
-      Cookie::build("id", participant.id.clone())
+      Cookie::build("__session", participant.id.clone())
         .http_only(true)
         .max_age(Duration::days(7))
         .path("/")
