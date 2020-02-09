@@ -29,6 +29,7 @@ mod macros;
 mod boards;
 mod cards;
 mod catchers;
+mod fairings;
 mod guards;
 mod metrics;
 mod models;
@@ -185,6 +186,7 @@ fn rocket(config: Config) -> Rocket {
     .attach(prometheus.clone())
     .attach(guards::DatabaseConnection::fairing())
     .attach(create_cors_fairing(&config))
+    .attach(fairings::GlobalHeaders {})
     .attach(AdHoc::on_attach("Database Migrations", run_db_migrations))
     .mount("/_metrics", prometheus)
     .mount(
