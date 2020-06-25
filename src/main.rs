@@ -22,6 +22,8 @@ extern crate nanoid;
 extern crate serde;
 extern crate serde_json;
 
+use nanoid::nanoid;
+
 #[cfg(test)]
 mod testing;
 
@@ -129,7 +131,7 @@ impl Config {
 
 fn create_prometheus_fairing() -> PrometheusMetrics {
   let mut labels = HashMap::new();
-  labels.insert("instance_id".to_string(), nanoid::generate(16));
+  labels.insert("instance_id".to_string(), nanoid!(16));
   let registry = Registry::new_custom(None, Some(labels)).expect("valid prometheus registry");
   registry
     .register(Box::new(metrics::PARTICIPANT_COUNT.clone()))
