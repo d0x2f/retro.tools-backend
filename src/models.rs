@@ -1,4 +1,8 @@
+#![allow(clippy::option_option)]
+
 use std::time::SystemTime;
+
+use serde::{Deserialize, Deserializer};
 
 use super::schema::board;
 use super::schema::card;
@@ -6,6 +10,15 @@ use super::schema::participant;
 use super::schema::participant_board;
 use super::schema::rank;
 use super::schema::vote;
+
+// Custom deserializer that distinguishes between missing, null or some value.
+fn deserialize_some<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
+    where T: Deserialize<'de>,
+          D: Deserializer<'de>
+{
+    Deserialize::deserialize(deserializer).map(Some)
+}
+
 
 #[derive(Queryable, Identifiable, Serialize, Deserialize)]
 #[table_name = "board"]
@@ -102,6 +115,7 @@ pub struct Card {
   pub voted: bool,            // bool
   pub owner: bool,            // bool
   pub created_at: SystemTime, // timestamp
+  pub author: Option<String>, // varchar
 }
 
 #[derive(AsChangeset, Serialize, Deserialize)]
@@ -110,12 +124,15 @@ pub struct UpdateCard {
   pub name: Option<String>,
   pub description: Option<String>,
   pub rank_id: Option<String>,
+  #[serde(default, deserialize_with = "deserialize_some")]
+  pub author: Option<Option<String>>,
 }
 
 #[derive(Deserialize)]
 pub struct PostCard {
   pub name: String,
   pub description: String,
+  pub author: Option<String>
 }
 
 #[derive(Insertable, Serialize, Deserialize)]
@@ -126,6 +143,7 @@ pub struct NewCard<'a> {
   pub name: &'a str,
   pub description: &'a str,
   pub participant_id: &'a str,
+  pub author: Option<&'a str>,
 }
 
 #[derive(AsChangeset, Queryable, Serialize, Deserialize)]

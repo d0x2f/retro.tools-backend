@@ -59,6 +59,7 @@ pub fn get_board_cards(
         .sql(") as voted"),
       dsl::participant_id.eq(participant_id),
       dsl::created_at,
+      dsl::author,
     ))
     .order(dsl::created_at.asc())
     .load(postgres)
@@ -87,6 +88,7 @@ pub fn get_rank_cards(
         .sql(") as voted"),
       dsl::participant_id.eq(participant_id),
       dsl::created_at,
+      dsl::author,
     ))
     .order(dsl::created_at.asc())
     .load(postgres)
@@ -113,6 +115,7 @@ pub fn get_card(
         .sql(") as voted"),
       dsl::participant_id.eq(participant_id),
       dsl::created_at,
+      dsl::author,
     ))
     .find(card_id)
     .first(postgres)
@@ -128,13 +131,13 @@ pub fn patch_card(
 ) -> Result<Card, Error> {
   use schema::card::dsl;
 
-  let inserted_id: String = diesel::update(dsl::card.find(card_id))
+  let updated_id: String = diesel::update(dsl::card.find(card_id))
     .set(update_card)
     .returning(dsl::id)
     .get_result(postgres)
     .map_err(Into::<Error>::into)?;
 
-  match get_card(postgres, &inserted_id, participant_id) {
+  match get_card(postgres, &updated_id, participant_id) {
     Ok(Some(c)) => Ok(c),
     Ok(None) => Err(Error::NotFound),
     Err(e) => Err(e),

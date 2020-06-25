@@ -17,6 +17,7 @@ table! {
         description -> Varchar,
         participant_id -> Bpchar,
         created_at -> Timestamp,
+        author -> Nullable<Varchar>,
     }
 }
 
@@ -59,4 +60,11 @@ joinable!(rank -> board (board_id));
 joinable!(vote -> card (card_id));
 joinable!(vote -> participant (participant_id));
 
-allow_tables_to_appear_in_same_query!(board, card, participant, participant_board, rank, vote,);
+allow_tables_to_appear_in_same_query!(
+    board,
+    card,
+    participant,
+    participant_board,
+    rank,
+    vote,
+);
