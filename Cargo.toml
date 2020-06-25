@@ -18,9 +18,9 @@ openssl = "^0.10" # Needed for Postgres.
 diesel_migrations = "^1.4"
 time = "^0.1" # Rocket uses v0.1 stucts
 csv = "^1.1"
-rocket_prometheus = "^0.3"
+rocket_prometheus = "^0.6"
 lazy_static = "1.4"
-nanoid = "^0.2"
+nanoid = "^0.3"
 dotenv = "^0.15"
 
 [dependencies.rocket_contrib]
@@ -29,4 +29,4 @@ default-features = false
 features = ["json", "diesel_postgres_pool"]
 
 [dev-dependencies]
-parking_lot = { version = "^0.10", features = ["nightly"] }
+parking_lot = { version = "^0.11", features = ["nightly"] }
