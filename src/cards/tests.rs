@@ -24,7 +24,7 @@ fn test_post_card() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar"),
+        data: Some(serde_json::json!("foobar")),
       },
     );
 
@@ -39,6 +39,7 @@ fn test_post_card() {
           name: "test card",
           description: "card description",
           participant_id: &participant_id,
+          author: None,
         })
         .unwrap(),
       )
@@ -61,6 +62,7 @@ fn test_post_card() {
     assert_eq!(db_cards[0].rank_id, rank.id);
     assert_eq!(db_cards[0].name, "test card");
     assert_eq!(db_cards[0].description, "card description");
+    assert_eq!(db_cards[0].author, None);
     assert_eq!(db_cards[0].votes, 0);
   });
 }
@@ -83,7 +85,7 @@ fn test_post_card_forbidden() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar"),
+        data: Some(serde_json::json!("foobar")),
       },
     );
 
@@ -98,6 +100,7 @@ fn test_post_card_forbidden() {
           name: "test card",
           description: "card description",
           participant_id: &participant_id,
+          author: None,
         })
         .unwrap(),
       )
@@ -130,7 +133,7 @@ fn test_get_cards() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar"),
+        data: Some(serde_json::json!("foobar")),
       },
     );
     let card = create_card(
@@ -141,6 +144,7 @@ fn test_get_cards() {
         name: "test card",
         description: "card description",
         participant_id: &participant_id,
+        author: None,
       },
     );
 
@@ -187,7 +191,7 @@ fn test_get_card() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar"),
+        data: Some(serde_json::json!("foobar")),
       },
     );
     let card = create_card(
@@ -198,6 +202,7 @@ fn test_get_card() {
         name: "test card",
         description: "card description",
         participant_id: &participant_id,
+        author: None,
       },
     );
 
@@ -250,7 +255,7 @@ fn test_non_author_get_card() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar"),
+        data: Some(serde_json::json!("foobar")),
       },
     );
     let card = create_card(
@@ -261,6 +266,7 @@ fn test_non_author_get_card() {
         name: "test card",
         description: "card description",
         participant_id: &participant_id,
+        author: None
       },
     );
 
@@ -310,7 +316,7 @@ fn test_patch_card() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar"),
+        data: Some(serde_json::json!("foobar")),
       },
     );
     let rank_b = create_rank(
@@ -319,7 +325,7 @@ fn test_patch_card() {
         id: None,
         board_id: &board.id,
         name: "test rank b",
-        data: serde_json::json!("foobar"),
+        data: Some(serde_json::json!("foobar")),
       },
     );
     let card = create_card(
@@ -330,6 +336,7 @@ fn test_patch_card() {
         name: "test\ncard",
         description: "card description",
         participant_id: &participant_id,
+        author: None,
       },
     );
 
@@ -345,6 +352,7 @@ fn test_patch_card() {
           name: Some("card\ntest".into()),
           description: Some("description test".into()),
           rank_id: Some(rank_b.id.clone()),
+          author: None
         })
         .unwrap(),
       )
@@ -391,7 +399,7 @@ fn test_non_author_patch_card() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar"),
+        data: Some(serde_json::json!("foobar")),
       },
     );
     let rank_b = create_rank(
@@ -400,7 +408,7 @@ fn test_non_author_patch_card() {
         id: None,
         board_id: &board.id,
         name: "test rank b",
-        data: serde_json::json!("foobar"),
+        data: Some(serde_json::json!("foobar")),
       },
     );
     let card = create_card(
@@ -411,6 +419,7 @@ fn test_non_author_patch_card() {
         name: "test card",
         description: "card description",
         participant_id: &participant_id,
+        author: None,
       },
     );
 
@@ -426,6 +435,7 @@ fn test_non_author_patch_card() {
           name: Some("card test".into()),
           description: Some("description test".into()),
           rank_id: Some(rank_b.id.clone()),
+          author: None
         })
         .unwrap(),
       )
@@ -452,7 +462,7 @@ fn test_delete_card() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar"),
+        data: Some(serde_json::json!("foobar")),
       },
     );
     let card = create_card(
@@ -463,6 +473,7 @@ fn test_delete_card() {
         name: "test card",
         description: "card description",
         participant_id: &participant_id,
+        author: None,
       },
     );
 

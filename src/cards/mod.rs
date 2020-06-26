@@ -39,6 +39,7 @@ pub fn post_card(
     description: &post_card.description,
     rank_id: &rank_id,
     participant_id: &participant_id.0,
+    author: post_card.author.as_ref().map(|s| s.as_str())
   };
 
   map_err!(

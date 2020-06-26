@@ -1,4 +1,4 @@
-use rocket_prometheus::prometheus::{opts, register_counter, register_int_counter, IntCounter};
+use rocket_prometheus::prometheus::{register_int_counter, IntCounter};
 
 lazy_static! {
   pub static ref PARTICIPANT_COUNT: IntCounter = register_int_counter!(

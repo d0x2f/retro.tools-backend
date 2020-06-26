@@ -10,6 +10,7 @@ services:
       - postgres
     ports:
       - 8000:8000
+    env_file: .env
     environment:
       PORT: 8000
       PSQL_CONNECTION_STRING: postgres://postgres:postgres@postgres/retrograde

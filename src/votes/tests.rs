@@ -25,7 +25,7 @@ fn test_post_vote() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar"),
+        data: Some(serde_json::json!("foobar")),
       },
     );
     let card = create_card(
@@ -36,6 +36,7 @@ fn test_post_vote() {
         name: "test card",
         description: "card description",
         participant_id: &participant_id,
+        author: None,
       },
     );
 
@@ -84,7 +85,7 @@ fn test_post_vote_over_limit() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar"),
+        data: Some(serde_json::json!("foobar")),
       },
     );
     let card = create_card(
@@ -95,6 +96,7 @@ fn test_post_vote_over_limit() {
         name: "test card",
         description: "card description",
         participant_id: &participant_id,
+        author: None,
       },
     );
 
@@ -146,7 +148,7 @@ fn test_post_vote_forbidden() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar"),
+        data: Some(serde_json::json!("foobar")),
       },
     );
     let card = create_card(
@@ -157,6 +159,7 @@ fn test_post_vote_forbidden() {
         name: "test card",
         description: "card description",
         participant_id: &participant_id,
+        author: None,
       },
     );
 
@@ -196,7 +199,7 @@ fn test_delete_vote() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar"),
+        data: Some(serde_json::json!("foobar")),
       },
     );
     let card = create_card(
@@ -207,6 +210,7 @@ fn test_delete_vote() {
         name: "test card",
         description: "card description",
         participant_id: &participant_id,
+        author: None,
       },
     );
 
@@ -306,7 +310,7 @@ fn test_delete_vote_forbidden() {
         id: None,
         board_id: &board.id,
         name: "test rank",
-        data: serde_json::json!("foobar"),
+        data: Some(serde_json::json!("foobar")),
       },
     );
     let card = create_card(
@@ -317,6 +321,7 @@ fn test_delete_vote_forbidden() {
         name: "test card",
         description: "card description",
         participant_id: &participant_id,
+        author: None,
       },
     );
 
