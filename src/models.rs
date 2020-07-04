@@ -23,13 +23,14 @@ fn deserialize_some<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
 #[derive(Queryable, Identifiable, Serialize, Deserialize)]
 #[table_name = "board"]
 pub struct Board {
-  pub id: String,             // char(16)
-  pub name: String,           // varchar
-  pub max_votes: i16,         // tinyint
-  pub voting_open: bool,      // bool
-  pub cards_open: bool,       // bool
-  pub created_at: SystemTime, // timestamp
-  pub owner: bool,            // bool
+  pub id: String,              // char(16)
+  pub name: String,            // varchar
+  pub max_votes: i16,          // tinyint
+  pub voting_open: bool,       // bool
+  pub cards_open: bool,        // bool
+  pub created_at: SystemTime,  // timestamp
+  pub owner: bool,             // bool
+  pub data: serde_json::Value, // jsonb
 }
 
 #[derive(AsChangeset, Serialize, Deserialize)]
@@ -39,6 +40,7 @@ pub struct UpdateBoard {
   pub max_votes: Option<i16>,
   pub voting_open: Option<bool>,
   pub cards_open: Option<bool>,
+  pub data: Option<serde_json::Value>,
 }
 
 #[derive(Insertable, Serialize, Deserialize, Default)]
@@ -49,6 +51,7 @@ pub struct NewBoard<'a> {
   pub max_votes: Option<i16>,
   pub voting_open: Option<bool>,
   pub cards_open: Option<bool>,
+  pub data: Option<serde_json::Value>,
 }
 
 #[derive(Queryable, Identifiable, Serialize)]
