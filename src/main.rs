@@ -42,12 +42,10 @@ mod ranks;
 mod schema;
 mod votes;
 
-use dotenv;
 use rocket::config::{Config as RocketConfig, Environment, Value};
 use rocket::fairing::AdHoc;
 use rocket::http::Method;
 use rocket::*;
-use rocket_cors;
 use rocket_cors::Cors;
 use rocket_cors::{AllowedOrigins, Error};
 use rocket_prometheus::{prometheus::Registry, PrometheusMetrics};

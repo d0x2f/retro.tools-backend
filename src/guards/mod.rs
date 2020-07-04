@@ -23,10 +23,10 @@ impl<'a, 'r> FromRequest<'a, 'r> for ParticipantId {
   fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, ()> {
     let mut cookies = request.cookies();
     let cookie = cookies.get("__session");
+    let postgres = request.guard::<DatabaseConnection>()?;
     if let Some(cookie) = cookie {
       let participant_id = String::from(cookie.value());
       // Verify the session id is real
-      let postgres = request.guard::<DatabaseConnection>()?;
       match persistence::participants::get_participant(&postgres, &participant_id) {
         Ok(Some(_)) => return Outcome::Success(ParticipantId { 0: participant_id }),
         Ok(None) => (),
@@ -35,7 +35,6 @@ impl<'a, 'r> FromRequest<'a, 'r> for ParticipantId {
         }
       }
     }
-    let postgres = request.guard::<DatabaseConnection>()?;
     let participant = match super::persistence::participants::create_participant(&postgres) {
       Ok(p) => p,
       Err(_) => {
@@ -45,7 +44,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for ParticipantId {
     cookies.add(
       Cookie::build("__session", participant.id.clone())
         .http_only(true)
-        // .secure(true)
+        .secure(true)
         .max_age(Duration::days(30))
         .path("/")
         .finish(),
