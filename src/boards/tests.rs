@@ -20,6 +20,7 @@ fn test_post_board() {
           max_votes: Some(37),
           voting_open: Some(false),
           cards_open: Some(true),
+          data: Some(serde_json::json!("foobar")),
         })
         .unwrap(),
       )
@@ -78,6 +79,7 @@ fn test_get_boards() {
         max_votes: Some(47),
         voting_open: Some(true),
         cards_open: Some(false),
+        data: Some(serde_json::json!("foobar")),
       },
     );
 
@@ -131,6 +133,7 @@ fn test_get_board() {
         max_votes: Some(2),
         voting_open: Some(true),
         cards_open: Some(true),
+        data: Some(serde_json::json!("foobar")),
       },
     );
 
@@ -172,6 +175,7 @@ fn test_patch_board() {
         max_votes: Some(2),
         voting_open: Some(true),
         cards_open: Some(true),
+        data: Some(serde_json::json!("foobar")),
       },
     );
 
@@ -185,6 +189,7 @@ fn test_patch_board() {
           max_votes: Some(3),
           voting_open: Some(false),
           cards_open: Some(false),
+          data: Some(serde_json::json!("foobar")),
         })
         .unwrap(),
       )

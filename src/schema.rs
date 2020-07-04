@@ -6,6 +6,7 @@ table! {
         voting_open -> Bool,
         cards_open -> Bool,
         created_at -> Timestamp,
+        data -> Jsonb,
     }
 }
 

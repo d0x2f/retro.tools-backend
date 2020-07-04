@@ -48,6 +48,7 @@ pub fn get_boards(postgres: &PgConnection, participant_id: &str) -> Result<Vec<B
       cards_open,
       created_at,
       schema::participant_board::dsl::owner,
+      data
     ))
     .load(postgres)
     .map_err(Into::into)
@@ -72,6 +73,7 @@ pub fn get_board(
       cards_open,
       created_at,
       schema::participant_board::dsl::owner,
+      data
     ))
     .first(postgres)
     .optional()
