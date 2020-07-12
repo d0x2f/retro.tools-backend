@@ -6,6 +6,7 @@ use rocket::http::Status;
 use rocket::request::FromRequest;
 use rocket::*;
 use time::Duration;
+use std::env;
 
 #[database("postgres")]
 pub struct DatabaseConnection(PgConnection);
@@ -41,10 +42,14 @@ impl<'a, 'r> FromRequest<'a, 'r> for ParticipantId {
         return Outcome::Failure((Status::InternalServerError, ()));
       }
     };
+    let secure_cookie = match env::var("SECURE_COOKIE") {
+      Ok(s) => s.parse().expect("boolean value"),
+      _ => true
+    };
     cookies.add(
       Cookie::build("__session", participant.id.clone())
         .http_only(true)
-        .secure(true)
+        .secure(secure_cookie)
         .max_age(Duration::days(30))
         .path("/")
         .finish(),
