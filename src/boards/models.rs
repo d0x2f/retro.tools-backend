@@ -5,7 +5,7 @@ use std::convert::TryFrom;
 use crate::error::Error;
 use crate::firestore::v1::*;
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize)]
 pub struct BoardMessage {
   pub name: Option<String>,
   pub cards_open: Option<bool>,
