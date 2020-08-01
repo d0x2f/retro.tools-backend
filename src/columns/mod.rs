@@ -1,3 +1,3 @@
-pub mod db;
+mod db;
 pub mod models;
 pub mod routes;

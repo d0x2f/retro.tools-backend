@@ -8,6 +8,20 @@ use crate::firestore::FirestoreV1Client;
 use crate::participants::db::*;
 use crate::participants::models::Participant;
 
+pub async fn new(
+  firestore: web::Data<FirestoreV1Client>,
+  participant: Participant,
+  board_message: web::Json<BoardMessage>,
+) -> Result<web::HttpResponse, Error> {
+  let mut board_message = board_message.into_inner();
+  board_message.voting_open.get_or_insert(true);
+  board_message.cards_open.get_or_insert(true);
+  let firestore = &mut firestore.get_ref().clone();
+  let board = db::new(firestore, participant.clone(), board_message).await?;
+  add_participant_board(&mut firestore.clone(), participant, board.id.clone()).await?;
+  Ok(web::HttpResponse::Ok().json(board))
+}
+
 pub async fn list(
   firestore: web::Data<FirestoreV1Client>,
   participant: Participant,
@@ -29,20 +43,6 @@ pub async fn get(
   )
   .await;
   Ok(web::HttpResponse::Ok().json(board?))
-}
-
-pub async fn new(
-  firestore: web::Data<FirestoreV1Client>,
-  participant: Participant,
-  board_message: web::Json<BoardMessage>,
-) -> Result<web::HttpResponse, Error> {
-  let mut board_message = board_message.into_inner();
-  board_message.voting_open.get_or_insert(true);
-  board_message.cards_open.get_or_insert(true);
-  let firestore = &mut firestore.get_ref().clone();
-  let board = db::new(firestore, participant.clone(), board_message).await?;
-  add_participant_board(&mut firestore.clone(), participant, board.id.clone()).await?;
-  Ok(web::HttpResponse::Ok().json(board))
 }
 
 pub async fn update(

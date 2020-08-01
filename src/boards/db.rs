@@ -8,6 +8,27 @@ use crate::firestore::FirestoreV1Client;
 use crate::participants::db::*;
 use crate::participants::models::Participant;
 
+pub async fn new(
+  firestore: &mut FirestoreV1Client,
+  participant: Participant,
+  board: BoardMessage,
+) -> Result<Board, Error> {
+  let mut document: Document = board.into();
+  document
+    .fields
+    .insert("owner".into(), string_value!(participant.id.clone()));
+  let result = firestore
+    .create_document(CreateDocumentRequest {
+      parent: "projects/retrotools-284402/databases/(default)/documents".into(),
+      collection_id: "boards".into(),
+      document_id: "".into(),
+      mask: None,
+      document: Some(document),
+    })
+    .await?;
+  Board::try_from(result.into_inner())
+}
+
 pub async fn list(
   firestore: &mut FirestoreV1Client,
   participant: Participant,
@@ -47,27 +68,6 @@ pub async fn get(firestore: &mut FirestoreV1Client, board_id: String) -> Result<
     })
     .await?;
   result.into_inner().try_into()
-}
-
-pub async fn new(
-  firestore: &mut FirestoreV1Client,
-  participant: Participant,
-  board: BoardMessage,
-) -> Result<Board, Error> {
-  let mut document: Document = board.into();
-  document
-    .fields
-    .insert("owner".into(), string_value!(participant.id.clone()));
-  let result = firestore
-    .create_document(CreateDocumentRequest {
-      parent: "projects/retrotools-284402/databases/(default)/documents".into(),
-      collection_id: "boards".into(),
-      document_id: "".into(),
-      mask: None,
-      document: Some(document),
-    })
-    .await?;
-  Board::try_from(result.into_inner())
 }
 
 pub async fn update(
