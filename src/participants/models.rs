@@ -11,7 +11,7 @@ use std::sync::Arc;
 use crate::firestore::v1::Document;
 use crate::firestore::FirestoreV1Client;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct Participant {
   pub id: String,
 }

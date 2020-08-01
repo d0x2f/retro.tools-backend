@@ -1,8 +1,7 @@
-use futures::future::join;
 use std::convert::TryFrom;
 use std::convert::TryInto;
 
-use super::models::Board;
+use super::models::*;
 use crate::error::Error;
 use crate::firestore::v1::*;
 use crate::firestore::FirestoreV1Client;
@@ -35,14 +34,9 @@ pub async fn list(
   Ok(boards)
 }
 
-pub async fn get(
-  firestore: &mut FirestoreV1Client,
-  participant: Participant,
-  board_id: String,
-) -> Result<Board, Error> {
-  let (_, result) = join(
-    add_participant_board(&mut firestore.clone(), participant, board_id.clone()),
-    firestore.get_document(GetDocumentRequest {
+pub async fn get(firestore: &mut FirestoreV1Client, board_id: String) -> Result<Board, Error> {
+  let result = firestore
+    .get_document(GetDocumentRequest {
       name: format!(
         "projects/retrotools-284402/databases/(default)/documents/boards/{}",
         board_id
@@ -50,8 +44,52 @@ pub async fn get(
       .into(),
       mask: None,
       consistency_selector: None,
-    }),
+    })
+    .await?;
+  result.into_inner().try_into()
+}
+
+pub async fn new(
+  firestore: &mut FirestoreV1Client,
+  participant: Participant,
+  board: BoardMessage,
+) -> Result<Board, Error> {
+  let mut document: Document = board.into();
+  document
+    .fields
+    .insert("owner".into(), string_value!(participant.id.clone()));
+  let result = firestore
+    .create_document(CreateDocumentRequest {
+      parent: "projects/retrotools-284402/databases/(default)/documents".into(),
+      collection_id: "boards".into(),
+      document_id: "".into(),
+      mask: None,
+      document: Some(document),
+    })
+    .await?;
+  Board::try_from(result.into_inner())
+}
+
+pub async fn update(
+  firestore: &mut FirestoreV1Client,
+  board_id: String,
+  board: BoardMessage,
+) -> Result<Board, Error> {
+  let mut document: Document = board.into();
+  document.name = format!(
+    "projects/retrotools-284402/databases/(default)/documents/boards/{}",
+    board_id
   )
-  .await;
-  result?.into_inner().try_into().map_err(|_| Error::Other)
+  .into();
+  let result = firestore
+    .update_document(UpdateDocumentRequest {
+      document: Some(document.clone()),
+      mask: None,
+      update_mask: Some(DocumentMask {
+        field_paths: document.fields.keys().map(|k| k.clone()).collect(),
+      }),
+      current_document: None,
+    })
+    .await?;
+  Board::try_from(result.into_inner())
 }

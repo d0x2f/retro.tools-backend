@@ -58,8 +58,11 @@ macro_rules! get_string_field {
       .get($field)
       .and_then(|field| field.value_type.as_ref())
     {
-      Some(crate::firestore::v1::value::ValueType::StringValue(s)) => Some(s.clone()),
-      _ => None,
+      Some(crate::firestore::v1::value::ValueType::StringValue(s)) => Ok(s.clone()),
+      _ => Err(crate::error::Error::Other(format!(
+        "field `{}` not set in document.",
+        $field
+      ))),
     }
   };
 }
@@ -72,8 +75,31 @@ macro_rules! get_boolean_field {
       .get($field)
       .and_then(|field| field.value_type.as_ref())
     {
-      Some(crate::firestore::v1::value::ValueType::BooleanValue(b)) => Some(*b),
-      _ => None,
+      Some(crate::firestore::v1::value::ValueType::BooleanValue(b)) => Ok(*b),
+      _ => Err(crate::error::Error::Other(format!(
+        "field `{}` not set in document.",
+        $field
+      ))),
+    }
+  };
+}
+
+#[macro_export]
+macro_rules! string_value {
+  ($string:expr) => {
+    Value {
+      value_type: Some(crate::firestore::v1::value::ValueType::StringValue(
+        $string.into(),
+      )),
+    }
+  };
+}
+
+#[macro_export]
+macro_rules! boolean_value {
+  ($bool:expr) => {
+    Value {
+      value_type: Some(crate::firestore::v1::value::ValueType::BooleanValue($bool)),
     }
   };
 }

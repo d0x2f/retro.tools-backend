@@ -9,14 +9,13 @@ mod participants;
 
 use actix_identity::{CookieIdentityPolicy, IdentityService};
 use actix_web::{middleware as ActixMiddleware, web, App, HttpServer};
-use rand::Rng;
+// use rand::Rng;
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
-  std::env::set_var("RUST_LOG", "actix_web=info");
   env_logger::init();
 
-  let private_key = rand::thread_rng().gen::<[u8; 32]>();
+  let private_key = [0; 32]; // rand::thread_rng().gen::<[u8; 32]>();
   HttpServer::new(move || {
     App::new()
       .data_factory(|| async { firestore::get_client().await })
@@ -26,8 +25,19 @@ async fn main() -> std::io::Result<()> {
           .secure(false),
       ))
       .wrap(ActixMiddleware::Logger::default())
-      .service(web::resource("/boards").to(boards::routes::get_boards))
-      .service(web::resource("/boards/{board_id}").to(boards::routes::get_board))
+      .service(
+        web::scope("boards")
+          .service(
+            web::resource("")
+              .route(web::get().to(boards::routes::list))
+              .route(web::post().to(boards::routes::new)),
+          )
+          .service(
+            web::resource("{board_id}")
+              .route(web::patch().to(boards::routes::update))
+              .route(web::get().to(boards::routes::get)),
+          ),
+      )
   })
   .bind("127.0.0.1:8080")?
   .run()

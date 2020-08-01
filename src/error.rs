@@ -6,9 +6,9 @@ use std::fmt::{Display, Formatter, Result as FmtResult};
 
 #[derive(Debug, Serialize)]
 pub enum Error {
-  // NotFound,
-  // Forbidden,
-  Other,
+  NotFound,
+  Forbidden,
+  Other(String),
 }
 
 impl Display for Error {
@@ -19,25 +19,33 @@ impl Display for Error {
 
 impl ResponseError for Error {
   fn error_response(&self) -> web::HttpResponse {
-    let (status, message) = match self {
-      // Error::NotFound => (StatusCode::NOT_FOUND, "Not Found"),
-      // Error::Forbidden => (StatusCode::FORBIDDEN, "Forbidden"),
-      Error::Other => (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong"),
+    let (status, message, log_message) = match self {
+      Error::NotFound => (StatusCode::NOT_FOUND, "Not Found", None),
+      Error::Forbidden => (StatusCode::FORBIDDEN, "Forbidden", None),
+      Error::Other(s) => (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "Something went wrong",
+        Some(s),
+      ),
     };
+    if let Some(error) = log_message {
+      error!("{}", error);
+    }
     web::HttpResponse::build(status).json(json!({ "error": message }))
   }
 }
 
 impl From<tonic::Status> for Error {
   fn from(tonic_error: tonic::Status) -> Self {
-    error!("{:?}", tonic_error);
-    Error::Other
+    match tonic_error.code() {
+      tonic::Code::NotFound => Error::NotFound,
+      _ => Error::Other(format!("{}", tonic_error)),
+    }
   }
 }
 
 impl From<actix_http::error::Error> for Error {
   fn from(actix_error: actix_http::error::Error) -> Self {
-    error!("{:?}", actix_error);
-    Error::Other
+    Error::Other(format!("{}", actix_error))
   }
 }
