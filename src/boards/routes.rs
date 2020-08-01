@@ -59,3 +59,17 @@ pub async fn update(
   let board = db::update(firestore, board_id.to_string(), board_message.into_inner()).await?;
   Ok(web::HttpResponse::Ok().json(board))
 }
+
+pub async fn delete(
+  firestore: web::Data<FirestoreV1Client>,
+  participant: Participant,
+  board_id: web::Path<String>,
+) -> Result<web::HttpResponse, Error> {
+  let firestore = &mut firestore.get_ref().clone();
+  let board = db::get(firestore, board_id.to_string()).await?;
+  if board.owner != participant.id {
+    return Err(Error::Forbidden);
+  }
+  db::delete(firestore, board_id.to_string()).await?;
+  Ok(web::HttpResponse::Ok().finish())
+}

@@ -93,3 +93,18 @@ pub async fn update(
     .await?;
   Board::try_from(result.into_inner())
 }
+
+pub async fn delete(firestore: &mut FirestoreV1Client, board_id: String) -> Result<(), Error> {
+  let name = format!(
+    "projects/retrotools-284402/databases/(default)/documents/boards/{}",
+    board_id
+  )
+  .into();
+  firestore
+    .delete_document(DeleteDocumentRequest {
+      name,
+      current_document: None,
+    })
+    .await?;
+  Ok(())
+}

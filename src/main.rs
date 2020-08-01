@@ -35,7 +35,8 @@ async fn main() -> std::io::Result<()> {
           .service(
             web::resource("{board_id}")
               .route(web::patch().to(boards::routes::update))
-              .route(web::get().to(boards::routes::get)),
+              .route(web::get().to(boards::routes::get))
+              .route(web::delete().to(boards::routes::delete)),
           ),
       )
   })
