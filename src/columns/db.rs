@@ -47,17 +47,23 @@ pub async fn list(
     })
     .await?;
   let documents = result.into_inner().documents;
-  let (valid_documents, _): (Vec<_>, Vec<_>) = documents.into_iter().map(Column::try_from).partition(Result::is_ok);
+  let (valid_documents, _): (Vec<_>, Vec<_>) = documents
+    .into_iter()
+    .map(Column::try_from)
+    .partition(Result::is_ok);
   Ok(valid_documents.into_iter().map(Result::unwrap).collect())
 }
 
-pub async fn get(firestore: &mut FirestoreV1Client, board_id: String, column_id: String) -> Result<Column, Error> {
+pub async fn get(
+  firestore: &mut FirestoreV1Client,
+  board_id: String,
+  column_id: String,
+) -> Result<Column, Error> {
   let result = firestore
     .get_document(GetDocumentRequest {
       name: format!(
         "projects/retrotools-284402/databases/(default)/documents/boards/{}/columns/{}",
-        board_id,
-        column_id
+        board_id, column_id
       )
       .into(),
       mask: None,
@@ -76,8 +82,7 @@ pub async fn update(
   let mut document: Document = column.into();
   document.name = format!(
     "projects/retrotools-284402/databases/(default)/documents/boards/{}/columns/{}",
-    board_id,
-    column_id
+    board_id, column_id
   )
   .into();
   let result = firestore
@@ -90,14 +95,17 @@ pub async fn update(
       current_document: None,
     })
     .await?;
-    Column::try_from(result.into_inner())
+  Column::try_from(result.into_inner())
 }
 
-pub async fn delete(firestore: &mut FirestoreV1Client, board_id: String, column_id: String) -> Result<(), Error> {
+pub async fn delete(
+  firestore: &mut FirestoreV1Client,
+  board_id: String,
+  column_id: String,
+) -> Result<(), Error> {
   let name = format!(
     "projects/retrotools-284402/databases/(default)/documents/boards/{}/columns/{}",
-    board_id,
-    column_id
+    board_id, column_id
   )
   .into();
   firestore

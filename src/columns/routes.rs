@@ -1,8 +1,8 @@
 use actix_web::web;
 
 use super::db;
-use crate::boards;
 use super::models::ColumnMessage;
+use crate::boards;
 use crate::error::Error;
 use crate::firestore::FirestoreV1Client;
 use crate::participants::models::Participant;
@@ -51,7 +51,13 @@ pub async fn update(
   if board.owner != participant.id {
     return Err(Error::Forbidden);
   }
-  let column = db::update(firestore, board_id.to_string(), column_id.to_string(), column_message.into_inner()).await?;
+  let column = db::update(
+    firestore,
+    board_id.to_string(),
+    column_id.to_string(),
+    column_message.into_inner(),
+  )
+  .await?;
   Ok(web::HttpResponse::Ok().json(column))
 }
 
