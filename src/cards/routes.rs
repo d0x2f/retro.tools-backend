@@ -20,8 +20,10 @@ pub async fn new(
   // Empty cards are not allowed
   if let Some(text) = &card_message.text {
     if text.is_empty() {
-      return Err(Error::Forbidden);
+      return Err(Error::BadRequest("Empty cards are not allowed.".into()));
     }
+  } else {
+    return Err(Error::BadRequest("Card text must be provided.".into()));
   }
 
   let firestore = &mut firestore.get_ref().clone();

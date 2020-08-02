@@ -3,11 +3,11 @@ extern crate log;
 
 #[macro_use]
 mod firestore;
+mod participants;
 mod boards;
 mod cards;
 mod columns;
 mod error;
-mod participants;
 
 use actix_identity::{CookieIdentityPolicy, IdentityService};
 use actix_web::{middleware as ActixMiddleware, web, App, HttpServer};

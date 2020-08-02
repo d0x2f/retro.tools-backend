@@ -30,7 +30,7 @@ impl TryFrom<Document> for Card {
     Ok(Card {
       id: get_id!(document),
       column_id: get_string_field!(document, "column_id")?,
-      owner: get_string_field!(document, "owner")?,
+      owner: from_reference!(get_reference_field!(document, "owner")?).into(),
       author: get_string_field!(document, "author")?,
       text: get_string_field!(document, "text")?,
       created_at: get_create_time!(document),

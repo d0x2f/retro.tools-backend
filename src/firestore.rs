@@ -51,14 +51,30 @@ pub async fn get_client() -> Result<FirestoreV1Client, BoxError> {
 }
 
 #[macro_export]
+macro_rules! to_participant_reference {
+  ($project:expr, $id:expr) => {
+    format!("projects/{}/databases/(default)/documents/participants/{}", $project, $id)
+  };
+}
+
+#[macro_export]
+macro_rules! to_board_reference {
+  ($project:expr, $id:expr) => {
+    format!("projects/{}/databases/(default)/documents/boards/{}", $project, $id)
+  };
+}
+
+#[macro_export]
+macro_rules! from_reference {
+  ($reference:expr) => {
+    $reference.rsplitn(2, '/').next().expect("document id")
+  };
+}
+
+#[macro_export]
 macro_rules! get_id {
   ($document:expr) => {
-    $document
-      .name
-      .rsplitn(2, '/')
-      .next()
-      .expect("document id")
-      .into()
+    from_reference!($document.name).into()
   };
 }
 
@@ -71,6 +87,23 @@ macro_rules! get_create_time {
         "field `create_time` not set in document.".into(),
       ))?
       .seconds
+  };
+}
+
+#[macro_export]
+macro_rules! get_reference_field {
+  ($document:expr, $field:literal) => {
+    match $document
+      .fields
+      .get($field)
+      .and_then(|field| field.value_type.as_ref())
+    {
+      Some(crate::firestore::v1::value::ValueType::ReferenceValue(s)) => Ok(s.to_string()),
+      _ => Err(crate::error::Error::Other(format!(
+        "field `{}` not set in document.",
+        $field
+      ))),
+    }
   };
 }
 
@@ -104,6 +137,15 @@ macro_rules! get_boolean_field {
         "field `{}` not set in document.",
         $field
       ))),
+    }
+  };
+}
+
+#[macro_export]
+macro_rules! reference_value {
+  ($document_path:expr) => {
+    Value {
+      value_type: Some(crate::firestore::v1::value::ValueType::ReferenceValue($document_path))
     }
   };
 }

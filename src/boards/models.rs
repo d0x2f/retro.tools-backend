@@ -27,22 +27,12 @@ impl TryFrom<Document> for Board {
 
   fn try_from(document: Document) -> Result<Self, Self::Error> {
     Ok(Board {
-      id: document
-        .name
-        .rsplitn(2, '/')
-        .next()
-        .expect("document id")
-        .into(),
+      id: get_id!(document),
       name: get_string_field!(document, "name")?,
       cards_open: get_boolean_field!(document, "cards_open")?,
       voting_open: get_boolean_field!(document, "voting_open")?,
-      created_at: document
-        .create_time
-        .ok_or_else(|| Error::Other(
-          "field `create_time` not set in document.".into(),
-        ))?
-        .seconds,
-      owner: get_string_field!(document, "owner")?,
+      created_at: get_create_time!(document),
+      owner: from_reference!(get_reference_field!(document, "owner")?).into(),
     })
   }
 }
