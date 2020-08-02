@@ -8,6 +8,7 @@ use std::fmt::{Display, Formatter, Result as FmtResult};
 pub enum Error {
   NotFound,
   Forbidden,
+  // BadRequest,
   Other(String),
 }
 
@@ -22,6 +23,7 @@ impl ResponseError for Error {
     let (status, message, log_message) = match self {
       Error::NotFound => (StatusCode::NOT_FOUND, "Not Found", None),
       Error::Forbidden => (StatusCode::FORBIDDEN, "Forbidden", None),
+      // Error::BadRequest => (StatusCode::BAD_REQUEST, "Bad Request", None),
       Error::Other(s) => (
         StatusCode::INTERNAL_SERVER_ERROR,
         "Something went wrong",

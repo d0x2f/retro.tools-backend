@@ -26,8 +26,7 @@ pub async fn add_participant_board(
       parent: format!(
         "projects/retrotools-284402/databases/(default)/documents/participants/{}",
         participant.id
-      )
-      .into(),
+      ),
       collection_id: "boards".into(),
       document_id: board_id,
       mask: None,
@@ -46,8 +45,7 @@ pub async fn get_participant_board_ids(
       parent: format!(
         "projects/retrotools-284402/databases/(default)/documents/participants/{}",
         participant.id
-      )
-      .into(),
+      ),
       collection_id: "boards".into(),
       page_size: 10,
       page_token: "".into(),
@@ -66,7 +64,6 @@ pub async fn get_participant_board_ids(
           "projects/retrotools-284402/databases/(default)/documents/boards/{}",
           d.name.rsplitn(2, '/').next().expect("document id")
         )
-        .into()
       })
       .collect(),
   )

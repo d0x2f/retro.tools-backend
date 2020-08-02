@@ -22,33 +22,10 @@ impl TryFrom<Document> for Column {
 
   fn try_from(document: Document) -> Result<Self, Self::Error> {
     Ok(Column {
-      id: document
-        .name
-        .rsplitn(2, '/')
-        .next()
-        .expect("document id")
-        .into(),
+      id: get_id!(document),
       name: get_string_field!(document, "name")?,
-      created_at: document
-        .create_time
-        .ok_or(Error::Other(
-          "field `create_time` not set in document.".into(),
-        ))?
-        .seconds,
+      created_at: get_create_time!(document),
     })
-  }
-}
-
-impl TryFrom<batch_get_documents_response::Result> for Column {
-  type Error = Error;
-
-  fn try_from(result: batch_get_documents_response::Result) -> Result<Self, Self::Error> {
-    match result {
-      batch_get_documents_response::Result::Missing(s) => {
-        Err(Error::Other(format!("column not found: {}", s)))
-      }
-      batch_get_documents_response::Result::Found(d) => Self::try_from(d),
-    }
   }
 }
 
@@ -60,7 +37,7 @@ impl From<ColumnMessage> for Document {
     }
     Document {
       name: "".into(),
-      fields: fields,
+      fields,
       create_time: None,
       update_time: None,
     }

@@ -5,39 +5,44 @@ use super::models::*;
 use crate::error::Error;
 use crate::firestore::v1::*;
 use crate::firestore::FirestoreV1Client;
+use crate::participants::models::Participant;
 
 pub async fn new(
   firestore: &mut FirestoreV1Client,
+  participant: Participant,
   board_id: String,
-  column: ColumnMessage,
-) -> Result<Column, Error> {
-  let document: Document = column.into();
+  card: CardMessage,
+) -> Result<Card, Error> {
+  let mut document: Document = card.into();
+  document
+    .fields
+    .insert("owner".into(), string_value!(participant.id.clone()));
   let result = firestore
     .create_document(CreateDocumentRequest {
       parent: format!(
         "projects/retrotools-284402/databases/(default)/documents/boards/{}",
         board_id
       ),
-      collection_id: "columns".into(),
+      collection_id: "cards".into(),
       document_id: "".into(),
       mask: None,
       document: Some(document),
     })
     .await?;
-  result.into_inner().try_into()
+  Card::try_from(result.into_inner())
 }
 
 pub async fn list(
   firestore: &mut FirestoreV1Client,
   board_id: String,
-) -> Result<Vec<Column>, Error> {
+) -> Result<Vec<Card>, Error> {
   let result = firestore
     .list_documents(ListDocumentsRequest {
       parent: format!(
         "projects/retrotools-284402/databases/(default)/documents/boards/{}",
         board_id
       ),
-      collection_id: "columns".into(),
+      collection_id: "cards".into(),
       page_size: 0,
       page_token: "".into(),
       order_by: "".into(),
@@ -49,7 +54,7 @@ pub async fn list(
   let documents = result.into_inner().documents;
   let (valid_documents, _): (Vec<_>, Vec<_>) = documents
     .into_iter()
-    .map(Column::try_from)
+    .map(Card::try_from)
     .partition(Result::is_ok);
   Ok(valid_documents.into_iter().map(Result::unwrap).collect())
 }
@@ -57,13 +62,13 @@ pub async fn list(
 pub async fn get(
   firestore: &mut FirestoreV1Client,
   board_id: String,
-  column_id: String,
-) -> Result<Column, Error> {
+  card_id: String,
+) -> Result<Card, Error> {
   let result = firestore
     .get_document(GetDocumentRequest {
       name: format!(
-        "projects/retrotools-284402/databases/(default)/documents/boards/{}/columns/{}",
-        board_id, column_id
+        "projects/retrotools-284402/databases/(default)/documents/boards/{}/cards/{}",
+        board_id, card_id
       ),
       mask: None,
       consistency_selector: None,
@@ -75,13 +80,13 @@ pub async fn get(
 pub async fn update(
   firestore: &mut FirestoreV1Client,
   board_id: String,
-  column_id: String,
-  column: ColumnMessage,
-) -> Result<Column, Error> {
-  let mut document: Document = column.into();
+  card_id: String,
+  card: CardMessage,
+) -> Result<Card, Error> {
+  let mut document: Document = card.into();
   document.name = format!(
-    "projects/retrotools-284402/databases/(default)/documents/boards/{}/columns/{}",
-    board_id, column_id
+    "projects/retrotools-284402/databases/(default)/documents/boards/{}/cards/{}",
+    board_id, card_id
   );
   let result = firestore
     .update_document(UpdateDocumentRequest {
@@ -96,16 +101,12 @@ pub async fn update(
   result.into_inner().try_into()
 }
 
-pub async fn delete(
-  firestore: &mut FirestoreV1Client,
-  board_id: String,
-  column_id: String,
-) -> Result<(), Error> {
+pub async fn delete(firestore: &mut FirestoreV1Client, board_id: String, card_id: String) -> Result<(), Error> {
   let name = format!(
-    "projects/retrotools-284402/databases/(default)/documents/boards/{}/columns/{}",
-    board_id, column_id
-  )
-  .into();
+    "projects/retrotools-284402/databases/(default)/documents/boards/{}/cards/{}",
+    board_id,
+    card_id
+  );
   firestore
     .delete_document(DeleteDocumentRequest {
       name,

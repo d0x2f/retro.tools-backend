@@ -51,6 +51,30 @@ pub async fn get_client() -> Result<FirestoreV1Client, BoxError> {
 }
 
 #[macro_export]
+macro_rules! get_id {
+  ($document:expr) => {
+    $document
+      .name
+      .rsplitn(2, '/')
+      .next()
+      .expect("document id")
+      .into()
+  };
+}
+
+#[macro_export]
+macro_rules! get_create_time {
+  ($document:expr) => {
+    $document
+      .create_time
+      .ok_or_else(|| crate::error::Error::Other(
+        "field `create_time` not set in document.".into(),
+      ))?
+      .seconds
+  };
+}
+
+#[macro_export]
 macro_rules! get_string_field {
   ($document:expr, $field:literal) => {
     match $document

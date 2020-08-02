@@ -26,7 +26,7 @@ pub async fn new(
       document: Some(document),
     })
     .await?;
-  Board::try_from(result.into_inner())
+  result.into_inner().try_into()
 }
 
 pub async fn list(
@@ -61,8 +61,7 @@ pub async fn get(firestore: &mut FirestoreV1Client, board_id: String) -> Result<
       name: format!(
         "projects/retrotools-284402/databases/(default)/documents/boards/{}",
         board_id
-      )
-      .into(),
+      ),
       mask: None,
       consistency_selector: None,
     })
@@ -79,27 +78,25 @@ pub async fn update(
   document.name = format!(
     "projects/retrotools-284402/databases/(default)/documents/boards/{}",
     board_id
-  )
-  .into();
+  );
   let result = firestore
     .update_document(UpdateDocumentRequest {
       document: Some(document.clone()),
       mask: None,
       update_mask: Some(DocumentMask {
-        field_paths: document.fields.keys().map(|k| k.clone()).collect(),
+        field_paths: document.fields.keys().cloned().collect(),
       }),
       current_document: None,
     })
     .await?;
-  Board::try_from(result.into_inner())
+  result.into_inner().try_into()
 }
 
 pub async fn delete(firestore: &mut FirestoreV1Client, board_id: String) -> Result<(), Error> {
   let name = format!(
     "projects/retrotools-284402/databases/(default)/documents/boards/{}",
     board_id
-  )
-  .into();
+  );
   firestore
     .delete_document(DeleteDocumentRequest {
       name,

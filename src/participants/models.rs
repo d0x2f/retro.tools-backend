@@ -19,12 +19,7 @@ pub struct Participant {
 impl From<Document> for Participant {
   fn from(document: Document) -> Self {
     Participant {
-      id: document
-        .name
-        .rsplitn(2, '/')
-        .next()
-        .expect("document id")
-        .into(),
+      id: get_id!(document),
     }
   }
 }

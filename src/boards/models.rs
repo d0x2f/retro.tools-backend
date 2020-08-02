@@ -38,7 +38,7 @@ impl TryFrom<Document> for Board {
       voting_open: get_boolean_field!(document, "voting_open")?,
       created_at: document
         .create_time
-        .ok_or(Error::Other(
+        .ok_or_else(|| Error::Other(
           "field `create_time` not set in document.".into(),
         ))?
         .seconds,
@@ -74,7 +74,7 @@ impl From<BoardMessage> for Document {
     }
     Document {
       name: "".into(),
-      fields: fields,
+      fields,
       create_time: None,
       update_time: None,
     }
