@@ -37,11 +37,12 @@ pub async fn get(
   board_id: web::Path<String>,
 ) -> Result<web::HttpResponse, Error> {
   let firestore = &mut firestore.get_ref().clone();
-  let (_, board) = join(
+  let (register, board) = join(
     add_participant_board(&mut firestore.clone(), participant, board_id.clone()),
     db::get(firestore, board_id.to_string()),
   )
   .await;
+  register?;
   Ok(web::HttpResponse::Ok().json(board?))
 }
 

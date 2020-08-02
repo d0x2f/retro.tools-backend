@@ -14,9 +14,13 @@ pub async fn new(
   board: BoardMessage,
 ) -> Result<Board, Error> {
   let mut document: Document = board.into();
-  document
-    .fields
-    .insert("owner".into(), reference_value!(to_participant_reference!("retrotools-284402", participant.id)));
+  document.fields.insert(
+    "owner".into(),
+    reference_value!(to_participant_reference!(
+      "retrotools-284402",
+      participant.id
+    )),
+  );
   let result = firestore
     .create_document(CreateDocumentRequest {
       parent: "projects/retrotools-284402/databases/(default)/documents".into(),

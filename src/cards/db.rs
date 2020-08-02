@@ -14,9 +14,13 @@ pub async fn new(
   card: CardMessage,
 ) -> Result<Card, Error> {
   let mut document: Document = card.into();
-  document
-    .fields
-    .insert("owner".into(), reference_value!(to_participant_reference!("retrotools-284402", participant.id)));
+  document.fields.insert(
+    "owner".into(),
+    reference_value!(to_participant_reference!(
+      "retrotools-284402",
+      participant.id
+    )),
+  );
   let result = firestore
     .create_document(CreateDocumentRequest {
       parent: format!(
@@ -32,10 +36,7 @@ pub async fn new(
   Card::try_from(result.into_inner())
 }
 
-pub async fn list(
-  firestore: &mut FirestoreV1Client,
-  board_id: String,
-) -> Result<Vec<Card>, Error> {
+pub async fn list(firestore: &mut FirestoreV1Client, board_id: String) -> Result<Vec<Card>, Error> {
   let result = firestore
     .list_documents(ListDocumentsRequest {
       parent: format!(
@@ -101,11 +102,14 @@ pub async fn update(
   result.into_inner().try_into()
 }
 
-pub async fn delete(firestore: &mut FirestoreV1Client, board_id: String, card_id: String) -> Result<(), Error> {
+pub async fn delete(
+  firestore: &mut FirestoreV1Client,
+  board_id: String,
+  card_id: String,
+) -> Result<(), Error> {
   let name = format!(
     "projects/retrotools-284402/databases/(default)/documents/boards/{}/cards/{}",
-    board_id,
-    card_id
+    board_id, card_id
   );
   firestore
     .delete_document(DeleteDocumentRequest {

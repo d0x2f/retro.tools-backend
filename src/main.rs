@@ -52,16 +52,13 @@ async fn main() -> std::io::Result<()> {
         web::resource("boards/{board_id}/columns/{column_id}/cards")
           .route(web::post().to(cards::routes::new)),
       )
+      .service(web::resource("boards/{board_id}/cards").route(web::get().to(cards::routes::list)))
       .service(
-        web::resource("boards/{board_id}/cards")
-          .route(web::get().to(cards::routes::list))
+        web::resource("boards/{board_id}/cards/{card_id}")
+          .route(web::patch().to(cards::routes::update))
+          .route(web::get().to(cards::routes::get))
+          .route(web::delete().to(cards::routes::delete)),
       )
-    .service(
-      web::resource("boards/{board_id}/cards/{card_id}")
-        .route(web::patch().to(cards::routes::update))
-        .route(web::get().to(cards::routes::get))
-        .route(web::delete().to(cards::routes::delete)),
-    )
   })
   .bind("127.0.0.1:8080")? // TODO: env var
   .run()

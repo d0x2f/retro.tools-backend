@@ -16,7 +16,7 @@ pub struct CardMessage {
 #[derive(Deserialize, Serialize)]
 pub struct Card {
   pub id: String,
-  pub column_id: String,
+  pub column: String,
   pub owner: String,
   pub author: String,
   pub text: String,
@@ -29,7 +29,7 @@ impl TryFrom<Document> for Card {
   fn try_from(document: Document) -> Result<Self, Self::Error> {
     Ok(Card {
       id: get_id!(document),
-      column_id: get_string_field!(document, "column_id")?,
+      column: from_reference!(get_reference_field!(document, "column")?).into(),
       owner: from_reference!(get_reference_field!(document, "owner")?).into(),
       author: get_string_field!(document, "author")?,
       text: get_string_field!(document, "text")?,
@@ -47,8 +47,8 @@ impl From<CardMessage> for Document {
     if let Some(text) = card.text {
       fields.insert("text".into(), string_value!(text));
     }
-    if let Some(column_id) = card.column_id {
-      fields.insert("column_id".into(), string_value!(column_id));
+    if let Some(column) = card.column {
+      fields.insert("column".into(), reference_value!(column));
     }
     Document {
       name: "".into(),

@@ -15,7 +15,11 @@ pub async fn new(
   let (board_id, column_id) = params.into_inner();
   let mut card_message = card_message.into_inner();
   card_message.author.get_or_insert("".into());
-  card_message.column_id = Some(column_id);
+  card_message.column = Some(to_column_reference!(
+    "retrotools-284402",
+    board_id,
+    column_id
+  ));
 
   // Empty cards are not allowed
   if let Some(text) = &card_message.text {
@@ -59,6 +63,16 @@ pub async fn update(
   card_message: web::Json<CardMessage>,
 ) -> Result<web::HttpResponse, Error> {
   let (board_id, card_id) = params.into_inner();
+  let mut card_message = card_message.into_inner();
+  card_message.column = match card_message.column {
+    Some(column) => Some(to_column_reference!(
+      "retrotools-284402",
+      board_id,
+      column
+    )),
+    None => None,
+  };
+
   let firestore = &mut firestore.get_ref().clone();
   let card = db::get(firestore, board_id.to_string(), card_id.to_string()).await?;
   if card.owner != participant.id {
@@ -68,7 +82,7 @@ pub async fn update(
     firestore,
     board_id.to_string(),
     card_id.to_string(),
-    card_message.into_inner(),
+    card_message,
   )
   .await?;
   Ok(web::HttpResponse::Ok().json(card))
