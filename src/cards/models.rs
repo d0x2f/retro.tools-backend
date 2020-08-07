@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 
+use crate::config::Config;
 use crate::error::Error;
 use crate::firestore::v1::*;
 use crate::participants::models::Participant;
@@ -38,7 +39,7 @@ pub struct CardResponse {
 }
 
 impl CardResponse {
-  pub fn from_card(card: Card, participant: &Participant) -> CardResponse {
+  pub fn from_card(config: &Config, card: Card, participant: &Participant) -> CardResponse {
     CardResponse {
       id: card.id,
       column: card.column,
@@ -48,7 +49,7 @@ impl CardResponse {
       created_at: card.created_at,
       votes: card.votes.len(),
       voted: card.votes.contains(&to_participant_reference!(
-        "retrotools-284402",
+        config.firestore_project,
         participant.id
       )),
     }

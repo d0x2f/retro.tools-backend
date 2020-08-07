@@ -2,6 +2,7 @@ use std::convert::TryFrom;
 use std::convert::TryInto;
 
 use super::models::*;
+use crate::config::Config;
 use crate::error::Error;
 use crate::firestore::v1::*;
 use crate::firestore::FirestoreV1Client;
@@ -9,6 +10,7 @@ use crate::participants::models::Participant;
 
 pub async fn new(
   firestore: &mut FirestoreV1Client,
+  config: &Config,
   participant: &Participant,
   board_id: String,
   card: CardMessage,
@@ -17,15 +19,15 @@ pub async fn new(
   document.fields.insert(
     "owner".into(),
     reference_value!(to_participant_reference!(
-      "retrotools-284402",
+      config.firestore_project,
       participant.id
     )),
   );
   let result = firestore
     .create_document(CreateDocumentRequest {
       parent: format!(
-        "projects/retrotools-284402/databases/(default)/documents/boards/{}",
-        board_id
+        "projects/{}/databases/(default)/documents/boards/{}",
+        config.firestore_project, board_id
       ),
       collection_id: "cards".into(),
       document: Some(document),
@@ -35,14 +37,19 @@ pub async fn new(
   Card::try_from(result.into_inner())
 }
 
-pub async fn list(firestore: &mut FirestoreV1Client, board_id: String) -> Result<Vec<Card>, Error> {
+pub async fn list(
+  firestore: &mut FirestoreV1Client,
+  config: &Config,
+  board_id: String,
+) -> Result<Vec<Card>, Error> {
   let result = firestore
     .list_documents(ListDocumentsRequest {
       parent: format!(
-        "projects/retrotools-284402/databases/(default)/documents/boards/{}",
-        board_id
+        "projects/{}/databases/(default)/documents/boards/{}",
+        config.firestore_project, board_id
       ),
       collection_id: "cards".into(),
+      page_size: 200,
       ..Default::default()
     })
     .await?;
@@ -56,14 +63,15 @@ pub async fn list(firestore: &mut FirestoreV1Client, board_id: String) -> Result
 
 pub async fn get(
   firestore: &mut FirestoreV1Client,
+  config: &Config,
   board_id: String,
   card_id: String,
 ) -> Result<Card, Error> {
   let result = firestore
     .get_document(GetDocumentRequest {
       name: format!(
-        "projects/retrotools-284402/databases/(default)/documents/boards/{}/cards/{}",
-        board_id, card_id
+        "projects/{}/databases/(default)/documents/boards/{}/cards/{}",
+        config.firestore_project, board_id, card_id
       ),
       ..Default::default()
     })
@@ -73,14 +81,15 @@ pub async fn get(
 
 pub async fn update(
   firestore: &mut FirestoreV1Client,
+  config: &Config,
   board_id: String,
   card_id: String,
   card: CardMessage,
 ) -> Result<Card, Error> {
   let mut document: Document = card.into();
   document.name = format!(
-    "projects/retrotools-284402/databases/(default)/documents/boards/{}/cards/{}",
-    board_id, card_id
+    "projects/{}/databases/(default)/documents/boards/{}/cards/{}",
+    config.firestore_project, board_id, card_id
   );
   let result = firestore
     .update_document(UpdateDocumentRequest {
@@ -96,12 +105,13 @@ pub async fn update(
 
 pub async fn delete(
   firestore: &mut FirestoreV1Client,
+  config: &Config,
   board_id: String,
   card_id: String,
 ) -> Result<(), Error> {
   let name = format!(
-    "projects/retrotools-284402/databases/(default)/documents/boards/{}/cards/{}",
-    board_id, card_id
+    "projects/{}/databases/(default)/documents/boards/{}/cards/{}",
+    config.firestore_project, board_id, card_id
   );
   firestore
     .delete_document(DeleteDocumentRequest {
@@ -114,15 +124,16 @@ pub async fn delete(
 
 pub async fn put_vote(
   firestore: &mut FirestoreV1Client,
+  config: &Config,
   participant: &Participant,
   board_id: String,
   card_id: String,
 ) -> Result<(), Error> {
-  let participant_doc_id = to_participant_reference!("retrotools-284402", participant.id);
-  let card_doc_id = to_card_reference!("retrotools-284402", board_id, card_id);
+  let participant_doc_id = to_participant_reference!(config.firestore_project, participant.id);
+  let card_doc_id = to_card_reference!(config.firestore_project, board_id, card_id);
   firestore
     .batch_write(BatchWriteRequest {
-      database: "projects/retrotools-284402/databases/(default)".into(),
+      database: format!("projects/{}/databases/(default)", config.firestore_project),
       writes: vec![Write {
         operation: Some(write::Operation::Transform(DocumentTransform {
           document: card_doc_id,
@@ -148,15 +159,16 @@ pub async fn put_vote(
 
 pub async fn delete_vote(
   firestore: &mut FirestoreV1Client,
+  config: &Config,
   participant: &Participant,
   board_id: String,
   card_id: String,
 ) -> Result<(), Error> {
-  let participant_doc_id = to_participant_reference!("retrotools-284402", participant.id);
-  let card_doc_id = to_card_reference!("retrotools-284402", board_id, card_id);
+  let participant_doc_id = to_participant_reference!(config.firestore_project, participant.id);
+  let card_doc_id = to_card_reference!(config.firestore_project, board_id, card_id);
   firestore
     .batch_write(BatchWriteRequest {
-      database: "projects/retrotools-284402/databases/(default)".into(),
+      database: format!("projects/{}/databases/(default)", config.firestore_project),
       writes: vec![Write {
         operation: Some(write::Operation::Transform(DocumentTransform {
           document: card_doc_id,

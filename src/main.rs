@@ -5,7 +5,9 @@ extern crate log;
 mod firestore;
 mod boards;
 mod cards;
+mod cloudrun;
 mod columns;
+mod config;
 mod error;
 mod participants;
 
@@ -16,14 +18,18 @@ use actix_web::{http, middleware as ActixMiddleware, web, App, HttpServer};
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
   env_logger::init();
+  dotenv::dotenv().ok();
+  let config = config::Config::from_env().await;
+  let port = config.port;
 
-  let private_key = [0; 32]; // TODO: env var
   HttpServer::new(move || {
+    let firestore_token = config.firestore_token.clone();
     App::new()
-      .data_factory(|| async { firestore::get_client().await })
+      .data_factory(move || firestore::get_client(firestore_token.clone()))
+      .data(config.clone())
       .wrap(
         Cors::new()
-          .allowed_origin("http://localhost:5000") // TODO: env var
+          .allowed_origin(&config.allowed_origin)
           .send_wildcard()
           .allowed_methods(vec!["GET", "POST", "PATCH", "PUT", "DELETE"])
           .allowed_header(http::header::CONTENT_TYPE)
@@ -32,9 +38,9 @@ async fn main() -> std::io::Result<()> {
           .finish(),
       )
       .wrap(IdentityService::new(
-        CookieIdentityPolicy::new(&private_key)
+        CookieIdentityPolicy::new(&config.secret_key)
           .name("__session")
-          .secure(false), // TODO: env var
+          .secure(config.environment == config::Environment::Production),
       ))
       .wrap(ActixMiddleware::Logger::default())
       .service(
@@ -76,7 +82,7 @@ async fn main() -> std::io::Result<()> {
           .route(web::delete().to(cards::routes::delete_vote)),
       )
   })
-  .bind("127.0.0.1:8000")? // TODO: env var
+  .bind(format!("0.0.0.0:{}", port))?
   .run()
   .await
 }

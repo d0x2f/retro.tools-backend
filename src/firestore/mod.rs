@@ -1,13 +1,14 @@
 #[macro_use]
 pub mod macros;
 
-pub type BoxError = Box<dyn std::error::Error + Sync + Send + 'static>;
-use std::env;
 use tonic::{
   metadata::MetadataValue,
   transport::{Channel, ClientTlsConfig},
   Request,
 };
+
+use crate::cloudrun;
+use crate::error::Error;
 
 pub mod google {
   pub mod firestore {
@@ -32,14 +33,14 @@ pub type FirestoreV1Client = google::firestore::v1::firestore_client::FirestoreC
 const URL: &str = "https://firestore.googleapis.com";
 const DOMAIN: &str = "firestore.googleapis.com";
 
-pub async fn get_client() -> Result<FirestoreV1Client, BoxError> {
+pub async fn get_client(token: Option<String>) -> Result<FirestoreV1Client, Error> {
   let tls = ClientTlsConfig::new().domain_name(DOMAIN);
 
   let channel = Channel::from_static(URL).tls_config(tls)?.connect().await?;
 
-  let token = match env::var("FIRESTORE_TOKEN") {
-    Err(_) => panic!("No firestore token provided"),
-    Ok(s) => s,
+  let token = match token {
+    Some(t) => t,
+    None => cloudrun::get_token().await?,
   };
 
   let bearer_token = format!("Bearer {}", token);

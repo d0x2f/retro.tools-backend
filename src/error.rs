@@ -38,22 +38,58 @@ impl ResponseError for Error {
 }
 
 impl From<tonic::Status> for Error {
-  fn from(tonic_error: tonic::Status) -> Self {
-    match tonic_error.code() {
+  fn from(error: tonic::Status) -> Self {
+    match error.code() {
       tonic::Code::NotFound => Error::NotFound,
-      _ => Error::Other(format!("{}", tonic_error)),
+      _ => Error::Other(format!("{}", error)),
     }
   }
 }
 
 impl From<actix_http::error::Error> for Error {
-  fn from(actix_error: actix_http::error::Error) -> Self {
-    Error::Other(format!("{}", actix_error))
+  fn from(error: actix_http::error::Error) -> Self {
+    Error::Other(format!("{}", error))
   }
 }
 
 impl From<serde_json::error::Error> for Error {
-  fn from(serde_error: serde_json::error::Error) -> Self {
-    Error::Other(format!("{}", serde_error))
+  fn from(error: serde_json::error::Error) -> Self {
+    Error::Other(format!("{}", error))
   }
 }
+
+impl From<actix_http::client::SendRequestError> for Error {
+  fn from(error: actix_http::client::SendRequestError) -> Self {
+    Error::Other(format!("{}", error))
+  }
+}
+
+impl From<actix_http::error::PayloadError> for Error {
+  fn from(error: actix_http::error::PayloadError) -> Self {
+    Error::Other(format!("{}", error))
+  }
+}
+
+impl From<std::string::FromUtf8Error> for Error {
+  fn from(error: std::string::FromUtf8Error) -> Self {
+    Error::Other(format!("{}", error))
+  }
+}
+
+impl From<tonic::metadata::errors::InvalidMetadataValue> for Error {
+  fn from(error: tonic::metadata::errors::InvalidMetadataValue) -> Self {
+    Error::Other(format!("{}", error))
+  }
+}
+
+impl From<tonic::transport::Error> for Error {
+  fn from(error: tonic::transport::Error) -> Self {
+    Error::Other(format!("{}", error))
+  }
+}
+
+// impl<T: Display> From<T> for Error {
+//   fn from(error: T) -> Self {
+//     Error::Other(format!("{}", error))
+//   }
+// }

@@ -4,6 +4,7 @@ use std::convert::TryFrom;
 
 use crate::error::Error;
 use crate::firestore::v1::*;
+use crate::participants::models::Participant;
 
 #[derive(Deserialize, Serialize)]
 pub struct BoardMessage {
@@ -22,6 +23,31 @@ pub struct Board {
   pub created_at: i64,
   pub owner: String,
   pub data: serde_json::Value,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct BoardResponse {
+  pub id: String,
+  pub name: String,
+  pub cards_open: bool,
+  pub voting_open: bool,
+  pub created_at: i64,
+  pub owner: bool,
+  pub data: serde_json::Value,
+}
+
+impl BoardResponse {
+  pub fn from_board(board: Board, participant: &Participant) -> BoardResponse {
+    BoardResponse {
+      id: board.id,
+      name: board.name,
+      cards_open: board.cards_open,
+      voting_open: board.voting_open,
+      created_at: board.created_at,
+      owner: board.owner == participant.id,
+      data: board.data,
+    }
+  }
 }
 
 impl TryFrom<Document> for Board {

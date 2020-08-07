@@ -1,12 +1,16 @@
 use super::models::*;
+use crate::config::Config;
 use crate::error::Error;
 use crate::firestore::v1::*;
 use crate::firestore::FirestoreV1Client;
 
-pub async fn new(firestore: &mut FirestoreV1Client) -> Result<Participant, Error> {
+pub async fn new(firestore: &mut FirestoreV1Client, config: &Config) -> Result<Participant, Error> {
   let result = firestore
     .create_document(CreateDocumentRequest {
-      parent: "projects/retrotools-284402/databases/(default)/documents".into(),
+      parent: format!(
+        "projects/{}/databases/(default)/documents",
+        config.firestore_project
+      ),
       collection_id: "participants".into(),
       ..Default::default()
     })
@@ -16,14 +20,15 @@ pub async fn new(firestore: &mut FirestoreV1Client) -> Result<Participant, Error
 
 pub async fn add_participant_board(
   firestore: &mut FirestoreV1Client,
-  participant: Participant,
+  config: &Config,
+  participant: &Participant,
   board_id: String,
 ) -> Result<(), Error> {
-  let participant_doc_id = to_participant_reference!("retrotools-284402", participant.id);
-  let board_doc_id = to_board_reference!("retrotools-284402", board_id);
+  let participant_doc_id = to_participant_reference!(config.firestore_project, participant.id);
+  let board_doc_id = to_board_reference!(config.firestore_project, board_id);
   firestore
     .batch_write(BatchWriteRequest {
-      database: "projects/retrotools-284402/databases/(default)".into(),
+      database: format!("projects/{}/databases/(default)", config.firestore_project),
       writes: vec![Write {
         operation: Some(write::Operation::Transform(DocumentTransform {
           document: participant_doc_id,
@@ -49,11 +54,12 @@ pub async fn add_participant_board(
 
 pub async fn get_participant_board_ids(
   firestore: &mut FirestoreV1Client,
-  participant: Participant,
+  config: &Config,
+  participant: &Participant,
 ) -> Result<Vec<String>, Error> {
   let result = match firestore
     .get_document(GetDocumentRequest {
-      name: to_participant_reference!("retrotools-284402", participant.id),
+      name: to_participant_reference!(config.firestore_project, participant.id),
       ..Default::default()
     })
     .await

@@ -2,12 +2,14 @@ use std::convert::TryFrom;
 use std::convert::TryInto;
 
 use super::models::*;
+use crate::config::Config;
 use crate::error::Error;
 use crate::firestore::v1::*;
 use crate::firestore::FirestoreV1Client;
 
 pub async fn new(
   firestore: &mut FirestoreV1Client,
+  config: &Config,
   board_id: String,
   column: ColumnMessage,
 ) -> Result<Column, Error> {
@@ -15,8 +17,8 @@ pub async fn new(
   let result = firestore
     .create_document(CreateDocumentRequest {
       parent: format!(
-        "projects/retrotools-284402/databases/(default)/documents/boards/{}",
-        board_id
+        "projects/{}/databases/(default)/documents/boards/{}",
+        config.firestore_project, board_id
       ),
       collection_id: "columns".into(),
       document: Some(document),
@@ -28,13 +30,14 @@ pub async fn new(
 
 pub async fn list(
   firestore: &mut FirestoreV1Client,
+  config: &Config,
   board_id: String,
 ) -> Result<Vec<Column>, Error> {
   let result = firestore
     .list_documents(ListDocumentsRequest {
       parent: format!(
-        "projects/retrotools-284402/databases/(default)/documents/boards/{}",
-        board_id
+        "projects/{}/databases/(default)/documents/boards/{}",
+        config.firestore_project, board_id
       ),
       collection_id: "columns".into(),
       ..Default::default()
@@ -50,14 +53,15 @@ pub async fn list(
 
 pub async fn get(
   firestore: &mut FirestoreV1Client,
+  config: &Config,
   board_id: String,
   column_id: String,
 ) -> Result<Column, Error> {
   let result = firestore
     .get_document(GetDocumentRequest {
       name: format!(
-        "projects/retrotools-284402/databases/(default)/documents/boards/{}/columns/{}",
-        board_id, column_id
+        "projects/{}/databases/(default)/documents/boards/{}/columns/{}",
+        config.firestore_project, board_id, column_id
       ),
       ..Default::default()
     })
@@ -67,14 +71,15 @@ pub async fn get(
 
 pub async fn update(
   firestore: &mut FirestoreV1Client,
+  config: &Config,
   board_id: String,
   column_id: String,
   column: ColumnMessage,
 ) -> Result<Column, Error> {
   let mut document: Document = column.into();
   document.name = format!(
-    "projects/retrotools-284402/databases/(default)/documents/boards/{}/columns/{}",
-    board_id, column_id
+    "projects/{}/databases/(default)/documents/boards/{}/columns/{}",
+    config.firestore_project, board_id, column_id
   );
   let result = firestore
     .update_document(UpdateDocumentRequest {
@@ -90,12 +95,13 @@ pub async fn update(
 
 pub async fn delete(
   firestore: &mut FirestoreV1Client,
+  config: &Config,
   board_id: String,
   column_id: String,
 ) -> Result<(), Error> {
   let name = format!(
-    "projects/retrotools-284402/databases/(default)/documents/boards/{}/columns/{}",
-    board_id, column_id
+    "projects/{}/databases/(default)/documents/boards/{}/columns/{}",
+    config.firestore_project, board_id, column_id
   );
   firestore
     .delete_document(DeleteDocumentRequest {

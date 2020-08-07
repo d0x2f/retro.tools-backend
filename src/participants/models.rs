@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::pin::Pin;
 use std::sync::Arc;
 
+use crate::config::Config;
 use crate::firestore::v1::Document;
 use crate::firestore::FirestoreV1Client;
 
@@ -33,9 +34,12 @@ impl FromRequest for Participant {
     let firestore = req
       .app_data::<Data<FirestoreV1Client>>()
       .expect("firestore client");
+    let config = req.app_data::<Data<Config>>().expect("config");
     let firestore = &(*Arc::clone(&firestore.clone().into_inner()));
+    let config = &(*Arc::clone(&config.clone().into_inner()));
     Box::pin(super::new(
       firestore.clone(),
+      config.clone(),
       Identity::from_request(req, payload),
     ))
   }
