@@ -10,6 +10,7 @@ pub struct BoardMessage {
   pub name: Option<String>,
   pub cards_open: Option<bool>,
   pub voting_open: Option<bool>,
+  pub data: Option<serde_json::Value>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -20,6 +21,7 @@ pub struct Board {
   pub voting_open: bool,
   pub created_at: i64,
   pub owner: String,
+  pub data: serde_json::Value,
 }
 
 impl TryFrom<Document> for Board {
@@ -33,6 +35,7 @@ impl TryFrom<Document> for Board {
       voting_open: get_boolean_field!(document, "voting_open")?,
       created_at: get_create_time!(document),
       owner: from_reference!(get_reference_field!(document, "owner")?).into(),
+      data: serde_json::from_str(get_string_field!(document, "data")?.as_str())?,
     })
   }
 }
@@ -61,6 +64,9 @@ impl From<BoardMessage> for Document {
     }
     if let Some(voting_open) = board.voting_open {
       fields.insert("voting_open".into(), boolean_value!(voting_open));
+    }
+    if let Some(data) = board.data {
+      fields.insert("data".into(), string_value!(data.to_string()));
     }
     Document {
       name: "".into(),

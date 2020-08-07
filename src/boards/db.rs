@@ -25,9 +25,8 @@ pub async fn new(
     .create_document(CreateDocumentRequest {
       parent: "projects/retrotools-284402/databases/(default)/documents".into(),
       collection_id: "boards".into(),
-      document_id: "".into(),
-      mask: None,
       document: Some(document),
+      ..Default::default()
     })
     .await?;
   result.into_inner().try_into()
@@ -42,8 +41,7 @@ pub async fn list(
     .batch_get_documents(BatchGetDocumentsRequest {
       database: "projects/retrotools-284402/databases/(default)".into(),
       documents: ids,
-      mask: None,
-      consistency_selector: None,
+      ..Default::default()
     })
     .await?;
 
@@ -66,8 +64,7 @@ pub async fn get(firestore: &mut FirestoreV1Client, board_id: String) -> Result<
         "projects/retrotools-284402/databases/(default)/documents/boards/{}",
         board_id
       ),
-      mask: None,
-      consistency_selector: None,
+      ..Default::default()
     })
     .await?;
   result.into_inner().try_into()
@@ -86,11 +83,10 @@ pub async fn update(
   let result = firestore
     .update_document(UpdateDocumentRequest {
       document: Some(document.clone()),
-      mask: None,
       update_mask: Some(DocumentMask {
         field_paths: document.fields.keys().cloned().collect(),
       }),
-      current_document: None,
+      ..Default::default()
     })
     .await?;
   result.into_inner().try_into()
@@ -104,7 +100,7 @@ pub async fn delete(firestore: &mut FirestoreV1Client, board_id: String) -> Resu
   firestore
     .delete_document(DeleteDocumentRequest {
       name,
-      current_document: None,
+      ..Default::default()
     })
     .await?;
   Ok(())

@@ -1,29 +1,39 @@
 #[macro_export]
 macro_rules! to_participant_reference {
-  ($project:expr, $id:expr) => {
+  ($project:expr, $participant_id:expr) => {
     format!(
       "projects/{}/databases/(default)/documents/participants/{}",
-      $project, $id
+      $project, $participant_id
     )
   };
 }
 
 #[macro_export]
 macro_rules! to_board_reference {
-  ($project:expr, $id:expr) => {
+  ($project:expr, $board_id:expr) => {
     format!(
       "projects/{}/databases/(default)/documents/boards/{}",
-      $project, $id
+      $project, $board_id
     )
   };
 }
 
 #[macro_export]
 macro_rules! to_column_reference {
-  ($project:expr, $board_id:expr, $id:expr) => {
+  ($project:expr, $board_id:expr, $column_id:expr) => {
     format!(
       "projects/{}/databases/(default)/documents/boards/{}/columns/{}",
-      $project, $board_id, $id
+      $project, $board_id, $column_id
+    )
+  };
+}
+
+#[macro_export]
+macro_rules! to_card_reference {
+  ($project:expr, $board_id:expr, $card_id:expr) => {
+    format!(
+      "projects/{}/databases/(default)/documents/boards/{}/cards/{}",
+      $project, $board_id, $card_id
     )
   };
 }
@@ -70,13 +80,12 @@ macro_rules! get_array_field {
 }
 
 #[macro_export]
-macro_rules! extract_reference {
+macro_rules! extract_string {
   ($value:expr) => {
     match $value {
-      Some(crate::firestore::v1::value::ValueType::ReferenceValue(s)) => Ok(s.to_string()),
-      _ => Err(crate::error::Error::Other(format!(
-        "empty firestore value."
-      ))),
+      Some(crate::firestore::v1::value::ValueType::ReferenceValue(s)) => Some(s.to_string()),
+      Some(crate::firestore::v1::value::ValueType::StringValue(s)) => Some(s.clone()),
+      _ => None,
     }
   };
 }
@@ -84,13 +93,13 @@ macro_rules! extract_reference {
 #[macro_export]
 macro_rules! get_reference_field {
   ($document:expr, $field:literal) => {
-    match $document
+    match extract_string!($document
       .fields
       .get($field)
-      .and_then(|field| field.value_type.as_ref())
+      .and_then(|field| field.value_type.as_ref()))
     {
-      Some(crate::firestore::v1::value::ValueType::ReferenceValue(s)) => Ok(s.to_string()),
-      _ => Err(crate::error::Error::Other(format!(
+      Some(s) => Ok(s),
+      None => Err(crate::error::Error::Other(format!(
         "field `{}` not set in document.",
         $field
       ))),
@@ -101,13 +110,13 @@ macro_rules! get_reference_field {
 #[macro_export]
 macro_rules! get_string_field {
   ($document:expr, $field:literal) => {
-    match $document
+    match extract_string!($document
       .fields
       .get($field)
-      .and_then(|field| field.value_type.as_ref())
+      .and_then(|field| field.value_type.as_ref()))
     {
-      Some(crate::firestore::v1::value::ValueType::StringValue(s)) => Ok(s.clone()),
-      _ => Err(crate::error::Error::Other(format!(
+      Some(s) => Ok(s),
+      None => Err(crate::error::Error::Other(format!(
         "field `{}` not set in document.",
         $field
       ))),

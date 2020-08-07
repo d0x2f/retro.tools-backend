@@ -19,9 +19,8 @@ pub async fn new(
         board_id
       ),
       collection_id: "columns".into(),
-      document_id: "".into(),
-      mask: None,
       document: Some(document),
+      ..Default::default()
     })
     .await?;
   result.into_inner().try_into()
@@ -38,12 +37,7 @@ pub async fn list(
         board_id
       ),
       collection_id: "columns".into(),
-      page_size: 0,
-      page_token: "".into(),
-      order_by: "".into(),
-      mask: None,
-      show_missing: false,
-      consistency_selector: None,
+      ..Default::default()
     })
     .await?;
   let documents = result.into_inner().documents;
@@ -65,8 +59,7 @@ pub async fn get(
         "projects/retrotools-284402/databases/(default)/documents/boards/{}/columns/{}",
         board_id, column_id
       ),
-      mask: None,
-      consistency_selector: None,
+      ..Default::default()
     })
     .await?;
   result.into_inner().try_into()
@@ -86,11 +79,10 @@ pub async fn update(
   let result = firestore
     .update_document(UpdateDocumentRequest {
       document: Some(document.clone()),
-      mask: None,
       update_mask: Some(DocumentMask {
         field_paths: document.fields.keys().cloned().collect(),
       }),
-      current_document: None,
+      ..Default::default()
     })
     .await?;
   result.into_inner().try_into()
@@ -104,12 +96,11 @@ pub async fn delete(
   let name = format!(
     "projects/retrotools-284402/databases/(default)/documents/boards/{}/columns/{}",
     board_id, column_id
-  )
-  .into();
+  );
   firestore
     .delete_document(DeleteDocumentRequest {
       name,
-      current_document: None,
+      ..Default::default()
     })
     .await?;
   Ok(())

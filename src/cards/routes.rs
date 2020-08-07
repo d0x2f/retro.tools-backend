@@ -1,7 +1,8 @@
 use actix_web::web;
 
 use super::db;
-use super::models::CardMessage;
+use super::models::*;
+use crate::boards::*;
 use crate::error::Error;
 use crate::firestore::FirestoreV1Client;
 use crate::participants::models::Participant;
@@ -12,12 +13,14 @@ pub async fn new(
   params: web::Path<(String, String)>,
   card_message: web::Json<CardMessage>,
 ) -> Result<web::HttpResponse, Error> {
+  let firestore = &mut firestore.get_ref().clone();
   let (board_id, column_id) = params.into_inner();
+  assert_cards_allowed(firestore, board_id.to_string()).await?;
   let mut card_message = card_message.into_inner();
   card_message.author.get_or_insert("".into());
   card_message.column = Some(to_column_reference!(
     "retrotools-284402",
-    board_id,
+    board_id.to_string(),
     column_id
   ));
 
@@ -30,30 +33,36 @@ pub async fn new(
     return Err(Error::BadRequest("Card text must be provided.".into()));
   }
 
-  let firestore = &mut firestore.get_ref().clone();
-  let column = db::new(firestore, participant, board_id.to_string(), card_message).await?;
-  Ok(web::HttpResponse::Ok().json(column))
+  let card = db::new(firestore, &participant, board_id.to_string(), card_message).await?;
+  Ok(web::HttpResponse::Ok().json(CardResponse::from_card(card, &participant)))
 }
 
 pub async fn list(
   firestore: web::Data<FirestoreV1Client>,
-  _participant: Participant,
+  participant: Participant,
   board_id: web::Path<String>,
 ) -> Result<web::HttpResponse, Error> {
   let firestore = &mut firestore.get_ref().clone();
   let cards = db::list(firestore, board_id.to_string()).await?;
-  Ok(web::HttpResponse::Ok().json(cards))
+  Ok(
+    web::HttpResponse::Ok().json::<Vec<CardResponse>>(
+      cards
+        .into_iter()
+        .map(|card| CardResponse::from_card(card, &participant))
+        .collect(),
+    ),
+  )
 }
 
 pub async fn get(
   firestore: web::Data<FirestoreV1Client>,
-  _participant: Participant,
+  participant: Participant,
   params: web::Path<(String, String)>,
 ) -> Result<web::HttpResponse, Error> {
   let (board_id, card_id) = params.into_inner();
   let firestore = &mut firestore.get_ref().clone();
-  let column = db::get(firestore, board_id.to_string(), card_id.to_string()).await;
-  Ok(web::HttpResponse::Ok().json(column?))
+  let card = db::get(firestore, board_id.to_string(), card_id.to_string()).await?;
+  Ok(web::HttpResponse::Ok().json(CardResponse::from_card(card, &participant)))
 }
 
 pub async fn update(
@@ -65,11 +74,7 @@ pub async fn update(
   let (board_id, card_id) = params.into_inner();
   let mut card_message = card_message.into_inner();
   card_message.column = match card_message.column {
-    Some(column) => Some(to_column_reference!(
-      "retrotools-284402",
-      board_id,
-      column
-    )),
+    Some(column) => Some(to_column_reference!("retrotools-284402", board_id, column)),
     None => None,
   };
 
@@ -85,7 +90,7 @@ pub async fn update(
     card_message,
   )
   .await?;
-  Ok(web::HttpResponse::Ok().json(card))
+  Ok(web::HttpResponse::Ok().json(CardResponse::from_card(card, &participant)))
 }
 
 pub async fn delete(
@@ -101,4 +106,40 @@ pub async fn delete(
   }
   db::delete(firestore, board_id.to_string(), card_id.to_string()).await?;
   Ok(web::HttpResponse::Ok().finish())
+}
+
+pub async fn put_vote(
+  firestore: web::Data<FirestoreV1Client>,
+  participant: Participant,
+  params: web::Path<(String, String)>,
+) -> Result<web::HttpResponse, Error> {
+  let (board_id, card_id) = params.into_inner();
+  let firestore = &mut firestore.get_ref().clone();
+  assert_voting_allowed(firestore, board_id.to_string()).await?;
+  db::put_vote(
+    firestore,
+    &participant,
+    board_id.to_string(),
+    card_id.to_string(),
+  )
+  .await?;
+  Ok(web::HttpResponse::Created().finish())
+}
+
+pub async fn delete_vote(
+  firestore: web::Data<FirestoreV1Client>,
+  participant: Participant,
+  params: web::Path<(String, String)>,
+) -> Result<web::HttpResponse, Error> {
+  let (board_id, card_id) = params.into_inner();
+  let firestore = &mut firestore.get_ref().clone();
+  assert_voting_allowed(firestore, board_id.to_string()).await?;
+  db::delete_vote(
+    firestore,
+    &participant,
+    board_id.to_string(),
+    card_id.to_string(),
+  )
+  .await?;
+  Ok(web::HttpResponse::Created().finish())
 }

@@ -4,6 +4,7 @@ use std::convert::TryFrom;
 
 use crate::error::Error;
 use crate::firestore::v1::*;
+use crate::participants::models::Participant;
 
 #[derive(Deserialize, Serialize)]
 pub struct CardMessage {
@@ -21,6 +22,37 @@ pub struct Card {
   pub author: String,
   pub text: String,
   pub created_at: i64,
+  pub votes: Vec<String>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct CardResponse {
+  pub id: String,
+  pub column: String,
+  pub owner: String,
+  pub author: String,
+  pub text: String,
+  pub created_at: i64,
+  pub votes: usize,
+  pub voted: bool,
+}
+
+impl CardResponse {
+  pub fn from_card(card: Card, participant: &Participant) -> CardResponse {
+    CardResponse {
+      id: card.id,
+      column: card.column,
+      owner: card.owner,
+      author: card.author,
+      text: card.text,
+      created_at: card.created_at,
+      votes: card.votes.len(),
+      voted: card.votes.contains(&to_participant_reference!(
+        "retrotools-284402",
+        participant.id
+      )),
+    }
+  }
 }
 
 impl TryFrom<Document> for Card {
@@ -34,6 +66,19 @@ impl TryFrom<Document> for Card {
       author: get_string_field!(document, "author")?,
       text: get_string_field!(document, "text")?,
       created_at: get_create_time!(document),
+      votes: match get_array_field!(document, "votes") {
+        Ok(arr) => arr
+          .values
+          .clone()
+          .into_iter()
+          .map(|v| extract_string!(v.value_type))
+          .partition::<Vec<Option<String>>, _>(Option::is_some)
+          .0
+          .into_iter()
+          .map(Option::unwrap)
+          .collect(),
+        Err(_) => vec![],
+      },
     })
   }
 }

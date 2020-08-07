@@ -51,3 +51,9 @@ impl From<actix_http::error::Error> for Error {
     Error::Other(format!("{}", actix_error))
   }
 }
+
+impl From<serde_json::error::Error> for Error {
+  fn from(serde_error: serde_json::error::Error) -> Self {
+    Error::Other(format!("{}", serde_error))
+  }
+}

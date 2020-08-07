@@ -8,9 +8,7 @@ pub async fn new(firestore: &mut FirestoreV1Client) -> Result<Participant, Error
     .create_document(CreateDocumentRequest {
       parent: "projects/retrotools-284402/databases/(default)/documents".into(),
       collection_id: "participants".into(),
-      document_id: "".into(),
-      mask: None,
-      document: None,
+      ..Default::default()
     })
     .await?;
   Ok(result.into_inner().into())
@@ -58,20 +56,27 @@ pub async fn get_participant_board_ids(
       name: to_participant_reference!("retrotools-284402", participant.id),
       ..Default::default()
     })
-    .await {
+    .await
+  {
     Ok(r) => r,
-    Err(error) => return match error.code() {
-      tonic::Code::NotFound => Ok(vec![]),
-      _ => Err(error.into())
+    Err(error) => {
+      return match error.code() {
+        tonic::Code::NotFound => Ok(vec![]),
+        _ => Err(error.into()),
+      }
     }
   };
   let document = result.into_inner();
-  let boards = get_array_field!(document, "boards")?;
-  let (valid_boards, _): (Vec<_>, Vec<_>) = boards
-    .values
-    .clone()
-    .into_iter()
-    .map(|b| extract_reference!(b.value_type))
-    .partition(Result::is_ok);
-  Ok(valid_boards.into_iter().map(Result::unwrap).collect())
+  match get_array_field!(document, "boards") {
+    Err(_) => Ok(vec![]),
+    Ok(boards) => {
+      let (valid_boards, _): (Vec<_>, Vec<_>) = boards
+        .values
+        .clone()
+        .into_iter()
+        .map(|b| extract_string!(b.value_type))
+        .partition(Option::is_some);
+      Ok(valid_boards.into_iter().map(Option::unwrap).collect())
+    }
+  }
 }

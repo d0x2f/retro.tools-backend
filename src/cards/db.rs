@@ -9,7 +9,7 @@ use crate::participants::models::Participant;
 
 pub async fn new(
   firestore: &mut FirestoreV1Client,
-  participant: Participant,
+  participant: &Participant,
   board_id: String,
   card: CardMessage,
 ) -> Result<Card, Error> {
@@ -28,9 +28,8 @@ pub async fn new(
         board_id
       ),
       collection_id: "cards".into(),
-      document_id: "".into(),
-      mask: None,
       document: Some(document),
+      ..Default::default()
     })
     .await?;
   Card::try_from(result.into_inner())
@@ -44,12 +43,7 @@ pub async fn list(firestore: &mut FirestoreV1Client, board_id: String) -> Result
         board_id
       ),
       collection_id: "cards".into(),
-      page_size: 0,
-      page_token: "".into(),
-      order_by: "".into(),
-      mask: None,
-      show_missing: false,
-      consistency_selector: None,
+      ..Default::default()
     })
     .await?;
   let documents = result.into_inner().documents;
@@ -71,8 +65,7 @@ pub async fn get(
         "projects/retrotools-284402/databases/(default)/documents/boards/{}/cards/{}",
         board_id, card_id
       ),
-      mask: None,
-      consistency_selector: None,
+      ..Default::default()
     })
     .await?;
   result.into_inner().try_into()
@@ -92,11 +85,10 @@ pub async fn update(
   let result = firestore
     .update_document(UpdateDocumentRequest {
       document: Some(document.clone()),
-      mask: None,
       update_mask: Some(DocumentMask {
         field_paths: document.fields.keys().cloned().collect(),
       }),
-      current_document: None,
+      ..Default::default()
     })
     .await?;
   result.into_inner().try_into()
@@ -114,8 +106,74 @@ pub async fn delete(
   firestore
     .delete_document(DeleteDocumentRequest {
       name,
-      current_document: None,
+      ..Default::default()
     })
     .await?;
+  Ok(())
+}
+
+pub async fn put_vote(
+  firestore: &mut FirestoreV1Client,
+  participant: &Participant,
+  board_id: String,
+  card_id: String,
+) -> Result<(), Error> {
+  let participant_doc_id = to_participant_reference!("retrotools-284402", participant.id);
+  let card_doc_id = to_card_reference!("retrotools-284402", board_id, card_id);
+  firestore
+    .batch_write(BatchWriteRequest {
+      database: "projects/retrotools-284402/databases/(default)".into(),
+      writes: vec![Write {
+        operation: Some(write::Operation::Transform(DocumentTransform {
+          document: card_doc_id,
+          field_transforms: vec![document_transform::FieldTransform {
+            field_path: "votes".into(),
+            transform_type: Some(
+              document_transform::field_transform::TransformType::AppendMissingElements(
+                ArrayValue {
+                  values: vec![reference_value!(participant_doc_id)],
+                },
+              ),
+            ),
+          }],
+        })),
+        ..Default::default()
+      }],
+      ..Default::default()
+    })
+    .await?
+    .into_inner();
+  Ok(())
+}
+
+pub async fn delete_vote(
+  firestore: &mut FirestoreV1Client,
+  participant: &Participant,
+  board_id: String,
+  card_id: String,
+) -> Result<(), Error> {
+  let participant_doc_id = to_participant_reference!("retrotools-284402", participant.id);
+  let card_doc_id = to_card_reference!("retrotools-284402", board_id, card_id);
+  firestore
+    .batch_write(BatchWriteRequest {
+      database: "projects/retrotools-284402/databases/(default)".into(),
+      writes: vec![Write {
+        operation: Some(write::Operation::Transform(DocumentTransform {
+          document: card_doc_id,
+          field_transforms: vec![document_transform::FieldTransform {
+            field_path: "votes".into(),
+            transform_type: Some(
+              document_transform::field_transform::TransformType::RemoveAllFromArray(ArrayValue {
+                values: vec![reference_value!(participant_doc_id)],
+              }),
+            ),
+          }],
+        })),
+        ..Default::default()
+      }],
+      ..Default::default()
+    })
+    .await?
+    .into_inner();
   Ok(())
 }
