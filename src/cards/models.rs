@@ -30,7 +30,7 @@ pub struct Card {
 pub struct CardResponse {
   pub id: String,
   pub column: String,
-  pub owner: String,
+  pub owner: bool,
   pub author: String,
   pub text: String,
   pub created_at: i64,
@@ -43,7 +43,7 @@ impl CardResponse {
     CardResponse {
       id: card.id,
       column: card.column,
-      owner: card.owner,
+      owner: card.owner == participant.id,
       author: card.author,
       text: card.text,
       created_at: card.created_at,
