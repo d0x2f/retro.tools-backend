@@ -14,11 +14,9 @@ jobs:
       - uses: actions/checkout@master
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
-          components: clippy
+          toolchain: stable
+          components: clippy, rustfmt
           override: true
-      - run: rustup component add clippy
-      - run: rustup component add rustfmt
       - run: ./scripts/fetch-protos.sh
       - name: Run clippy
         uses: actions-rs/clippy-check@v1
