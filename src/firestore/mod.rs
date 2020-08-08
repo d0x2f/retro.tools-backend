@@ -1,6 +1,7 @@
 #[macro_use]
 pub mod macros;
 
+use std::sync::{Arc, Mutex};
 use tonic::{
   metadata::MetadataValue,
   transport::{Channel, ClientTlsConfig},
@@ -33,13 +34,10 @@ pub type FirestoreV1Client = google::firestore::v1::firestore_client::FirestoreC
 const URL: &str = "https://firestore.googleapis.com";
 const DOMAIN: &str = "firestore.googleapis.com";
 
-pub async fn get_client(token: Option<String>) -> Result<FirestoreV1Client, Error> {
+pub async fn get_client(token: Arc<Mutex<Token>>) -> Result<FirestoreV1Client, Error> {
   let tls = ClientTlsConfig::new().domain_name(DOMAIN);
 
   let channel = Channel::from_static(URL).tls_config(tls)?.connect().await?;
-
-  let token = Token::new(token).await?;
-  Token::start_auto_renew(token.clone());
 
   let client = FirestoreV1Client::with_interceptor(channel, move |mut req: Request<()>| {
     let header_string = format!("Bearer {}", token.lock().unwrap().get());

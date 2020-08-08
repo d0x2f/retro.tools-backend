@@ -21,7 +21,7 @@ pub struct Token {
 }
 
 impl Token {
-  pub async fn new(token: Option<String>) -> Result<Arc<Mutex<Token>>, Error> {
+  pub fn new(token: Option<String>) -> Result<Arc<Mutex<Token>>, Error> {
     if let Some(t) = token {
       return Ok(Arc::new(Mutex::new(Token {
         access_token: t,
@@ -52,7 +52,7 @@ impl Token {
           .expires_in
           .checked_sub(time_since_issued)
           .unwrap_or_else(|| Duration::new(0, 0))
-          .checked_sub(Duration::from_secs(50))
+          .checked_sub(Duration::from_secs(30))
           .unwrap_or_else(|| Duration::new(10, 0));
       }
       thread::sleep(sleep_time);
