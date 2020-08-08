@@ -37,13 +37,14 @@ async fn main() -> std::io::Result<()> {
           .allowed_methods(vec!["GET", "POST", "PATCH", "PUT", "DELETE"])
           .allowed_header(http::header::CONTENT_TYPE)
           .supports_credentials()
-          .max_age(3600)
+          .max_age(60 * 60)
           .finish(),
       )
       .wrap(IdentityService::new(
         CookieIdentityPolicy::new(&config.secret_key)
           .name("__session")
-          .secure(config.environment == config::Environment::Production),
+          .secure(config.environment == config::Environment::Production)
+          .max_age(30 * 24 * 60 * 60),
       ))
       .wrap(ActixMiddleware::Logger::default())
       .service(
