@@ -7,7 +7,7 @@ use tonic::{
   Request,
 };
 
-use crate::cloudrun;
+use crate::cloudrun::Token;
 use crate::error::Error;
 
 pub mod google {
@@ -38,17 +38,13 @@ pub async fn get_client(token: Option<String>) -> Result<FirestoreV1Client, Erro
 
   let channel = Channel::from_static(URL).tls_config(tls)?.connect().await?;
 
-  let token = match token {
-    Some(t) => t,
-    None => cloudrun::get_token().await?,
-  };
+  let token = Token::new(token).await?;
+  Token::start_auto_renew(token.clone());
 
-  let bearer_token = format!("Bearer {}", token);
-  let header_value = MetadataValue::from_str(&bearer_token)?;
   let client = FirestoreV1Client::with_interceptor(channel, move |mut req: Request<()>| {
-    req
-      .metadata_mut()
-      .insert("authorization", header_value.clone());
+    let header_string = format!("Bearer {}", token.lock().unwrap().get());
+    let header_value = MetadataValue::from_str(&header_string).expect("parsed metadata string");
+    req.metadata_mut().insert("authorization", header_value);
     Ok(req)
   });
   Ok(client)

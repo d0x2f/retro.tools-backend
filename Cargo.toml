@@ -8,6 +8,7 @@ edition = "2018"
 # General
 dotenv = "^0.15"
 bytes = "^0.5.6"
+reqwest = { version = "^0.10.7", features = ["blocking"] }
 
 # Actix
 actix-identity = "^0.2.0"

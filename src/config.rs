@@ -43,7 +43,7 @@ impl Config {
 
     let firestore_project = match env::var("FIRESTORE_PROJECT") {
       Ok(s) => s,
-      Err(_) => cloudrun::get_project_id().await.expect("cloudrun project"),
+      Err(_) => cloudrun::get_project_id().expect("cloudrun project"),
     };
 
     Config {
