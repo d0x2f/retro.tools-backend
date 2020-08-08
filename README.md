@@ -8,5 +8,4 @@ Total rewrite
 # TODO
 
 - Past boards pagination
-- GitHub actions
 - Tests
