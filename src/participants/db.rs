@@ -18,6 +18,26 @@ pub async fn new(firestore: &mut FirestoreV1Client, config: &Config) -> Result<P
   Ok(result.into_inner().into())
 }
 
+pub async fn get(
+  firestore: &mut FirestoreV1Client,
+  config: &Config,
+  id: &str,
+) -> Result<Participant, Error> {
+  let result = firestore
+    .get_document(GetDocumentRequest {
+      name: format!(
+        "projects/{}/databases/(default)/documents/participants/{}",
+        config.firestore_project, id
+      ),
+      mask: Some(DocumentMask {
+        field_paths: vec![],
+      }),
+      ..Default::default()
+    })
+    .await?;
+  Ok(result.into_inner().into())
+}
+
 pub async fn add_participant_board(
   firestore: &mut FirestoreV1Client,
   config: &Config,

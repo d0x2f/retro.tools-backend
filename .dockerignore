@@ -1,5 +1,6 @@
 target/
 proto/
 .git/
+**/node_modules/
 Dockerfile
 .env

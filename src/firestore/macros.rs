@@ -142,6 +142,23 @@ macro_rules! get_boolean_field {
 }
 
 #[macro_export]
+macro_rules! get_integer_field {
+  ($document:expr, $field:literal) => {
+    match $document
+      .fields
+      .get($field)
+      .and_then(|field| field.value_type.as_ref())
+    {
+      Some(crate::firestore::v1::value::ValueType::IntegerValue(i)) => Ok(*i),
+      _ => Err(crate::error::Error::Other(format!(
+        "field `{}` not set in document.",
+        $field
+      ))),
+    }
+  };
+}
+
+#[macro_export]
 macro_rules! reference_value {
   ($document_path:expr) => {
     Value {

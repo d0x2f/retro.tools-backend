@@ -1,4 +1,5 @@
 use crate::error;
+use actix_http::httpmessage::HttpMessage;
 use actix_identity::Identity;
 use actix_web::dev::Payload;
 use actix_web::web::Data;
@@ -31,6 +32,10 @@ impl FromRequest for Participant {
   type Config = ();
 
   fn from_request(req: &HttpRequest, payload: &mut Payload) -> Self::Future {
+    let legacy_id: Option<String> = match req.cookie("__session") {
+      Some(cookie) => Some(cookie.value().into()),
+      None => None,
+    };
     let firestore = req
       .app_data::<Data<FirestoreV1Client>>()
       .expect("firestore client");
@@ -41,6 +46,7 @@ impl FromRequest for Participant {
       firestore.clone(),
       config.clone(),
       Identity::from_request(req, payload),
+      legacy_id,
     ))
   }
 }
