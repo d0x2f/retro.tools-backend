@@ -109,7 +109,6 @@ async function importBoards() {
       JOIN participant_board ON participant_board.board_id = board.id
     WHERE
       participant_board.owner = true
-      AND id='PD0B9g99NddDG3tC'
     `
   );
 
@@ -156,8 +155,6 @@ async function importParticipants() {
           participant_id
         FROM
           participant_board
-        WHERE
-          board_id = 'PD0B9g99NddDG3tC'
       )
     `
   );
