@@ -5,7 +5,7 @@ WORKDIR /build
 COPY . .
 
 RUN apt-get update && apt-get install -y wget unzip ca-certificates
-RUN ./fetch-protos.sh
+RUN ./scripts/fetch-protos.sh
 RUN rustup component add rustfmt
 
 RUN cargo build --release
