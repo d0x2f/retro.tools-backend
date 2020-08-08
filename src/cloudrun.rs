@@ -43,7 +43,7 @@ impl Token {
   pub fn start_auto_renew(token: Arc<Mutex<Token>>) {
     let thread_token = Arc::clone(&token);
     let thread = thread::spawn(move || loop {
-      // Wait until 5 minutes before expiry
+      // Wait until 50 seconds before expiry
       let sleep_time;
       {
         let token = thread_token.lock().unwrap();
@@ -52,7 +52,7 @@ impl Token {
           .expires_in
           .checked_sub(time_since_issued)
           .unwrap_or_else(|| Duration::new(0, 0))
-          .checked_sub(Duration::from_secs(300))
+          .checked_sub(Duration::from_secs(50))
           .unwrap_or_else(|| Duration::new(10, 0));
       }
       thread::sleep(sleep_time);
