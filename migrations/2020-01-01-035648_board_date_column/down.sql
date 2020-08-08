@@ -1,1 +1,0 @@
-ALTER TABLE board DROP COLUMN created_at;

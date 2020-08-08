@@ -1,6 +1,0 @@
-CREATE TABLE vote (
-  participant_id CHAR(16) REFERENCES participant ON DELETE CASCADE NOT NULL,
-  card_id CHAR(16) REFERENCES card ON DELETE CASCADE NOT NULL,
-  count SMALLINT DEFAULT 1 NOT NULL,
-  PRIMARY KEY (card_id, participant_id)
-)
