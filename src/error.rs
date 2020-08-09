@@ -94,6 +94,12 @@ impl From<reqwest::Error> for Error {
   }
 }
 
+impl From<gcp_auth::GCPAuthError> for Error {
+  fn from(error: gcp_auth::GCPAuthError) -> Self {
+    Error::Other(format!("{}", error))
+  }
+}
+
 // impl<T: Display> From<T> for Error {
 //   fn from(error: T) -> Self {
 //     Error::Other(format!("{}", error))

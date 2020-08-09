@@ -22,13 +22,10 @@ async fn main() -> std::io::Result<()> {
 
   let config = config::Config::from_env().await;
   let port = config.port;
-  let token = cloudrun::Token::new(config.firestore_token.clone()).expect("firestore token");
-  cloudrun::Token::start_auto_renew(token.clone());
 
   HttpServer::new(move || {
-    let token = token.clone();
     App::new()
-      .data_factory(move || firestore::get_client(token.clone()))
+      .data_factory(firestore::get_client)
       .data(config.clone())
       .wrap(
         Cors::new()

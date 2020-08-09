@@ -13,7 +13,6 @@ pub struct Config {
   pub environment: Environment,
   pub allowed_origin: String,
   pub firestore_project: String,
-  pub firestore_token: Option<String>,
 }
 
 impl Config {
@@ -52,7 +51,6 @@ impl Config {
       environment,
       allowed_origin: env::var("ALLOWED_ORIGIN").expect("allowed origin"),
       firestore_project,
-      firestore_token: env::var("FIRESTORE_TOKEN").ok(),
     }
   }
 }
@@ -65,7 +63,6 @@ impl Clone for Config {
       environment: self.environment,
       allowed_origin: self.allowed_origin.clone(),
       firestore_project: self.firestore_project.clone(),
-      firestore_token: self.firestore_token.clone(),
     }
   }
 }
