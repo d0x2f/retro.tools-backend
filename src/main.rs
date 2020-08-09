@@ -26,13 +26,19 @@ async fn main() -> std::io::Result<()> {
 
   // Hack: If GCP_SERVICE_ACCOUNT_JSON is set, create a json file with that content
   // and set GOOGLE_APPLICATION_CREDENTIALS to point to that file
-  if let Ok(json) = env::var("GCP_SERVICE_ACCOUNT_JSON") {
-    let mut file = File::create(Path::new("/tmp/gcp-service-account.json"))?;
-    file.write_all(json.as_bytes())?;
-    env::set_var(
-      "GOOGLE_APPLICATION_CREDENTIALS",
-      "/tmp/gcp-service-account.json",
-    );
+  if let Ok(base64) = env::var("GCP_SERVICE_ACCOUNT_JSON") {
+    info!("Reading from GCP_SERVICE_ACCOUNT_JSON");
+    if let Ok(json) = base64::decode(base64) {
+      info!("Using credentials in GCP_SERVICE_ACCOUNT_JSON");
+      let mut file = File::create(Path::new("/tmp/gcp-service-account.json"))?;
+      file.write_all(&json)?;
+      env::set_var(
+        "GOOGLE_APPLICATION_CREDENTIALS",
+        "/tmp/gcp-service-account.json",
+      );
+    } else {
+      error!("Failed to parse GCP_SERVICE_ACCOUNT_JSON");
+    }
   }
 
   let config = config::Config::from_env().await;
