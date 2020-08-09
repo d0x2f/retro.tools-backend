@@ -14,11 +14,26 @@ mod participants;
 use actix_cors::Cors;
 use actix_identity::{CookieIdentityPolicy, IdentityService};
 use actix_web::{http, middleware as ActixMiddleware, web, App, HttpServer};
+use std::env;
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::Path;
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
   env_logger::init();
   dotenv::dotenv().ok();
+
+  // Hack: If GCP_SERVICE_ACCOUNT_JSON is set, create a json file with that content
+  // and set GOOGLE_APPLICATION_CREDENTIALS to point to that file
+  if let Ok(json) = env::var("GCP_SERVICE_ACCOUNT_JSON") {
+    let mut file = File::create(Path::new("/tmp/gcp-service-account.json"))?;
+    file.write_all(json.as_bytes())?;
+    env::set_var(
+      "GOOGLE_APPLICATION_CREDENTIALS",
+      "/tmp/gcp-service-account.json",
+    );
+  }
 
   let config = config::Config::from_env().await;
   let port = config.port;
