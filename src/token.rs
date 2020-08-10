@@ -53,7 +53,6 @@ impl Token {
             .await
           {
             let mut contents = inner.lock().expect("mutex lock");
-            println!("set : {}", contents.as_str());
             *contents = t;
           }
         }

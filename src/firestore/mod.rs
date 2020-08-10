@@ -42,7 +42,6 @@ pub async fn get_client(token: Arc<Token>) -> Result<FirestoreV1Client, Error> {
 
   let client = FirestoreV1Client::with_interceptor(channel, move |mut req: Request<()>| {
     let token_str = token.get();
-    println!("used: {}", token_str);
     let header_string = format!("Bearer {}", token_str);
     let header_value = MetadataValue::from_str(&header_string).expect("parsed metadata string");
     req.metadata_mut().insert("authorization", header_value);
