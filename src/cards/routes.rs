@@ -108,9 +108,14 @@ pub async fn update(
     card_id.to_string(),
   )
   .await?;
-  if card.owner != participant.id {
-    return Err(Error::Forbidden);
-  }
+  super::assert_card_owner(
+    firestore,
+    &config,
+    &participant,
+    &card,
+    board_id.to_string(),
+  )
+  .await?;
   let card = db::update(
     firestore,
     &config,
@@ -137,9 +142,14 @@ pub async fn delete(
     card_id.to_string(),
   )
   .await?;
-  if card.owner != participant.id {
-    return Err(Error::Forbidden);
-  }
+  super::assert_card_owner(
+    firestore,
+    &config,
+    &participant,
+    &card,
+    board_id.to_string(),
+  )
+  .await?;
   db::delete(
     firestore,
     &config,

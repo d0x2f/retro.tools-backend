@@ -48,6 +48,7 @@ async fn main() -> std::io::Result<()> {
     App::new()
       .data_factory(firestore::get_client)
       .data(config.clone())
+      .wrap(ActixMiddleware::DefaultHeaders::new().header("Cache-Control", "private"))
       .wrap(
         Cors::new()
           .allowed_origin(&config.allowed_origin)

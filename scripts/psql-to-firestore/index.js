@@ -112,16 +112,16 @@ async function importBoards() {
     `
   );
 
-  const batch = firestore.batch();
   for (const board of res.rows) {
+    const batch = firestore.batch();
     await importBoard(batch, board);
     await importColumns(batch, board.id);
     await importCards(batch, board.id);
+    await batch.commit();
   }
-  return batch.commit();
 }
 
-async function importParticipant(batch, participant) {
+async function importParticipant(participant) {
   console.log(`importing participant: ${participant.id}`);
   const res = await pg.query(
     `
@@ -137,7 +137,7 @@ async function importParticipant(batch, participant) {
   const boards = res.rows.map((row) =>
     firestore.collection("boards").doc(row.board_id)
   );
-  return batch.set(firestore.collection("participants").doc(participant.id), {
+  return firestore.collection("participants").doc(participant.id).set({
     boards,
   });
 }
@@ -158,11 +158,9 @@ async function importParticipants() {
       )
     `
   );
-  const batch = firestore.batch();
   for (const participant of res.rows) {
-    await importParticipant(batch, participant);
+    await importParticipant(participant);
   }
-  return batch.commit();
 }
 
 (async () => {
