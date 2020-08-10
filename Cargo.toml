@@ -13,6 +13,7 @@ gcp_auth = "^0.1.4"
 chrono = "^0.4.13"
 settimeout = "^0.1.2"
 base64 = "^0.12.3"
+tokio = "^0.2.22"
 
 # Actix
 actix-identity = "^0.2.0"
