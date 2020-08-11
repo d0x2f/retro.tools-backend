@@ -38,7 +38,7 @@ impl Token {
     self.inner.lock().expect("mutex lock").as_str().into()
   }
 
-  fn start_refresh_thread(&mut self) -> () {
+  fn start_refresh_thread(&mut self) {
     let manager = self.manager.clone();
     let inner = self.inner.clone();
     let handle = std::thread::spawn(move || {
