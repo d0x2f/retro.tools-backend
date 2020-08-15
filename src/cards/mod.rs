@@ -17,8 +17,8 @@ pub async fn assert_card_owner(
 ) -> Result<(), Error> {
   let board = boards::db::get(firestore, config, board_id).await?;
   if board.owner == participant.id || card.owner == participant.id {
-    Err(Error::Forbidden)
-  } else {
     Ok(())
+  } else {
+    Err(Error::Forbidden)
   }
 }
