@@ -5,19 +5,18 @@ use super::models::ColumnMessage;
 use crate::boards;
 use crate::config::Config;
 use crate::error::Error;
-use crate::firestore::FirestoreV1Client;
+use crate::firestore;
 use crate::participants::models::Participant;
 
 pub async fn new(
-  firestore: web::Data<FirestoreV1Client>,
   config: web::Data<Config>,
   _participant: Participant,
   board_id: web::Path<String>,
   column_message: web::Json<ColumnMessage>,
 ) -> Result<web::HttpResponse, Error> {
-  let firestore = &mut firestore.get_ref().clone();
+  let mut firestore = firestore::get_client().await?;
   let column = db::new(
-    firestore,
+    &mut firestore,
     &config,
     board_id.to_string(),
     column_message.into_inner(),
@@ -27,26 +26,24 @@ pub async fn new(
 }
 
 pub async fn list(
-  firestore: web::Data<FirestoreV1Client>,
   config: web::Data<Config>,
   _participant: Participant,
   board_id: web::Path<String>,
 ) -> Result<web::HttpResponse, Error> {
-  let firestore = &mut firestore.get_ref().clone();
-  let columns = db::list(firestore, &config, board_id.to_string()).await?;
+  let mut firestore = firestore::get_client().await?;
+  let columns = db::list(&mut firestore, &config, board_id.to_string()).await?;
   Ok(web::HttpResponse::Ok().json(columns))
 }
 
 pub async fn get(
-  firestore: web::Data<FirestoreV1Client>,
   config: web::Data<Config>,
   _participant: Participant,
   params: web::Path<(String, String)>,
 ) -> Result<web::HttpResponse, Error> {
+  let mut firestore = firestore::get_client().await?;
   let (board_id, column_id) = params.into_inner();
-  let firestore = &mut firestore.get_ref().clone();
   let column = db::get(
-    firestore,
+    &mut firestore,
     &config,
     board_id.to_string(),
     column_id.to_string(),
@@ -56,20 +53,19 @@ pub async fn get(
 }
 
 pub async fn update(
-  firestore: web::Data<FirestoreV1Client>,
   config: web::Data<Config>,
   participant: Participant,
   params: web::Path<(String, String)>,
   column_message: web::Json<ColumnMessage>,
 ) -> Result<web::HttpResponse, Error> {
+  let mut firestore = firestore::get_client().await?;
   let (board_id, column_id) = params.into_inner();
-  let firestore = &mut firestore.get_ref().clone();
-  let board = boards::db::get(firestore, &config, board_id.to_string()).await?;
+  let board = boards::db::get(&mut firestore, &config, board_id.to_string()).await?;
   if board.owner != participant.id {
     return Err(Error::Forbidden);
   }
   let column = db::update(
-    firestore,
+    &mut firestore,
     &config,
     board_id.to_string(),
     column_id.to_string(),
@@ -80,19 +76,18 @@ pub async fn update(
 }
 
 pub async fn delete(
-  firestore: web::Data<FirestoreV1Client>,
   config: web::Data<Config>,
   participant: Participant,
   params: web::Path<(String, String)>,
 ) -> Result<web::HttpResponse, Error> {
+  let mut firestore = firestore::get_client().await?;
   let (board_id, column_id) = params.into_inner();
-  let firestore = &mut firestore.get_ref().clone();
-  let board = boards::db::get(firestore, &config, board_id.to_string()).await?;
+  let board = boards::db::get(&mut firestore, &config, board_id.to_string()).await?;
   if board.owner != participant.id {
     return Err(Error::Forbidden);
   }
   db::delete(
-    firestore,
+    &mut firestore,
     &config,
     board_id.to_string(),
     column_id.to_string(),

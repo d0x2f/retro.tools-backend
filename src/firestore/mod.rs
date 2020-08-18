@@ -1,7 +1,6 @@
 #[macro_use]
 pub mod macros;
 
-use std::sync::Arc;
 use tonic::{
   metadata::MetadataValue,
   transport::{Channel, ClientTlsConfig},
@@ -9,7 +8,6 @@ use tonic::{
 };
 
 use crate::error::Error;
-use crate::token::Token;
 
 pub mod google {
   pub mod firestore {
@@ -33,18 +31,22 @@ pub type FirestoreV1Client = google::firestore::v1::firestore_client::FirestoreC
 
 const URL: &str = "https://firestore.googleapis.com";
 const DOMAIN: &str = "firestore.googleapis.com";
+const SCOPE: &str = "https://www.googleapis.com/auth/datastore";
 
-// TODO: This is a mess
-pub async fn get_client(token: Arc<Token>) -> Result<FirestoreV1Client, Error> {
+pub async fn get_client() -> Result<FirestoreV1Client, Error> {
   let tls = ClientTlsConfig::new().domain_name(DOMAIN);
 
   let channel = Channel::from_static(URL).tls_config(tls)?.connect().await?;
+  let token_manager = gcp_auth::init().await?;
+  let token = token_manager.get_token(&[SCOPE]).await?;
+  let token_str = token.as_str();
+  let header_string = format!("Bearer {}", token_str);
+  let header_value = MetadataValue::from_str(&header_string).expect("parsed metadata string");
 
   let client = FirestoreV1Client::with_interceptor(channel, move |mut req: Request<()>| {
-    let token_str = token.get();
-    let header_string = format!("Bearer {}", token_str);
-    let header_value = MetadataValue::from_str(&header_string).expect("parsed metadata string");
-    req.metadata_mut().insert("authorization", header_value);
+    req
+      .metadata_mut()
+      .insert("authorization", header_value.clone());
     Ok(req)
   });
   Ok(client)

@@ -7,15 +7,15 @@ use futures::future::Ready;
 
 use crate::config::Config;
 use crate::error::Error;
-use crate::firestore::FirestoreV1Client;
+use crate::firestore;
 use models::Participant;
 
 pub async fn new(
-  mut firestore: FirestoreV1Client,
   config: Config,
   identity: Ready<Result<Identity, ActixError>>,
   legacy_id: Option<String>,
 ) -> Result<Participant, Error> {
+  let mut firestore = firestore::get_client().await?;
   let identity = identity.await?;
   Ok(match identity.identity() {
     Some(s) => Participant { id: s },

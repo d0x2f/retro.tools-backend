@@ -5,19 +5,18 @@ use super::models::*;
 use crate::boards::*;
 use crate::config::Config;
 use crate::error::Error;
-use crate::firestore::FirestoreV1Client;
+use crate::firestore;
 use crate::participants::models::Participant;
 
 pub async fn new(
-  firestore: web::Data<FirestoreV1Client>,
   config: web::Data<Config>,
   participant: Participant,
   params: web::Path<(String, String)>,
   card_message: web::Json<CardMessage>,
 ) -> Result<web::HttpResponse, Error> {
-  let firestore = &mut firestore.get_ref().clone();
+  let mut firestore = firestore::get_client().await?;
   let (board_id, column_id) = params.into_inner();
-  assert_cards_allowed(firestore, &config, board_id.to_string()).await?;
+  assert_cards_allowed(&mut firestore, &config, board_id.to_string()).await?;
   let mut card_message = card_message.into_inner();
   card_message.author.get_or_insert("".into());
   card_message.column = Some(to_column_reference!(
@@ -36,7 +35,7 @@ pub async fn new(
   }
 
   let card = db::new(
-    firestore,
+    &mut firestore,
     &config,
     &participant,
     board_id.to_string(),
@@ -47,13 +46,12 @@ pub async fn new(
 }
 
 pub async fn list(
-  firestore: web::Data<FirestoreV1Client>,
   config: web::Data<Config>,
   participant: Participant,
   board_id: web::Path<String>,
 ) -> Result<web::HttpResponse, Error> {
-  let firestore = &mut firestore.get_ref().clone();
-  let cards = db::list(firestore, &config, board_id.to_string()).await?;
+  let mut firestore = firestore::get_client().await?;
+  let cards = db::list(&mut firestore, &config, board_id.to_string()).await?;
   Ok(
     web::HttpResponse::Ok().json::<Vec<CardResponse>>(
       cards
@@ -65,15 +63,14 @@ pub async fn list(
 }
 
 pub async fn get(
-  firestore: web::Data<FirestoreV1Client>,
   config: web::Data<Config>,
   participant: Participant,
   params: web::Path<(String, String)>,
 ) -> Result<web::HttpResponse, Error> {
+  let mut firestore = firestore::get_client().await?;
   let (board_id, card_id) = params.into_inner();
-  let firestore = &mut firestore.get_ref().clone();
   let card = db::get(
-    firestore,
+    &mut firestore,
     &config,
     board_id.to_string(),
     card_id.to_string(),
@@ -83,12 +80,12 @@ pub async fn get(
 }
 
 pub async fn update(
-  firestore: web::Data<FirestoreV1Client>,
   config: web::Data<Config>,
   participant: Participant,
   params: web::Path<(String, String)>,
   card_message: web::Json<CardMessage>,
 ) -> Result<web::HttpResponse, Error> {
+  let mut firestore = firestore::get_client().await?;
   let (board_id, card_id) = params.into_inner();
   let mut card_message = card_message.into_inner();
   card_message.column = match card_message.column {
@@ -100,16 +97,15 @@ pub async fn update(
     None => None,
   };
 
-  let firestore = &mut firestore.get_ref().clone();
   let card = db::get(
-    firestore,
+    &mut firestore,
     &config,
     board_id.to_string(),
     card_id.to_string(),
   )
   .await?;
   super::assert_card_owner(
-    firestore,
+    &mut firestore,
     &config,
     &participant,
     &card,
@@ -117,7 +113,7 @@ pub async fn update(
   )
   .await?;
   let card = db::update(
-    firestore,
+    &mut firestore,
     &config,
     board_id.to_string(),
     card_id.to_string(),
@@ -128,22 +124,21 @@ pub async fn update(
 }
 
 pub async fn delete(
-  firestore: web::Data<FirestoreV1Client>,
   config: web::Data<Config>,
   participant: Participant,
   params: web::Path<(String, String)>,
 ) -> Result<web::HttpResponse, Error> {
+  let mut firestore = firestore::get_client().await?;
   let (board_id, card_id) = params.into_inner();
-  let firestore = &mut firestore.get_ref().clone();
   let card = db::get(
-    firestore,
+    &mut firestore,
     &config,
     board_id.to_string(),
     card_id.to_string(),
   )
   .await?;
   super::assert_card_owner(
-    firestore,
+    &mut firestore,
     &config,
     &participant,
     &card,
@@ -151,7 +146,7 @@ pub async fn delete(
   )
   .await?;
   db::delete(
-    firestore,
+    &mut firestore,
     &config,
     board_id.to_string(),
     card_id.to_string(),
@@ -161,16 +156,15 @@ pub async fn delete(
 }
 
 pub async fn put_vote(
-  firestore: web::Data<FirestoreV1Client>,
   config: web::Data<Config>,
   participant: Participant,
   params: web::Path<(String, String)>,
 ) -> Result<web::HttpResponse, Error> {
+  let mut firestore = firestore::get_client().await?;
   let (board_id, card_id) = params.into_inner();
-  let firestore = &mut firestore.get_ref().clone();
-  assert_voting_allowed(firestore, &config, board_id.to_string()).await?;
+  assert_voting_allowed(&mut firestore, &config, board_id.to_string()).await?;
   db::put_vote(
-    firestore,
+    &mut firestore,
     &config,
     &participant,
     board_id.to_string(),
@@ -181,16 +175,15 @@ pub async fn put_vote(
 }
 
 pub async fn delete_vote(
-  firestore: web::Data<FirestoreV1Client>,
   config: web::Data<Config>,
   participant: Participant,
   params: web::Path<(String, String)>,
 ) -> Result<web::HttpResponse, Error> {
+  let mut firestore = firestore::get_client().await?;
   let (board_id, card_id) = params.into_inner();
-  let firestore = &mut firestore.get_ref().clone();
-  assert_voting_allowed(firestore, &config, board_id.to_string()).await?;
+  assert_voting_allowed(&mut firestore, &config, board_id.to_string()).await?;
   db::delete_vote(
-    firestore,
+    &mut firestore,
     &config,
     &participant,
     board_id.to_string(),

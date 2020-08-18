@@ -10,7 +10,6 @@ mod columns;
 mod config;
 mod error;
 mod participants;
-mod token;
 
 use actix_cors::Cors;
 use actix_identity::{CookieIdentityPolicy, IdentityService};
@@ -19,7 +18,6 @@ use std::env;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
-use std::sync::Arc;
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
@@ -45,12 +43,9 @@ async fn main() -> std::io::Result<()> {
 
   let config = config::Config::from_env().await;
   let port = config.port;
-  let token = Arc::new(token::Token::new().await.expect("GCP token"));
 
   HttpServer::new(move || {
-    let token = token.clone();
     App::new()
-      .data_factory(move || firestore::get_client(token.clone()))
       .data(config.clone())
       .wrap(ActixMiddleware::DefaultHeaders::new().header("Cache-Control", "private"))
       .wrap(
