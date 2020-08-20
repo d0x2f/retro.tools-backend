@@ -9,7 +9,7 @@ edition = "2018"
 dotenv = "^0.15"
 bytes = "^0.5.6"
 reqwest = { version = "^0.10.7", features = ["blocking"] }
-gcp_auth = "^0.1.4"
+gcp_auth = { git = "https://github.com/d0x2f/gcp_auth.git" }
 chrono = "^0.4.13"
 settimeout = "^0.1.2"
 base64 = "^0.12.3"
