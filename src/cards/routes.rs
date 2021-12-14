@@ -192,3 +192,42 @@ pub async fn delete_vote(
   .await?;
   Ok(web::HttpResponse::Created().finish())
 }
+
+
+pub async fn put_reaction(
+  config: web::Data<Config>,
+  participant: Participant,
+  params: web::Path<(String, String)>,
+  react_message: web::Json<ReactMessage>,
+) -> Result<web::HttpResponse, Error> {
+  let mut firestore = firestore::get_client().await?;
+  let (board_id, card_id) = params.into_inner();
+  db::put_reaction(
+    &mut firestore,
+    &config,
+    &participant,
+    board_id.to_string(),
+    card_id.to_string(),
+    react_message.emoji.chars().next().unwrap()
+  )
+  .await?;
+  Ok(web::HttpResponse::Created().finish())
+}
+
+pub async fn delete_reaction(
+  config: web::Data<Config>,
+  participant: Participant,
+  params: web::Path<(String, String)>,
+) -> Result<web::HttpResponse, Error> {
+  let mut firestore = firestore::get_client().await?;
+  let (board_id, card_id) = params.into_inner();
+  db::delete_reaction(
+    &mut firestore,
+    &config,
+    &participant,
+    board_id.to_string(),
+    card_id.to_string(),
+  )
+  .await?;
+  Ok(web::HttpResponse::Created().finish())
+}

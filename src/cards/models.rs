@@ -16,6 +16,11 @@ pub struct CardMessage {
 }
 
 #[derive(Deserialize, Serialize)]
+pub struct ReactMessage {
+  pub emoji: String,
+}
+
+#[derive(Deserialize, Serialize)]
 pub struct Card {
   pub id: String,
   pub column: String,
@@ -24,6 +29,7 @@ pub struct Card {
   pub text: String,
   pub created_at: i64,
   pub votes: Vec<String>,
+  pub reactions: HashMap<String, Vec<String>>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -36,10 +42,13 @@ pub struct CardResponse {
   pub created_at: i64,
   pub votes: usize,
   pub voted: bool,
+  pub reactions: HashMap<String, usize>,
+  pub reacted: String,
 }
 
 impl CardResponse {
   pub fn from_card(config: &Config, card: Card, participant: &Participant) -> CardResponse {
+    let participant_doc_id = to_participant_reference!(config.firestore_project, participant.id);
     CardResponse {
       id: card.id,
       column: card.column,
@@ -48,10 +57,20 @@ impl CardResponse {
       text: card.text,
       created_at: card.created_at,
       votes: card.votes.len(),
-      voted: card.votes.contains(&to_participant_reference!(
-        config.firestore_project,
-        participant.id
-      )),
+      voted: card.votes.contains(&participant_doc_id),
+      reactions: card.reactions.clone().into_iter().map(|(k, v)| (k, v.len())).collect(),
+      reacted: {
+        let mut reaction: Option<String> = None;
+        for (emoji, participants) in &card.reactions {
+          if participants.contains(&participant_doc_id) {
+            reaction = Some(emoji.to_string());
+          }
+        }
+        match reaction {
+          Some(emoji) => emoji,
+          None => "".into()
+        }
+      }
     }
   }
 }
@@ -79,6 +98,15 @@ impl TryFrom<Document> for Card {
           .map(Option::unwrap)
           .collect(),
         Err(_) => vec![],
+      },
+      reactions: match get_map_field!(document, "reactions") {
+        Ok(map) => map
+          .fields
+          .clone()
+          .into_iter()
+          .map(|(k, v)| (k, extract_array!(v.value_type).unwrap()))
+          .collect(),
+        Err(_) => HashMap::new(),
       },
     })
   }

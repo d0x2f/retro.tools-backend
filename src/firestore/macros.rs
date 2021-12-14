@@ -80,6 +80,45 @@ macro_rules! get_array_field {
 }
 
 #[macro_export]
+macro_rules! get_map_field {
+  ($document:expr, $field:literal) => {
+    match $document
+      .fields
+      .get($field)
+      .and_then(|field| field.value_type.as_ref())
+    {
+      Some(crate::firestore::v1::value::ValueType::MapValue(map)) => Ok(map),
+      _ => Err(crate::error::Error::Other(format!(
+        "field `{}` not set in document.",
+        $field
+      ))),
+    }
+  };
+}
+
+#[macro_export]
+macro_rules! extract_array {
+  ($value:expr) => {
+    match $value {
+      Some(crate::firestore::v1::value::ValueType::ArrayValue(a)) => {
+        Some(
+          a.values
+            .clone()
+            .into_iter()
+            .map(|v| extract_string!(v.value_type))
+            .partition::<Vec<Option<String>>, _>(Option::is_some)
+            .0
+            .into_iter()
+            .map(Option::unwrap)
+            .collect()
+        )
+      },
+      _ => None,
+    }
+  };
+}
+
+#[macro_export]
 macro_rules! extract_string {
   ($value:expr) => {
     match $value {

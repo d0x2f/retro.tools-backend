@@ -49,14 +49,13 @@ async fn main() -> std::io::Result<()> {
       .data(config.clone())
       .wrap(ActixMiddleware::DefaultHeaders::new().header("Cache-Control", "private"))
       .wrap(
-        Cors::new()
+        Cors::default()
           .allowed_origin(&config.allowed_origin)
           .send_wildcard()
           .allowed_methods(vec!["GET", "POST", "PATCH", "PUT", "DELETE"])
           .allowed_header(http::header::CONTENT_TYPE)
           .supports_credentials()
-          .max_age(60 * 60)
-          .finish(),
+          .max_age(60 * 60),
       )
       .wrap(IdentityService::new(
         CookieIdentityPolicy::new(&config.secret_key)
@@ -102,6 +101,11 @@ async fn main() -> std::io::Result<()> {
         web::resource("boards/{board_id}/cards/{card_id}/vote")
           .route(web::put().to(cards::routes::put_vote))
           .route(web::delete().to(cards::routes::delete_vote)),
+      )
+      .service(
+        web::resource("boards/{board_id}/cards/{card_id}/react")
+          .route(web::put().to(cards::routes::put_reaction))
+          .route(web::delete().to(cards::routes::delete_reaction)),
       )
   })
   .bind(format!("0.0.0.0:{}", port))?

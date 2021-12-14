@@ -189,3 +189,88 @@ pub async fn delete_vote(
     .into_inner();
   Ok(())
 }
+
+pub async fn put_reaction(
+  firestore: &mut FirestoreV1Client,
+  config: &Config,
+  participant: &Participant,
+  board_id: String,
+  card_id: String,
+  emoji: char,
+) -> Result<(), Error> {
+  let participant_doc_id = to_participant_reference!(config.firestore_project, participant.id);
+  let card_doc_id = to_card_reference!(config.firestore_project, board_id, card_id);
+
+  // Delete an existing reaction first
+  delete_reaction(firestore, config, &participant, board_id, card_id).await?;
+
+  firestore
+    .batch_write(BatchWriteRequest {
+      database: format!("projects/{}/databases/(default)", config.firestore_project),
+      writes: vec![Write {
+        operation: Some(write::Operation::Transform(DocumentTransform {
+          document: card_doc_id,
+          field_transforms: vec![document_transform::FieldTransform {
+            field_path: format!("reactions.`{}`", emoji).into(),
+            transform_type: Some(
+              document_transform::field_transform::TransformType::AppendMissingElements(
+                ArrayValue {
+                  values: vec![reference_value!(participant_doc_id)],
+                },
+              ),
+            ),
+          }],
+        })),
+        ..Default::default()
+      }],
+      ..Default::default()
+    })
+    .await?
+    .into_inner();
+  Ok(())
+}
+
+pub async fn delete_reaction(
+  firestore: &mut FirestoreV1Client,
+  config: &Config,
+  participant: &Participant,
+  board_id: String,
+  card_id: String,
+) -> Result<(), Error> {
+  let participant_doc_id = to_participant_reference!(config.firestore_project, participant.id);
+  let card_doc_id = to_card_reference!(config.firestore_project, board_id, card_id);
+  let card = get(firestore, config, board_id, card_id).await?;
+
+  // Find which emoji the participant has reacted with
+  let mut reaction: Option<String> = None;
+  for (emoji, participants) in card.reactions {
+    if participants.contains(&participant_doc_id) {
+      reaction = Some(emoji);
+    }
+  }
+
+  if let Some(emoji) = reaction {
+    firestore
+      .batch_write(BatchWriteRequest {
+        database: format!("projects/{}/databases/(default)", config.firestore_project),
+        writes: vec![Write {
+          operation: Some(write::Operation::Transform(DocumentTransform {
+            document: card_doc_id,
+            field_transforms: vec![document_transform::FieldTransform {
+              field_path: format!("reactions.`{}`", emoji).into(),
+              transform_type: Some(
+                document_transform::field_transform::TransformType::RemoveAllFromArray(ArrayValue {
+                  values: vec![reference_value!(participant_doc_id)],
+                }),
+              ),
+            }],
+          })),
+          ..Default::default()
+        }],
+        ..Default::default()
+      })
+      .await?
+      .into_inner();
+  }
+  Ok(())
+}
