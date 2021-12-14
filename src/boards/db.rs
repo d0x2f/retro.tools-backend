@@ -42,7 +42,7 @@ pub async fn list(
   config: &Config,
   participant: &Participant,
 ) -> Result<Vec<Board>, Error> {
-  let ids = get_participant_board_ids(firestore, &config, participant).await?;
+  let ids = get_participant_board_ids(firestore, config, participant).await?;
   let result = firestore
     .batch_get_documents(BatchGetDocumentsRequest {
       database: format!("projects/{}/databases/(default)", config.firestore_project),

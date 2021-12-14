@@ -31,10 +31,7 @@ impl FromRequest for Participant {
   type Config = ();
 
   fn from_request(req: &HttpRequest, payload: &mut Payload) -> Self::Future {
-    let legacy_id: Option<String> = match req.cookie("__session") {
-      Some(cookie) => Some(cookie.value().into()),
-      None => None,
-    };
+    let legacy_id: Option<String> = req.cookie("__session").map(|cookie| cookie.value().into());
     let config = req.app_data::<Data<Config>>().expect("config");
     let config = &(*Arc::clone(&config.clone().into_inner()));
     Box::pin(super::new(

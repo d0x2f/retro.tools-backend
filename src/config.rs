@@ -30,7 +30,7 @@ impl Config {
         Environment::Production => {
           panic!("No secret key provided despite being in production mode!")
         }
-        _ => vec![0 as u8; 32],
+        _ => vec![0_u8; 32],
       },
       Ok(s) => s.as_bytes().to_owned(),
     };

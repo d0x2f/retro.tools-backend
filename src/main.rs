@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate log;
 
+#[allow(warnings)]
 #[macro_use]
 mod firestore;
 mod boards;

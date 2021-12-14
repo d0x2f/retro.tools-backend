@@ -202,7 +202,7 @@ pub async fn put_reaction(
   let card_doc_id = to_card_reference!(config.firestore_project, board_id, card_id);
 
   // Delete an existing reaction first
-  delete_reaction(firestore, config, &participant, board_id, card_id).await?;
+  delete_reaction(firestore, config, participant, board_id, card_id).await?;
 
   firestore
     .batch_write(BatchWriteRequest {
@@ -211,7 +211,7 @@ pub async fn put_reaction(
         operation: Some(write::Operation::Transform(DocumentTransform {
           document: card_doc_id,
           field_transforms: vec![document_transform::FieldTransform {
-            field_path: format!("reactions.`{}`", emoji).into(),
+            field_path: format!("reactions.`{}`", emoji),
             transform_type: Some(
               document_transform::field_transform::TransformType::AppendMissingElements(
                 ArrayValue {
@@ -257,7 +257,7 @@ pub async fn delete_reaction(
           operation: Some(write::Operation::Transform(DocumentTransform {
             document: card_doc_id,
             field_transforms: vec![document_transform::FieldTransform {
-              field_path: format!("reactions.`{}`", emoji).into(),
+              field_path: format!("reactions.`{}`", emoji),
               transform_type: Some(
                 document_transform::field_transform::TransformType::RemoveAllFromArray(ArrayValue {
                   values: vec![reference_value!(participant_doc_id)],
