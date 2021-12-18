@@ -29,3 +29,11 @@ pub async fn assert_voting_allowed(
     false => Err(Error::Forbidden),
   }
 }
+
+pub async fn get_board(
+  firestore: &mut FirestoreV1Client,
+  config: &Config,
+  board_id: String
+) -> Result<models::Board, Error> {
+  db::get(firestore, &config, board_id.to_string()).await
+}

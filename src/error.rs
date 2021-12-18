@@ -100,8 +100,14 @@ impl From<gcp_auth::Error> for Error {
   }
 }
 
-// impl<T: Display> From<T> for Error {
-//   fn from(error: T) -> Self {
-//     Error::Other(format!("{}", error))
-//   }
-// }
+impl<W> From<csv::IntoInnerError<W>> for Error {
+  fn from(error: csv::IntoInnerError<W>) -> Self {
+    Error::Other(format!("{}", error))
+  }
+}
+
+impl From<csv::Error> for Error {
+  fn from(error: csv::Error) -> Self {
+    Error::Other(format!("{}", error))
+  }
+}

@@ -92,6 +92,7 @@ async fn main() -> std::io::Result<()> {
           .route(web::post().to(cards::routes::new)),
       )
       .service(web::resource("boards/{board_id}/cards").route(web::get().to(cards::routes::list)))
+      .service(web::resource("boards/{board_id}/csv").route(web::get().to(cards::routes::csv)))
       .service(
         web::resource("boards/{board_id}/cards/{card_id}")
           .route(web::patch().to(cards::routes::update))

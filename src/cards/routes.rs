@@ -1,8 +1,10 @@
 use actix_web::web;
+use actix_web::http::header::{CONTENT_DISPOSITION, ContentDisposition, DispositionParam, DispositionType};
 
 use super::db;
 use super::models::*;
 use crate::boards::*;
+use crate::columns::get_columns;
 use crate::config::Config;
 use crate::error::Error;
 use crate::firestore;
@@ -230,4 +232,33 @@ pub async fn delete_reaction(
   )
   .await?;
   Ok(web::HttpResponse::Created().finish())
+}
+
+pub async fn csv(
+  config: web::Data<Config>,
+  _participant: Participant,
+  board_id: web::Path<String>,
+) -> Result<web::HttpResponse, Error> {
+  let mut firestore = firestore::get_client().await?;
+  let board = get_board(&mut firestore, &config, board_id.to_string()).await?;
+  let columns = get_columns(&mut firestore, &config, board_id.to_string()).await?;
+  let mut cards = db::list(&mut firestore, &config, board_id.to_string()).await?;
+  cards.sort_by(|a,b| b.column.cmp(&a.column));
+  let mut csv_writer = csv::Writer::from_writer(vec![]);
+  for card in cards.into_iter() {
+    csv_writer.serialize(CardCSVRow::from_card(card, &columns))?;
+  }
+  Ok(
+    web::HttpResponse::Ok()
+      .set_header(
+        CONTENT_DISPOSITION,
+        ContentDisposition {
+          disposition: DispositionType::Attachment,
+          parameters: vec![
+            DispositionParam::Filename(format!("{}-{}.csv", board.name, board.created_at))
+          ]
+        }
+      )
+      .body(String::from_utf8(csv_writer.into_inner()?)?),
+  )
 }

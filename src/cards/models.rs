@@ -6,6 +6,7 @@ use crate::config::Config;
 use crate::error::Error;
 use crate::firestore::v1::*;
 use crate::participants::models::Participant;
+use crate::columns::models::Column;
 
 #[derive(Deserialize, Serialize)]
 pub struct CardMessage {
@@ -44,6 +45,30 @@ pub struct CardResponse {
   pub voted: bool,
   pub reactions: HashMap<String, usize>,
   pub reacted: String,
+}
+
+#[derive(Serialize)]
+pub struct CardCSVRow {
+  pub column: String,
+  pub author: String,
+  pub text: String,
+  pub created_at: i64,
+  pub votes: usize,
+}
+
+impl CardCSVRow {
+  pub fn from_card(card: Card, columns: &HashMap<String, Column>) -> CardCSVRow {
+    CardCSVRow {
+      column: match columns.get(&card.column) {
+        Some(column) => column.name.clone().split('.').last().unwrap_or(&column.name).into(),
+        _ => "Unknown Column".into()
+      },
+      author: card.author,
+      text: card.text,
+      created_at: card.created_at,
+      votes: card.votes.len(),
+    }
+  }
 }
 
 impl CardResponse {

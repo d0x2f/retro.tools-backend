@@ -7,20 +7,21 @@ edition = "2018"
 [dependencies]
 # General
 dotenv = "^0.15"
-bytes = "^0.5.6"
-reqwest = { version = "^0.10.7", features = ["blocking"] }
+bytes = "^1.1.0"
+reqwest = { version = "^0.11.7", features = ["blocking"] }
 gcp_auth = "^0.3.2"
 chrono = "^0.4.13"
 settimeout = "^0.1.2"
-base64 = "^0.12.3"
+base64 = "^0.13.0"
 tokio = "^0.2.6"
+csv = "^1.1"
 
 # Actix
 actix-web = "^3.3.2"
 actix-http = "^2.2.0"
 actix-identity = "^0.3.1"
 actix-rt = "1"
-env_logger = "^0.7"
+env_logger = "^0.9"
 log = "^0.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
