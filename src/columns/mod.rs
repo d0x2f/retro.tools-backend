@@ -13,7 +13,7 @@ pub async fn get_columns(
   config: &Config,
   board_id: String
 ) -> Result<HashMap<String, models::Column>, Error> {
-  let columns = db::list(firestore, &config, board_id.to_string()).await?;
+  let columns = db::list(firestore, config, board_id.to_string()).await?;
   let mut map = HashMap::new();
   for column in columns {
     map.insert(column.id.clone(), column);

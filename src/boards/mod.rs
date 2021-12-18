@@ -35,5 +35,5 @@ pub async fn get_board(
   config: &Config,
   board_id: String
 ) -> Result<models::Board, Error> {
-  db::get(firestore, &config, board_id.to_string()).await
+  db::get(firestore, config, board_id.to_string()).await
 }
