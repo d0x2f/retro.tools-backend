@@ -64,7 +64,7 @@ impl TryFrom<Document> for Board {
       cards_open: get_boolean_field!(document, "cards_open")?,
       voting_open: get_boolean_field!(document, "voting_open")?,
       // Boards made before 6f43d73d won't have this field
-      ice_breaking: get_string_field!(document, "ice_breaking").unwrap_or("".into()),
+      ice_breaking: get_string_field!(document, "ice_breaking").unwrap_or_else(|_| "".into()),
       created_at: get_create_time!(document),
       owner: from_reference!(get_reference_field!(document, "owner")?).into(),
       data: serde_json::from_str(get_string_field!(document, "data")?.as_str())?,
