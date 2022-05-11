@@ -34,7 +34,7 @@ jobs:
         uses: 'google-github-actions/auth@v0.4.0'
         with:
           credentials_json: '${{ secrets.GCP_ACCOUNT_CREDENTIALS }}'
-      - uses: google-github-actions/setup-gcloud@master
+      - uses: google-github-actions/setup-gcloud@v0
       - name: Install gcloud Beta Components
         run: gcloud components install beta
       - name: Docker build
