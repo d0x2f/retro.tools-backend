@@ -11,6 +11,7 @@ pub struct BoardMessage {
   pub name: Option<String>,
   pub cards_open: Option<bool>,
   pub voting_open: Option<bool>,
+  pub ice_breaking: Option<String>,
   pub data: Option<serde_json::Value>,
 }
 
@@ -20,6 +21,7 @@ pub struct Board {
   pub name: String,
   pub cards_open: bool,
   pub voting_open: bool,
+  pub ice_breaking: String,
   pub created_at: i64,
   pub owner: String,
   pub data: serde_json::Value,
@@ -31,6 +33,7 @@ pub struct BoardResponse {
   pub name: String,
   pub cards_open: bool,
   pub voting_open: bool,
+  pub ice_breaking: String,
   pub created_at: i64,
   pub owner: bool,
   pub data: serde_json::Value,
@@ -43,6 +46,7 @@ impl BoardResponse {
       name: board.name,
       cards_open: board.cards_open,
       voting_open: board.voting_open,
+      ice_breaking: board.ice_breaking,
       created_at: board.created_at,
       owner: board.owner == participant.id,
       data: board.data,
@@ -59,6 +63,7 @@ impl TryFrom<Document> for Board {
       name: get_string_field!(document, "name")?,
       cards_open: get_boolean_field!(document, "cards_open")?,
       voting_open: get_boolean_field!(document, "voting_open")?,
+      ice_breaking: get_string_field!(document, "ice_breaking")?,
       created_at: get_create_time!(document),
       owner: from_reference!(get_reference_field!(document, "owner")?).into(),
       data: serde_json::from_str(get_string_field!(document, "data")?.as_str())?,
@@ -90,6 +95,9 @@ impl From<BoardMessage> for Document {
     }
     if let Some(voting_open) = board.voting_open {
       fields.insert("voting_open".into(), boolean_value!(voting_open));
+    }
+    if let Some(ice_breaking) = board.ice_breaking {
+      fields.insert("ice_breaking".into(), string_value!(ice_breaking));
     }
     if let Some(data) = board.data {
       fields.insert("data".into(), string_value!(data.to_string()));
