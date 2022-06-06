@@ -2042,7 +2042,7 @@ dependencies = [
  "serde",
  "serde_json",
  "settimeout",
- "tokio 0.2.25",
+ "tokio 1.15.0",
  "tonic",
  "tonic-build",
 ]

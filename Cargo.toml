@@ -13,7 +13,7 @@ gcp_auth = "^0.3.2"
 chrono = "^0.4.13"
 settimeout = "^0.1.2"
 base64 = "^0.13.0"
-tokio = "^0.2.6"
+tokio = "^1.15.0"
 csv = "^1.1"
 
 # Actix
