@@ -46,74 +46,31 @@ impl From<tonic::Status> for Error {
   }
 }
 
-impl From<actix_http::error::Error> for Error {
-  fn from(error: actix_http::error::Error) -> Self {
-    Error::Other(format!("{}", error))
-  }
-}
-
-impl From<serde_json::error::Error> for Error {
-  fn from(error: serde_json::error::Error) -> Self {
-    Error::Other(format!("{}", error))
-  }
-}
-
-impl From<actix_http::client::SendRequestError> for Error {
-  fn from(error: actix_http::client::SendRequestError) -> Self {
-    Error::Other(format!("{}", error))
-  }
-}
-
-impl From<actix_http::error::PayloadError> for Error {
-  fn from(error: actix_http::error::PayloadError) -> Self {
-    Error::Other(format!("{}", error))
-  }
-}
-
-impl From<std::string::FromUtf8Error> for Error {
-  fn from(error: std::string::FromUtf8Error) -> Self {
-    Error::Other(format!("{}", error))
-  }
-}
-
-impl From<tonic::metadata::errors::InvalidMetadataValue> for Error {
-  fn from(error: tonic::metadata::errors::InvalidMetadataValue) -> Self {
-    Error::Other(format!("{}", error))
-  }
-}
-
-impl From<tonic::transport::Error> for Error {
-  fn from(error: tonic::transport::Error) -> Self {
-    Error::Other(format!("{}", error))
-  }
-}
-
-impl From<reqwest::Error> for Error {
-  fn from(error: reqwest::Error) -> Self {
-    Error::Other(format!("{}", error))
-  }
-}
-
-impl From<gcp_auth::Error> for Error {
-  fn from(error: gcp_auth::Error) -> Self {
-    Error::Other(format!("{}", error))
-  }
-}
-
-impl<W> From<csv::IntoInnerError<W>> for Error {
-  fn from(error: csv::IntoInnerError<W>) -> Self {
-    Error::Other(format!("{}", error))
-  }
-}
-
-impl From<csv::Error> for Error {
-  fn from(error: csv::Error) -> Self {
-    Error::Other(format!("{}", error))
-  }
-}
-
 impl From<jwt_simple::Error> for Error {
   fn from(error: jwt_simple::Error) -> Self {
     Error::Other(format!("{}", error))
   }
 }
+
+trait InternalError {}
+
+impl<T> From<T> for Error
+where
+  T: std::error::Error + InternalError,
+{
+  fn from(error: T) -> Self {
+    Error::Other(format!("{}", error))
+  }
+}
+
+impl InternalError for actix_http::error::Error {}
+impl InternalError for actix_http::client::SendRequestError {}
+impl InternalError for actix_http::error::PayloadError {}
+impl InternalError for serde_json::error::Error {}
+impl InternalError for std::string::FromUtf8Error {}
+impl InternalError for tonic::metadata::errors::InvalidMetadataValue {}
+impl InternalError for reqwest::Error {}
+impl InternalError for tonic::transport::Error {}
+impl InternalError for gcp_auth::Error {}
+impl InternalError for csv::Error {}
+impl<W> InternalError for csv::IntoInnerError<W> {}

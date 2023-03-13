@@ -259,9 +259,11 @@ pub async fn delete_reaction(
             field_transforms: vec![document_transform::FieldTransform {
               field_path: format!("reactions.`{}`", emoji),
               transform_type: Some(
-                document_transform::field_transform::TransformType::RemoveAllFromArray(ArrayValue {
-                  values: vec![reference_value!(participant_doc_id)],
-                }),
+                document_transform::field_transform::TransformType::RemoveAllFromArray(
+                  ArrayValue {
+                    values: vec![reference_value!(participant_doc_id)],
+                  },
+                ),
               ),
             }],
           })),

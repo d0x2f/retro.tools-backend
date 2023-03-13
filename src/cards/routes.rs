@@ -1,5 +1,7 @@
+use actix_web::http::header::{
+  ContentDisposition, DispositionParam, DispositionType, CONTENT_DISPOSITION,
+};
 use actix_web::web;
-use actix_web::http::header::{CONTENT_DISPOSITION, ContentDisposition, DispositionParam, DispositionType};
 
 use super::db;
 use super::models::*;
@@ -195,7 +197,6 @@ pub async fn delete_vote(
   Ok(web::HttpResponse::Created().finish())
 }
 
-
 pub async fn put_reaction(
   config: web::Data<Config>,
   participant: Participant,
@@ -210,7 +211,7 @@ pub async fn put_reaction(
     &participant,
     board_id.to_string(),
     card_id.to_string(),
-    react_message.emoji.chars().next().unwrap()
+    react_message.emoji.chars().next().unwrap(),
   )
   .await?;
   Ok(web::HttpResponse::Created().finish())
@@ -243,7 +244,7 @@ pub async fn csv(
   let board = get_board(&mut firestore, &config, board_id.to_string()).await?;
   let columns = get_columns(&mut firestore, &config, board_id.to_string()).await?;
   let mut cards = db::list(&mut firestore, &config, board_id.to_string()).await?;
-  cards.sort_by(|a,b| b.column.cmp(&a.column));
+  cards.sort_by(|a, b| b.column.cmp(&a.column));
   let mut csv_writer = csv::Writer::from_writer(vec![]);
   for card in cards.into_iter() {
     csv_writer.serialize(CardCSVRow::from_card(card, &columns))?;
@@ -254,10 +255,11 @@ pub async fn csv(
         CONTENT_DISPOSITION,
         ContentDisposition {
           disposition: DispositionType::Attachment,
-          parameters: vec![
-            DispositionParam::Filename(format!("{}-{}.csv", board.name, board.created_at))
-          ]
-        }
+          parameters: vec![DispositionParam::Filename(format!(
+            "{}-{}.csv",
+            board.name, board.created_at
+          ))],
+        },
       )
       .body(String::from_utf8(csv_writer.into_inner()?)?),
   )

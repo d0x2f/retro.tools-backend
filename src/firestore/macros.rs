@@ -57,7 +57,9 @@ macro_rules! get_create_time {
   ($document:expr) => {
     $document
       .create_time
-      .ok_or_else(|| crate::error::Error::Other("field `create_time` not set in document.".into()))?
+      .ok_or_else(|| {
+        $crate::error::Error::Other("field `create_time` not set in document.".into())
+      })?
       .seconds
   };
 }
@@ -70,8 +72,8 @@ macro_rules! get_array_field {
       .get($field)
       .and_then(|field| field.value_type.as_ref())
     {
-      Some(crate::firestore::v1::value::ValueType::ArrayValue(arr)) => Ok(arr),
-      _ => Err(crate::error::Error::Other(format!(
+      Some($crate::firestore::v1::value::ValueType::ArrayValue(arr)) => Ok(arr),
+      _ => Err($crate::error::Error::Other(format!(
         "field `{}` not set in document.",
         $field
       ))),
@@ -87,8 +89,8 @@ macro_rules! get_map_field {
       .get($field)
       .and_then(|field| field.value_type.as_ref())
     {
-      Some(crate::firestore::v1::value::ValueType::MapValue(map)) => Ok(map),
-      _ => Err(crate::error::Error::Other(format!(
+      Some($crate::firestore::v1::value::ValueType::MapValue(map)) => Ok(map),
+      _ => Err($crate::error::Error::Other(format!(
         "field `{}` not set in document.",
         $field
       ))),
@@ -100,19 +102,17 @@ macro_rules! get_map_field {
 macro_rules! extract_array {
   ($value:expr) => {
     match $value {
-      Some(crate::firestore::v1::value::ValueType::ArrayValue(a)) => {
-        Some(
-          a.values
-            .clone()
-            .into_iter()
-            .map(|v| extract_string!(v.value_type))
-            .partition::<Vec<Option<String>>, _>(Option::is_some)
-            .0
-            .into_iter()
-            .map(Option::unwrap)
-            .collect()
-        )
-      },
+      Some($crate::firestore::v1::value::ValueType::ArrayValue(a)) => Some(
+        a.values
+          .clone()
+          .into_iter()
+          .map(|v| extract_string!(v.value_type))
+          .partition::<Vec<Option<String>>, _>(Option::is_some)
+          .0
+          .into_iter()
+          .map(Option::unwrap)
+          .collect(),
+      ),
       _ => None,
     }
   };
@@ -122,8 +122,8 @@ macro_rules! extract_array {
 macro_rules! extract_string {
   ($value:expr) => {
     match $value {
-      Some(crate::firestore::v1::value::ValueType::ReferenceValue(s)) => Some(s.to_string()),
-      Some(crate::firestore::v1::value::ValueType::StringValue(s)) => Some(s.clone()),
+      Some($crate::firestore::v1::value::ValueType::ReferenceValue(s)) => Some(s.to_string()),
+      Some($crate::firestore::v1::value::ValueType::StringValue(s)) => Some(s.clone()),
       _ => None,
     }
   };
@@ -138,7 +138,7 @@ macro_rules! get_reference_field {
       .and_then(|field| field.value_type.as_ref()))
     {
       Some(s) => Ok(s),
-      None => Err(crate::error::Error::Other(format!(
+      None => Err($crate::error::Error::Other(format!(
         "field `{}` not set in document.",
         $field
       ))),
@@ -155,7 +155,7 @@ macro_rules! get_string_field {
       .and_then(|field| field.value_type.as_ref()))
     {
       Some(s) => Ok(s),
-      None => Err(crate::error::Error::Other(format!(
+      None => Err($crate::error::Error::Other(format!(
         "field `{}` not set in document.",
         $field
       ))),
@@ -171,8 +171,8 @@ macro_rules! get_boolean_field {
       .get($field)
       .and_then(|field| field.value_type.as_ref())
     {
-      Some(crate::firestore::v1::value::ValueType::BooleanValue(b)) => Ok(*b),
-      _ => Err(crate::error::Error::Other(format!(
+      Some($crate::firestore::v1::value::ValueType::BooleanValue(b)) => Ok(*b),
+      _ => Err($crate::error::Error::Other(format!(
         "field `{}` not set in document.",
         $field
       ))),
@@ -188,8 +188,8 @@ macro_rules! get_integer_field {
       .get($field)
       .and_then(|field| field.value_type.as_ref())
     {
-      Some(crate::firestore::v1::value::ValueType::IntegerValue(i)) => Ok(*i),
-      _ => Err(crate::error::Error::Other(format!(
+      Some($crate::firestore::v1::value::ValueType::IntegerValue(i)) => Ok(*i),
+      _ => Err($crate::error::Error::Other(format!(
         "field `{}` not set in document.",
         $field
       ))),
@@ -201,7 +201,7 @@ macro_rules! get_integer_field {
 macro_rules! reference_value {
   ($document_path:expr) => {
     Value {
-      value_type: Some(crate::firestore::v1::value::ValueType::ReferenceValue(
+      value_type: Some($crate::firestore::v1::value::ValueType::ReferenceValue(
         $document_path,
       )),
     }
@@ -212,7 +212,7 @@ macro_rules! reference_value {
 macro_rules! string_value {
   ($string:expr) => {
     Value {
-      value_type: Some(crate::firestore::v1::value::ValueType::StringValue(
+      value_type: Some($crate::firestore::v1::value::ValueType::StringValue(
         $string.into(),
       )),
     }
@@ -223,7 +223,7 @@ macro_rules! string_value {
 macro_rules! integer_value {
   ($int:expr) => {
     Value {
-      value_type: Some(crate::firestore::v1::value::ValueType::IntegerValue($int)),
+      value_type: Some($crate::firestore::v1::value::ValueType::IntegerValue($int)),
     }
   };
 }
@@ -232,7 +232,7 @@ macro_rules! integer_value {
 macro_rules! boolean_value {
   ($bool:expr) => {
     Value {
-      value_type: Some(crate::firestore::v1::value::ValueType::BooleanValue($bool)),
+      value_type: Some($crate::firestore::v1::value::ValueType::BooleanValue($bool)),
     }
   };
 }

@@ -11,6 +11,7 @@ use tonic::{
   Request,
 };
 
+#[allow(warnings)]
 pub mod google {
   pub mod firestore {
     pub mod v1 {

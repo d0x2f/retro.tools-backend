@@ -2,11 +2,11 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 
+use crate::columns::models::Column;
 use crate::config::Config;
 use crate::error::Error;
 use crate::firestore::v1::*;
 use crate::participants::models::Participant;
-use crate::columns::models::Column;
 
 #[derive(Deserialize, Serialize)]
 pub struct CardMessage {
@@ -60,8 +60,14 @@ impl CardCSVRow {
   pub fn from_card(card: Card, columns: &HashMap<String, Column>) -> CardCSVRow {
     CardCSVRow {
       column: match columns.get(&card.column) {
-        Some(column) => column.name.clone().split('.').last().unwrap_or(&column.name).into(),
-        _ => "Unknown Column".into()
+        Some(column) => column
+          .name
+          .clone()
+          .split('.')
+          .last()
+          .unwrap_or(&column.name)
+          .into(),
+        _ => "Unknown Column".into(),
       },
       author: card.author,
       text: card.text,
@@ -83,7 +89,12 @@ impl CardResponse {
       created_at: card.created_at,
       votes: card.votes.len(),
       voted: card.votes.contains(&participant_doc_id),
-      reactions: card.reactions.clone().into_iter().map(|(k, v)| (k, v.len())).collect(),
+      reactions: card
+        .reactions
+        .clone()
+        .into_iter()
+        .map(|(k, v)| (k, v.len()))
+        .collect(),
       reacted: {
         let mut reaction: Option<String> = None;
         for (emoji, participants) in &card.reactions {
@@ -93,9 +104,9 @@ impl CardResponse {
         }
         match reaction {
           Some(emoji) => emoji,
-          None => "".into()
+          None => "".into(),
         }
-      }
+      },
     }
   }
 }

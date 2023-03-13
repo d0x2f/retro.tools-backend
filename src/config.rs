@@ -56,18 +56,20 @@ impl Config {
       Err(_) => cloudrun::get_project_id().expect("cloudrun project"),
     };
 
-    let google_credentials_file_path = match env::var("GOOGLE_APPLICATION_CREDENTIALS") {
+    let google_credentials_file_path = match env::var("FIREBASE_SERVICE_ACCOUNT_CREDENTIALS") {
       Ok(s) => s,
       Err(_) => {
-        panic!("No Google service account credentials given via 'GOOGLE_APPLICATION_CREDENTIALS'.")
+        panic!(
+          "No Google service account credentials given via 'FIREBASE_SERVICE_ACCOUNT_CREDENTIALS'."
+        )
       }
     };
 
     let file = File::open(google_credentials_file_path)
-      .expect("Unable to open file referenced by 'GOOGLE_APPLICATION_CREDENTIALS'.");
+      .expect("Unable to open file referenced by 'FIREBASE_SERVICE_ACCOUNT_CREDENTIALS'.");
     let reader = BufReader::new(file);
     let firebase_credentials: GoogleAccountKey = serde_json::from_reader(reader)
-      .expect("Unable to read file referenced by 'GOOGLE_APPLICATION_CREDENTIALS'.");
+      .expect("Unable to read file referenced by 'FIREBASE_SERVICE_ACCOUNT_CREDENTIALS'.");
 
     Config {
       port,
