@@ -33,7 +33,7 @@ actix-cors = "^0.5.4"
 
 # gRPC
 tonic = { version = "0.3", features = ["tls", "tls-roots"] }
-prost-types = "0.6"
+prost-types = "0.8"
 prost = "0.6"
 
 [build-dependencies]
