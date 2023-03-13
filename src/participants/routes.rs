@@ -14,7 +14,7 @@ struct GoogleClaims {
   uid: String,
 }
 
-const AUD: &'static str =
+const AUD: &str =
   "https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit";
 
 pub async fn auth(
