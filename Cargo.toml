@@ -12,9 +12,11 @@ reqwest = { version = "^0.11.7", features = ["blocking"] }
 gcp_auth = "^0.3.2"
 chrono = "^0.4.13"
 settimeout = "^0.1.2"
-base64 = "^0.13.0"
 tokio = "^0.2.6"
 csv = "^1.1"
+
+# Firebase custom auth
+jwt-simple = "^0.11.4"
 
 # Actix
 actix-web = "^3.3.2"

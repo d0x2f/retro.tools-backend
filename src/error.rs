@@ -111,3 +111,9 @@ impl From<csv::Error> for Error {
     Error::Other(format!("{}", error))
   }
 }
+
+impl From<jwt_simple::Error> for Error {
+  fn from(error: jwt_simple::Error) -> Self {
+    Error::Other(format!("{}", error))
+  }
+}

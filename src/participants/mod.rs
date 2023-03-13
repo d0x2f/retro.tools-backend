@@ -1,5 +1,6 @@
 pub mod db;
 pub mod models;
+pub mod routes;
 
 use actix_http::error::Error as ActixError;
 use actix_identity::Identity;

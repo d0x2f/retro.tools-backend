@@ -16,32 +16,11 @@ use actix_cors::Cors;
 use actix_http::cookie::SameSite;
 use actix_identity::{CookieIdentityPolicy, IdentityService};
 use actix_web::{http, middleware as ActixMiddleware, web, App, HttpServer};
-use std::env;
-use std::fs::File;
-use std::io::prelude::*;
-use std::path::Path;
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
   env_logger::init();
   dotenv::dotenv().ok();
-
-  // Hack: If GCP_SERVICE_ACCOUNT_JSON is set, create a json file with that content
-  // and set GOOGLE_APPLICATION_CREDENTIALS to point to that file
-  if let Ok(base64) = env::var("GCP_SERVICE_ACCOUNT_JSON") {
-    info!("Reading from GCP_SERVICE_ACCOUNT_JSON");
-    if let Ok(json) = base64::decode(base64) {
-      info!("Using credentials in GCP_SERVICE_ACCOUNT_JSON");
-      let mut file = File::create(Path::new("/tmp/gcp-service-account.json"))?;
-      file.write_all(&json)?;
-      env::set_var(
-        "GOOGLE_APPLICATION_CREDENTIALS",
-        "/tmp/gcp-service-account.json",
-      );
-    } else {
-      error!("Failed to parse GCP_SERVICE_ACCOUNT_JSON");
-    }
-  }
 
   let config = config::Config::from_env().await;
   let port = config.port;
@@ -111,6 +90,7 @@ async fn main() -> std::io::Result<()> {
           .route(web::put().to(cards::routes::put_reaction))
           .route(web::delete().to(cards::routes::delete_reaction)),
       )
+      .service(web::resource("auth").route(web::get().to(participants::routes::auth)))
   })
   .bind(format!("0.0.0.0:{}", port))?
   .run()
