@@ -21,9 +21,10 @@ pub struct Config {
   pub port: u16,
   pub secret_key: Vec<u8>,
   pub environment: Environment,
-  pub allowed_origin: String,
+  pub allowed_origins: Vec<String>,
   pub firestore_project: String,
   pub firebase_credentials: GoogleAccountKey,
+  pub secure_cookie: bool,
 }
 
 impl Config {
@@ -65,19 +66,31 @@ impl Config {
       }
     };
 
+    let secure_cookie = match env::var("SECURE_COOKIE") {
+      Ok(s) => s == "true",
+      Err(_) => false,
+    };
+
     let file = File::open(google_credentials_file_path)
       .expect("Unable to open file referenced by 'FIREBASE_SERVICE_ACCOUNT_CREDENTIALS'.");
     let reader = BufReader::new(file);
     let firebase_credentials: GoogleAccountKey = serde_json::from_reader(reader)
       .expect("Unable to read file referenced by 'FIREBASE_SERVICE_ACCOUNT_CREDENTIALS'.");
 
+    let allowed_origins: Vec<String> = env::var("ALLOWED_ORIGINS")
+      .expect("allowed origins")
+      .split(',')
+      .map(|s| s.to_string())
+      .collect();
+
     Config {
       port,
       secret_key,
       environment,
-      allowed_origin: env::var("ALLOWED_ORIGIN").expect("allowed origin"),
+      allowed_origins,
       firestore_project,
       firebase_credentials,
+      secure_cookie,
     }
   }
 }
@@ -88,9 +101,10 @@ impl Clone for Config {
       port: self.port,
       secret_key: self.secret_key.clone(),
       environment: self.environment,
-      allowed_origin: self.allowed_origin.clone(),
+      allowed_origins: self.allowed_origins.clone(),
       firestore_project: self.firestore_project.clone(),
       firebase_credentials: self.firebase_credentials.clone(),
+      secure_cookie: self.secure_cookie,
     }
   }
 }

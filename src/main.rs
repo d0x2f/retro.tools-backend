@@ -25,24 +25,30 @@ async fn main() -> std::io::Result<()> {
   let port = config.port;
 
   HttpServer::new(move || {
+    let mut cors = Cors::default()
+      .send_wildcard()
+      .allowed_methods(vec!["GET", "POST", "PATCH", "PUT", "DELETE"])
+      .allowed_header(http::header::CONTENT_TYPE)
+      .supports_credentials()
+      .max_age(60 * 60);
+
+    for origin in &config.allowed_origins {
+      cors = cors.allowed_origin(origin);
+    }
+
     App::new()
       .data(config.clone())
       .wrap(ActixMiddleware::DefaultHeaders::new().header("Cache-Control", "private"))
-      .wrap(
-        Cors::default()
-          .allowed_origin(&config.allowed_origin)
-          .send_wildcard()
-          .allowed_methods(vec!["GET", "POST", "PATCH", "PUT", "DELETE"])
-          .allowed_header(http::header::CONTENT_TYPE)
-          .supports_credentials()
-          .max_age(60 * 60),
-      )
+      .wrap(cors)
       .wrap(IdentityService::new(
         CookieIdentityPolicy::new(&config.secret_key)
           .name("__session")
-          .secure(config.environment == config::Environment::Production)
+          .secure(config.secure_cookie)
           .max_age(30 * 24 * 60 * 60)
-          .same_site(SameSite::Strict),
+          .same_site(match config.environment {
+            config::Environment::Production => SameSite::Strict,
+            _ => SameSite::None,
+          }),
       ))
       .wrap(ActixMiddleware::Logger::default())
       .service(
