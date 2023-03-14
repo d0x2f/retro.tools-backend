@@ -211,7 +211,7 @@ pub async fn put_reaction(
     &participant,
     board_id.to_string(),
     card_id.to_string(),
-    react_message.emoji.chars().next().unwrap(),
+    react_message.emoji.clone(),
   )
   .await?;
   Ok(web::HttpResponse::Created().finish())

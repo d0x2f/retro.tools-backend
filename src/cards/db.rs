@@ -196,7 +196,7 @@ pub async fn put_reaction(
   participant: &Participant,
   board_id: String,
   card_id: String,
-  emoji: char,
+  emoji: String,
 ) -> Result<(), Error> {
   let participant_doc_id = to_participant_reference!(config.firestore_project, participant.id);
   let card_doc_id = to_card_reference!(config.firestore_project, board_id, card_id);
