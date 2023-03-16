@@ -2,7 +2,8 @@
   "name": "subcollection-deleter",
   "version": "0.0.1",
   "dependencies": {
-    "@google-cloud/firestore": "6.5.0"
+    "@google-cloud/firestore": "6.5.0",
+    "@google-cloud/logging": "^10.4.0"
   },
   "devDependencies": {
     "prettier": "^2.5.1"

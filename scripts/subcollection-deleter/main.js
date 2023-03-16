@@ -1,6 +1,9 @@
 const Firestore = require("@google-cloud/firestore");
+const { Logging } = require("@google-cloud/logging");
 
+const logging = new Logging();
 const firestore = new Firestore();
+const log = logging.log("subcollection-deleter");
 
 // Deletes all documents in a collection and returns the number deleted
 async function deleteCollection(reference) {
@@ -18,18 +21,18 @@ exports.run = async (_event, context) => {
   if (
     context.eventType !== "providers/cloud.firestore/eventTypes/document.delete"
   ) {
-    console.log("Received unexcpected event type.", { context });
+    log.entry({ context }, "Received unexcpected event type.");
     return;
   }
 
   const boardId = context.params.boardId;
   if (!boardId) {
-    console.log("No board id found, exiting.");
+    log.entry("No board id found, exiting.");
     return;
   }
   const [cardsDeleted, columnsDeleted] = await Promise.all([
     deleteCollection(`/boards/${boardId}/cards`),
     deleteCollection(`/boards/${boardId}/columns`),
   ]);
-  console.log("Deleted board", { boardId, cardsDeleted, columnsDeleted });
+  log.entry({ boardId, cardsDeleted, columnsDeleted }, "Deleted board");
 };

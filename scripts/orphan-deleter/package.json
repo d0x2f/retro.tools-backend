@@ -1,0 +1,11 @@
+{
+  "name": "orphan-deleter",
+  "version": "0.0.1",
+  "dependencies": {
+    "@google-cloud/firestore": "^6.5.0",
+    "async-mutex": "^0.4.0"
+  },
+  "devDependencies": {
+    "prettier": "^2.5.1"
+  }
+}
