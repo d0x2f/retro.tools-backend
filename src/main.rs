@@ -12,7 +12,6 @@ mod error;
 mod participants;
 
 use actix_cors::Cors;
-use actix_http::cookie::SameSite;
 use actix_identity::{CookieIdentityPolicy, IdentityService};
 use actix_web::{http, middleware as ActixMiddleware, web, App, HttpServer};
 
@@ -45,10 +44,7 @@ async fn main() -> std::io::Result<()> {
           .name("__session")
           .secure(config.secure_cookie)
           .max_age(30 * 24 * 60 * 60)
-          .same_site(match config.environment {
-            config::Environment::Production => SameSite::Strict,
-            _ => SameSite::None,
-          }),
+          .same_site(config.same_site),
       ))
       .wrap(ActixMiddleware::Logger::default())
       .service(

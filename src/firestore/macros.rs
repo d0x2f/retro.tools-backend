@@ -236,3 +236,17 @@ macro_rules! boolean_value {
     }
   };
 }
+
+#[macro_export]
+macro_rules! timestamp_value {
+  ($secs:expr, $usecs:expr) => {
+    Value {
+      value_type: Some($crate::firestore::v1::value::ValueType::TimestampValue(
+        ::prost_types::Timestamp {
+          seconds: $secs,
+          nanos: $usecs,
+        },
+      )),
+    }
+  };
+}

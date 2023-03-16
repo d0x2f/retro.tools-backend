@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+use std::time::SystemTime;
+
 use super::models::*;
 use crate::config::Config;
 use crate::error::Error;
@@ -5,6 +8,12 @@ use crate::firestore::v1::*;
 use crate::firestore::FirestoreV1Client;
 
 pub async fn new(firestore: &mut FirestoreV1Client, config: &Config) -> Result<Participant, Error> {
+  let mut fields: HashMap<String, Value> = HashMap::new();
+  let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?;
+  fields.insert(
+    "created_at".into(),
+    timestamp_value!(now.as_secs() as i64, now.subsec_nanos() as i32),
+  );
   let result = firestore
     .create_document(CreateDocumentRequest {
       parent: format!(
@@ -12,6 +21,12 @@ pub async fn new(firestore: &mut FirestoreV1Client, config: &Config) -> Result<P
         config.firestore_project
       ),
       collection_id: "participants".into(),
+      document: Some(Document {
+        name: "".into(),
+        fields,
+        create_time: None,
+        update_time: None,
+      }),
       ..Default::default()
     })
     .await?;

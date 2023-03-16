@@ -3,6 +3,7 @@ use actix_web::{web, ResponseError};
 use serde::Serialize;
 use serde_json::{json, to_string_pretty};
 use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::time::SystemTimeError;
 
 #[derive(Debug, Serialize)]
 pub enum Error {
@@ -74,3 +75,4 @@ impl InternalError for tonic::transport::Error {}
 impl InternalError for gcp_auth::Error {}
 impl InternalError for csv::Error {}
 impl<W> InternalError for csv::IntoInnerError<W> {}
+impl InternalError for SystemTimeError {}

@@ -1,3 +1,4 @@
+use actix_http::cookie::SameSite;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs::File;
@@ -25,6 +26,7 @@ pub struct Config {
   pub firestore_project: String,
   pub firebase_credentials: GoogleAccountKey,
   pub secure_cookie: bool,
+  pub same_site: SameSite,
 }
 
 impl Config {
@@ -48,13 +50,13 @@ impl Config {
     };
 
     let port = match env::var("PORT") {
-      Ok(port) => port.parse().expect("integer port"),
+      Ok(port) => port.parse().expect("PORT to be an integer"),
       _ => 8000,
     };
 
     let firestore_project = match env::var("FIRESTORE_PROJECT") {
       Ok(s) => s,
-      Err(_) => cloudrun::get_project_id().expect("cloudrun project"),
+      Err(_) => cloudrun::get_project_id().expect("FIRESTORE_PROJECT environment variable"),
     };
 
     let google_credentials_file_path = match env::var("FIREBASE_SERVICE_ACCOUNT_CREDENTIALS") {
@@ -78,10 +80,22 @@ impl Config {
       .expect("Unable to read file referenced by 'FIREBASE_SERVICE_ACCOUNT_CREDENTIALS'.");
 
     let allowed_origins: Vec<String> = env::var("ALLOWED_ORIGINS")
-      .expect("allowed origins")
+      .expect("ALLOWED_ORIGINS environment variable")
       .split(',')
       .map(|s| s.to_string())
       .collect();
+
+    let same_site = match env::var("SAME_SITE")
+      .unwrap_or("strict".into())
+      .to_lowercase()
+      .as_ref()
+    {
+      "strict" => Ok(SameSite::Strict),
+      "lax" => Ok(SameSite::Lax),
+      "none" => Ok(SameSite::None),
+      _ => Err(()),
+    }
+    .expect("invalid value for SAME_SITE.");
 
     Config {
       port,
@@ -91,6 +105,7 @@ impl Config {
       firestore_project,
       firebase_credentials,
       secure_cookie,
+      same_site,
     }
   }
 }
@@ -105,6 +120,7 @@ impl Clone for Config {
       firestore_project: self.firestore_project.clone(),
       firebase_credentials: self.firebase_credentials.clone(),
       secure_cookie: self.secure_cookie,
+      same_site: self.same_site,
     }
   }
 }

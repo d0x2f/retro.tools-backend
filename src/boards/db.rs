@@ -1,5 +1,6 @@
 use std::convert::TryFrom;
 use std::convert::TryInto;
+use std::time::SystemTime;
 
 use super::models::*;
 use crate::config::Config;
@@ -22,6 +23,11 @@ pub async fn new(
       config.firestore_project,
       participant.id
     )),
+  );
+  let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?;
+  document.fields.insert(
+    "created_at".into(),
+    timestamp_value!(now.as_secs() as i64, now.subsec_nanos() as i32),
   );
   let result = firestore
     .create_document(CreateDocumentRequest {
