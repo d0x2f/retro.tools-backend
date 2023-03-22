@@ -1,16 +1,11 @@
+use firestore::paths;
 use firestore::FirestoreDb;
 use firestore::FirestoreReference;
-use futures::lock::Mutex;
 use futures::stream::BoxStream;
 use futures::StreamExt;
-use std::convert::TryInto;
-use std::sync::Arc;
 
 use super::models::*;
-use crate::config::Config;
 use crate::error::Error;
-use crate::firestore::v1::*;
-use crate::firestore::FirestoreV1Client;
 use crate::participants::db::get_participant_board_ids;
 use crate::participants::models::Participant;
 
@@ -67,46 +62,35 @@ pub async fn get(firestore: &FirestoreDb, board_id: String) -> Result<Board, Err
 }
 
 pub async fn update(
-  firestore: Arc<Mutex<FirestoreV1Client>>,
-  config: &Config,
+  firestore: &FirestoreDb,
   board_id: String,
   board: BoardMessage,
 ) -> Result<Board, Error> {
-  let mut document: Document = board.into();
-  document.name = format!(
-    "projects/{}/databases/(default)/documents/boards/{}",
-    config.firestore_project, board_id
-  );
-  let result = firestore
-    .lock()
+  let serialised_board = serde_json::to_value(&board)?;
+  firestore
+    .fluent()
+    .update()
+    .fields(
+      paths!(BoardMessage::{name, cards_open, voting_open, ice_breaking, data})
+        .into_iter()
+        .filter(|f| serialised_board.get(f).is_some()),
+    )
+    .in_col("boards")
+    .document_id(&board_id)
+    .object(&board)
+    .execute::<BoardInFirestore>()
     .await
-    .update_document(UpdateDocumentRequest {
-      document: Some(document.clone()),
-      update_mask: Some(DocumentMask {
-        field_paths: document.fields.keys().cloned().collect(),
-      }),
-      ..Default::default()
-    })
-    .await?;
-  result.into_inner().try_into()
+    .map(|board| board.into())
+    .map_err(|e| e.into())
 }
 
-pub async fn delete(
-  firestore: Arc<Mutex<FirestoreV1Client>>,
-  config: &Config,
-  board_id: String,
-) -> Result<(), Error> {
-  let name = format!(
-    "projects/{}/databases/(default)/documents/boards/{}",
-    config.firestore_project, board_id
-  );
+pub async fn delete(firestore: &FirestoreDb, board_id: String) -> Result<(), Error> {
   firestore
-    .lock()
+    .fluent()
+    .delete()
+    .from("boards")
+    .document_id(&board_id)
+    .execute()
     .await
-    .delete_document(DeleteDocumentRequest {
-      name,
-      ..Default::default()
-    })
-    .await?;
-  Ok(())
+    .map_err(|e| e.into())
 }

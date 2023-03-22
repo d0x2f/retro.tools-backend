@@ -3,7 +3,6 @@ pub mod macros;
 
 use crate::error::Error;
 
-// use futures::executor::block_on;
 use gcp_auth::{AuthenticationManager, Token};
 use tonic::{
   metadata::MetadataValue,

@@ -53,7 +53,7 @@ pub async fn add_participant_board(
     .fluent()
     .update()
     .in_col("participants")
-    .document_id(participant.id.clone())
+    .document_id(&participant.id)
     .transforms(|t| {
       t.fields([t
         .field(path!(ParticipantBoardIds::boards))

@@ -11,10 +11,15 @@ use crate::participants::models::Participant;
 
 #[derive(Deserialize, Serialize)]
 pub struct BoardMessage {
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub name: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub cards_open: Option<bool>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub voting_open: Option<bool>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub ice_breaking: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub data: Option<serde_json::Value>,
 }
 
@@ -83,7 +88,7 @@ impl From<BoardInFirestore> for Board {
         .unwrap_or(board._firestore_created)
         .0
         .timestamp(),
-      owner: board.owner.0,
+      owner: board.owner.0.split('/').last().unwrap().to_string(),
       data: board.data,
     }
   }
