@@ -58,8 +58,8 @@ impl From<BoardMessage> for NewBoard {
   fn from(board: BoardMessage) -> Self {
     NewBoard {
       name: board.name.unwrap_or_else(|| "".into()),
-      cards_open: board.cards_open.unwrap_or_else(|| true),
-      voting_open: board.voting_open.unwrap_or_else(|| true),
+      cards_open: board.cards_open.unwrap_or(true),
+      voting_open: board.voting_open.unwrap_or(true),
       ice_breaking: board.ice_breaking,
       created_at: FirestoreTimestamp(Utc::now()),
       owner: None,
@@ -80,7 +80,7 @@ impl From<BoardInFirestore> for Board {
       ice_breaking: board.ice_breaking.unwrap_or_else(|| "".into()),
       created_at: board
         .created_at
-        .unwrap_or_else(|| board._firestore_created)
+        .unwrap_or(board._firestore_created)
         .0
         .timestamp(),
       owner: board.owner.0,

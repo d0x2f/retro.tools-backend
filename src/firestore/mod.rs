@@ -46,9 +46,7 @@ impl Interceptor for InsertAuthInterceptor {
     let token_str = self.token.as_str();
     let header_string = format!("Bearer {}", token_str);
     let header_value: MetadataValue<_> = header_string.try_into().expect("parsed metadata string");
-    request
-      .metadata_mut()
-      .insert("authorization", header_value.clone());
+    request.metadata_mut().insert("authorization", header_value);
     Ok(request)
   }
 }

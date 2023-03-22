@@ -17,7 +17,6 @@ pub async fn new(
   participant: Participant,
   board_message: web::Json<BoardMessage>,
 ) -> Result<HttpResponse, Error> {
-  let firestore = firestore.into_inner();
   let mut board_message = board_message.into_inner();
   board_message.voting_open.get_or_insert(true);
   board_message.cards_open.get_or_insert(true);
@@ -31,7 +30,6 @@ pub async fn list(
   firestore: web::Data<FirestoreDb>,
   participant: Participant,
 ) -> Result<HttpResponse, Error> {
-  let firestore = firestore.into_inner();
   let boards = db::list(&firestore, &participant).await?;
   Ok(
     HttpResponse::Ok().json(
