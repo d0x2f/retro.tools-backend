@@ -1,3 +1,7 @@
+# v0.3 (in progress) // TODO
+
+Refactor to use abdolence/firestore-rs instead of raw grpc with tonic
+
 # v0.2
 
 Total rewrite

@@ -1,5 +1,7 @@
+use futures::lock::Mutex;
 use std::convert::TryFrom;
 use std::convert::TryInto;
+use std::sync::Arc;
 use std::time::SystemTime;
 
 use super::models::*;
@@ -10,7 +12,7 @@ use crate::firestore::FirestoreV1Client;
 use crate::participants::models::Participant;
 
 pub async fn new(
-  firestore: &mut FirestoreV1Client,
+  firestore: Arc<Mutex<FirestoreV1Client>>,
   config: &Config,
   participant: &Participant,
   board_id: String,
@@ -30,6 +32,8 @@ pub async fn new(
     timestamp_value!(now.as_secs() as i64, now.subsec_nanos() as i32),
   );
   let result = firestore
+    .lock()
+    .await
     .create_document(CreateDocumentRequest {
       parent: format!(
         "projects/{}/databases/(default)/documents/boards/{}",
@@ -44,11 +48,13 @@ pub async fn new(
 }
 
 pub async fn list(
-  firestore: &mut FirestoreV1Client,
+  firestore: Arc<Mutex<FirestoreV1Client>>,
   config: &Config,
   board_id: String,
 ) -> Result<Vec<Card>, Error> {
   let result = firestore
+    .lock()
+    .await
     .list_documents(ListDocumentsRequest {
       parent: format!(
         "projects/{}/databases/(default)/documents/boards/{}",
@@ -68,12 +74,14 @@ pub async fn list(
 }
 
 pub async fn get(
-  firestore: &mut FirestoreV1Client,
+  firestore: Arc<Mutex<FirestoreV1Client>>,
   config: &Config,
   board_id: String,
   card_id: String,
 ) -> Result<Card, Error> {
   let result = firestore
+    .lock()
+    .await
     .get_document(GetDocumentRequest {
       name: format!(
         "projects/{}/databases/(default)/documents/boards/{}/cards/{}",
@@ -86,7 +94,7 @@ pub async fn get(
 }
 
 pub async fn update(
-  firestore: &mut FirestoreV1Client,
+  firestore: Arc<Mutex<FirestoreV1Client>>,
   config: &Config,
   board_id: String,
   card_id: String,
@@ -98,6 +106,8 @@ pub async fn update(
     config.firestore_project, board_id, card_id
   );
   let result = firestore
+    .lock()
+    .await
     .update_document(UpdateDocumentRequest {
       document: Some(document.clone()),
       update_mask: Some(DocumentMask {
@@ -110,7 +120,7 @@ pub async fn update(
 }
 
 pub async fn delete(
-  firestore: &mut FirestoreV1Client,
+  firestore: Arc<Mutex<FirestoreV1Client>>,
   config: &Config,
   board_id: String,
   card_id: String,
@@ -120,6 +130,8 @@ pub async fn delete(
     config.firestore_project, board_id, card_id
   );
   firestore
+    .lock()
+    .await
     .delete_document(DeleteDocumentRequest {
       name,
       ..Default::default()
@@ -129,7 +141,7 @@ pub async fn delete(
 }
 
 pub async fn put_vote(
-  firestore: &mut FirestoreV1Client,
+  firestore: Arc<Mutex<FirestoreV1Client>>,
   config: &Config,
   participant: &Participant,
   board_id: String,
@@ -138,6 +150,8 @@ pub async fn put_vote(
   let participant_doc_id = to_participant_reference!(config.firestore_project, participant.id);
   let card_doc_id = to_card_reference!(config.firestore_project, board_id, card_id);
   firestore
+    .lock()
+    .await
     .batch_write(BatchWriteRequest {
       database: format!("projects/{}/databases/(default)", config.firestore_project),
       writes: vec![Write {
@@ -164,7 +178,7 @@ pub async fn put_vote(
 }
 
 pub async fn delete_vote(
-  firestore: &mut FirestoreV1Client,
+  firestore: Arc<Mutex<FirestoreV1Client>>,
   config: &Config,
   participant: &Participant,
   board_id: String,
@@ -173,6 +187,8 @@ pub async fn delete_vote(
   let participant_doc_id = to_participant_reference!(config.firestore_project, participant.id);
   let card_doc_id = to_card_reference!(config.firestore_project, board_id, card_id);
   firestore
+    .lock()
+    .await
     .batch_write(BatchWriteRequest {
       database: format!("projects/{}/databases/(default)", config.firestore_project),
       writes: vec![Write {
@@ -197,7 +213,7 @@ pub async fn delete_vote(
 }
 
 pub async fn put_reaction(
-  firestore: &mut FirestoreV1Client,
+  firestore: Arc<Mutex<FirestoreV1Client>>,
   config: &Config,
   participant: &Participant,
   board_id: String,
@@ -208,9 +224,11 @@ pub async fn put_reaction(
   let card_doc_id = to_card_reference!(config.firestore_project, board_id, card_id);
 
   // Delete an existing reaction first
-  delete_reaction(firestore, config, participant, board_id, card_id).await?;
+  delete_reaction(firestore.clone(), config, participant, board_id, card_id).await?;
 
   firestore
+    .lock()
+    .await
     .batch_write(BatchWriteRequest {
       database: format!("projects/{}/databases/(default)", config.firestore_project),
       writes: vec![Write {
@@ -237,7 +255,7 @@ pub async fn put_reaction(
 }
 
 pub async fn delete_reaction(
-  firestore: &mut FirestoreV1Client,
+  firestore: Arc<Mutex<FirestoreV1Client>>,
   config: &Config,
   participant: &Participant,
   board_id: String,
@@ -245,7 +263,7 @@ pub async fn delete_reaction(
 ) -> Result<(), Error> {
   let participant_doc_id = to_participant_reference!(config.firestore_project, participant.id);
   let card_doc_id = to_card_reference!(config.firestore_project, board_id, card_id);
-  let card = get(firestore, config, board_id, card_id).await?;
+  let card = get(firestore.clone(), config, board_id, card_id).await?;
 
   // Find which emoji the participant has reacted with
   let mut reaction: Option<String> = None;
@@ -257,6 +275,8 @@ pub async fn delete_reaction(
 
   if let Some(emoji) = reaction {
     firestore
+      .lock()
+      .await
       .batch_write(BatchWriteRequest {
         database: format!("projects/{}/databases/(default)", config.firestore_project),
         writes: vec![Write {

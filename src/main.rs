@@ -11,19 +11,25 @@ mod config;
 mod error;
 mod participants;
 
+use ::firestore::FirestoreDb;
 use actix_cors::Cors;
-use actix_identity::{CookieIdentityPolicy, IdentityService};
-use actix_web::{http, middleware as ActixMiddleware, web, App, HttpServer};
+use actix_identity::IdentityMiddleware;
+use actix_session::{storage::CookieSessionStore, SessionMiddleware};
+use actix_web::cookie::Key;
+use actix_web::{http, middleware as ActixMiddleware, web::Data, App, HttpServer};
+use futures::lock::Mutex;
+use gcp_auth::AuthenticationManager;
 
-#[actix_rt::main]
+#[actix_web::main]
 async fn main() -> std::io::Result<()> {
   env_logger::init();
   dotenv::dotenv().ok();
 
-  let config = config::Config::from_env().await;
+  let config = config::Config::from_env();
   let port = config.port;
 
   HttpServer::new(move || {
+    let firestore_project = config.firestore_project.clone();
     let mut cors = Cors::default()
       .send_wildcard()
       .allowed_methods(vec!["GET", "POST", "PATCH", "PUT", "DELETE"])
@@ -36,63 +42,47 @@ async fn main() -> std::io::Result<()> {
     }
 
     App::new()
-      .data(config.clone())
-      .wrap(ActixMiddleware::DefaultHeaders::new().header("Cache-Control", "private"))
+      .data_factory(|| async {
+        firestore::get_client(AuthenticationManager::new().await?)
+          .await
+          .map(Mutex::new)
+      })
+      .data_factory(move || FirestoreDb::new(firestore_project.clone()))
+      .app_data(Data::new(config.clone()))
+      .wrap(ActixMiddleware::DefaultHeaders::new().add(("Cache-Control", "private")))
       .wrap(cors)
-      .wrap(IdentityService::new(
-        CookieIdentityPolicy::new(&config.secret_key)
-          .name("__session")
-          .secure(config.secure_cookie)
-          .max_age(30 * 24 * 60 * 60)
-          .same_site(config.same_site),
-      ))
+      .wrap(IdentityMiddleware::default())
+      .wrap(
+        SessionMiddleware::builder(CookieSessionStore::default(), Key::from(&config.secret_key))
+          .cookie_secure(config.secure_cookie)
+          .cookie_same_site(config.same_site)
+          .cookie_name("__session".into())
+          .build(),
+      )
       .wrap(ActixMiddleware::Logger::default())
-      .service(
-        web::resource("boards")
-          .route(web::get().to(boards::routes::list))
-          .route(web::post().to(boards::routes::new)),
-      )
-      .service(
-        web::resource("boards/{board_id}")
-          .route(web::patch().to(boards::routes::update))
-          .route(web::get().to(boards::routes::get))
-          .route(web::delete().to(boards::routes::delete)),
-      )
-      .service(
-        web::resource("boards/{board_id}/columns")
-          .route(web::get().to(columns::routes::list))
-          .route(web::post().to(columns::routes::new)),
-      )
-      .service(
-        web::resource("boards/{board_id}/columns/{column_id}")
-          .route(web::patch().to(columns::routes::update))
-          .route(web::get().to(columns::routes::get))
-          .route(web::delete().to(columns::routes::delete)),
-      )
-      .service(
-        web::resource("boards/{board_id}/columns/{column_id}/cards")
-          .route(web::post().to(cards::routes::new)),
-      )
-      .service(web::resource("boards/{board_id}/cards").route(web::get().to(cards::routes::list)))
-      .service(web::resource("boards/{board_id}/csv").route(web::get().to(cards::routes::csv)))
-      .service(
-        web::resource("boards/{board_id}/cards/{card_id}")
-          .route(web::patch().to(cards::routes::update))
-          .route(web::get().to(cards::routes::get))
-          .route(web::delete().to(cards::routes::delete)),
-      )
-      .service(
-        web::resource("boards/{board_id}/cards/{card_id}/vote")
-          .route(web::put().to(cards::routes::put_vote))
-          .route(web::delete().to(cards::routes::delete_vote)),
-      )
-      .service(
-        web::resource("boards/{board_id}/cards/{card_id}/react")
-          .route(web::put().to(cards::routes::put_reaction))
-          .route(web::delete().to(cards::routes::delete_reaction)),
-      )
-      .service(web::resource("auth").route(web::get().to(participants::routes::auth)))
+      .service(boards::routes::list)
+      .service(boards::routes::new)
+      .service(boards::routes::update)
+      .service(boards::routes::get)
+      .service(boards::routes::delete)
+      .service(columns::routes::list)
+      .service(columns::routes::new)
+      .service(columns::routes::update)
+      .service(columns::routes::get)
+      .service(columns::routes::delete)
+      .service(cards::routes::new)
+      .service(cards::routes::list)
+      .service(cards::routes::csv)
+      .service(cards::routes::update)
+      .service(cards::routes::get)
+      .service(cards::routes::delete)
+      .service(cards::routes::put_vote)
+      .service(cards::routes::delete_vote)
+      .service(cards::routes::put_reaction)
+      .service(cards::routes::delete_reaction)
+      .service(participants::routes::auth)
   })
+  .workers(1)
   .bind(format!("0.0.0.0:{}", port))?
   .run()
   .await

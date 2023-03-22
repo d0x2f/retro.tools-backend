@@ -3,13 +3,16 @@ pub mod models;
 pub mod routes;
 
 use std::collections::HashMap;
+use std::sync::Arc;
+
+use futures::lock::Mutex;
 
 use crate::config::Config;
 use crate::error::Error;
 use crate::firestore::FirestoreV1Client;
 
 pub async fn get_columns(
-  firestore: &mut FirestoreV1Client,
+  firestore: Arc<Mutex<FirestoreV1Client>>,
   config: &Config,
   board_id: String,
 ) -> Result<HashMap<String, models::Column>, Error> {

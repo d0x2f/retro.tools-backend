@@ -1,5 +1,7 @@
+use futures::lock::Mutex;
 use std::convert::TryFrom;
 use std::convert::TryInto;
+use std::sync::Arc;
 use std::time::SystemTime;
 
 use super::models::*;
@@ -9,7 +11,7 @@ use crate::firestore::v1::*;
 use crate::firestore::FirestoreV1Client;
 
 pub async fn new(
-  firestore: &mut FirestoreV1Client,
+  firestore: Arc<Mutex<FirestoreV1Client>>,
   config: &Config,
   board_id: String,
   column: ColumnMessage,
@@ -21,6 +23,8 @@ pub async fn new(
     timestamp_value!(now.as_secs() as i64, now.subsec_nanos() as i32),
   );
   let result = firestore
+    .lock()
+    .await
     .create_document(CreateDocumentRequest {
       parent: format!(
         "projects/{}/databases/(default)/documents/boards/{}",
@@ -35,11 +39,13 @@ pub async fn new(
 }
 
 pub async fn list(
-  firestore: &mut FirestoreV1Client,
+  firestore: Arc<Mutex<FirestoreV1Client>>,
   config: &Config,
   board_id: String,
 ) -> Result<Vec<Column>, Error> {
   let result = firestore
+    .lock()
+    .await
     .list_documents(ListDocumentsRequest {
       parent: format!(
         "projects/{}/databases/(default)/documents/boards/{}",
@@ -58,12 +64,14 @@ pub async fn list(
 }
 
 pub async fn get(
-  firestore: &mut FirestoreV1Client,
+  firestore: Arc<Mutex<FirestoreV1Client>>,
   config: &Config,
   board_id: String,
   column_id: String,
 ) -> Result<Column, Error> {
   let result = firestore
+    .lock()
+    .await
     .get_document(GetDocumentRequest {
       name: format!(
         "projects/{}/databases/(default)/documents/boards/{}/columns/{}",
@@ -76,7 +84,7 @@ pub async fn get(
 }
 
 pub async fn update(
-  firestore: &mut FirestoreV1Client,
+  firestore: Arc<Mutex<FirestoreV1Client>>,
   config: &Config,
   board_id: String,
   column_id: String,
@@ -88,6 +96,8 @@ pub async fn update(
     config.firestore_project, board_id, column_id
   );
   let result = firestore
+    .lock()
+    .await
     .update_document(UpdateDocumentRequest {
       document: Some(document.clone()),
       update_mask: Some(DocumentMask {
@@ -100,7 +110,7 @@ pub async fn update(
 }
 
 pub async fn delete(
-  firestore: &mut FirestoreV1Client,
+  firestore: Arc<Mutex<FirestoreV1Client>>,
   config: &Config,
   board_id: String,
   column_id: String,
@@ -110,6 +120,8 @@ pub async fn delete(
     config.firestore_project, board_id, column_id
   );
   firestore
+    .lock()
+    .await
     .delete_document(DeleteDocumentRequest {
       name,
       ..Default::default()

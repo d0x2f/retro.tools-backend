@@ -1,5 +1,4 @@
 use crate::error;
-use actix_http::httpmessage::HttpMessage;
 use actix_identity::Identity;
 use actix_web::dev::Payload;
 use actix_web::web::Data;
@@ -17,6 +16,11 @@ pub struct Participant {
   pub id: String,
 }
 
+#[derive(Deserialize)]
+pub struct ParticipantBoardIds {
+  pub boards: Vec<String>,
+}
+
 impl From<Document> for Participant {
   fn from(document: Document) -> Self {
     Participant {
@@ -28,16 +32,14 @@ impl From<Document> for Participant {
 impl FromRequest for Participant {
   type Error = error::Error;
   type Future = Pin<Box<dyn Future<Output = Result<Self, error::Error>>>>;
-  type Config = ();
 
   fn from_request(req: &HttpRequest, payload: &mut Payload) -> Self::Future {
-    let legacy_id: Option<String> = req.cookie("__session").map(|cookie| cookie.value().into());
     let config = req.app_data::<Data<Config>>().expect("config");
     let config = &(*Arc::clone(&config.clone().into_inner()));
     Box::pin(super::new(
       config.clone(),
       Identity::from_request(req, payload),
-      legacy_id,
+      req.clone(),
     ))
   }
 }

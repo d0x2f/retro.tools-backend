@@ -1,4 +1,4 @@
-use actix_http::cookie::SameSite;
+use actix_web::cookie::SameSite;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs::File;
@@ -30,7 +30,7 @@ pub struct Config {
 }
 
 impl Config {
-  pub async fn from_env() -> Config {
+  pub fn from_env() -> Config {
     let environment = match env::var("ENVIRONMENT") {
       Ok(env_string) => match env_string.to_lowercase().as_str() {
         "development" => Environment::Development,
@@ -39,12 +39,13 @@ impl Config {
       _ => Environment::Production,
     };
 
+    // TODO: Fit existing 32 bit keys in to the new 64 bit one
     let secret_key = match env::var("SECRET_KEY") {
       Err(_) => match environment {
         Environment::Production => {
           panic!("No secret key provided despite being in production mode!")
         }
-        _ => vec![0_u8; 32],
+        _ => vec![0_u8; 64],
       },
       Ok(s) => s.as_bytes().to_owned(),
     };

@@ -1,101 +1,100 @@
-use actix_web::web;
+use actix_web::{delete, get, patch, post, web, HttpResponse};
+use firestore::FirestoreDb;
 use futures::future::join;
+use futures::lock::Mutex;
 
 use super::db;
 use super::models::*;
 use crate::config::Config;
 use crate::error::Error;
-use crate::firestore;
+use crate::firestore::FirestoreV1Client;
 use crate::participants::db::*;
 use crate::participants::models::Participant;
 
+#[post("boards")]
 pub async fn new(
-  config: web::Data<Config>,
+  firestore: web::Data<FirestoreDb>,
   participant: Participant,
   board_message: web::Json<BoardMessage>,
-) -> Result<web::HttpResponse, Error> {
-  let mut firestore = firestore::get_client().await?;
+) -> Result<HttpResponse, Error> {
+  let firestore = firestore.into_inner();
   let mut board_message = board_message.into_inner();
   board_message.voting_open.get_or_insert(true);
   board_message.cards_open.get_or_insert(true);
-  let board = db::new(&mut firestore, &config, &participant, board_message).await?;
-  add_participant_board(
-    &mut firestore.clone(),
-    &config,
-    &participant,
-    board.id.clone(),
-  )
-  .await?;
-  Ok(web::HttpResponse::Ok().json(BoardResponse::from_board(board, &participant)))
+  let board = db::new(&firestore, &participant, board_message).await?;
+  add_participant_board(&firestore, &participant, board.id.clone()).await?;
+  Ok(HttpResponse::Ok().json(BoardResponse::from_board(board, &participant)))
 }
 
+#[get("boards")]
 pub async fn list(
-  config: web::Data<Config>,
+  firestore: web::Data<FirestoreDb>,
   participant: Participant,
-) -> Result<web::HttpResponse, Error> {
-  let mut firestore = firestore::get_client().await?;
-  let boards = db::list(&mut firestore, &config, &participant).await?;
+) -> Result<HttpResponse, Error> {
+  let firestore = firestore.into_inner();
+  let boards = db::list(&firestore, &participant).await?;
   Ok(
-    web::HttpResponse::Ok().json::<Vec<BoardResponse>>(
+    HttpResponse::Ok().json(
       boards
         .into_iter()
         .map(|board| BoardResponse::from_board(board, &participant))
-        .collect(),
+        .collect::<Vec<BoardResponse>>(),
     ),
   )
 }
 
+#[get("boards/{board_id}")]
 pub async fn get(
-  config: web::Data<Config>,
+  firestore: web::Data<FirestoreDb>,
   participant: Participant,
   board_id: web::Path<String>,
-) -> Result<web::HttpResponse, Error> {
-  let mut firestore = firestore::get_client().await?;
+) -> Result<HttpResponse, Error> {
   let (register, board) = join(
-    add_participant_board(
-      &mut firestore.clone(),
-      &config,
-      &participant,
-      board_id.clone(),
-    ),
-    db::get(&mut firestore, &config, board_id.to_string()),
+    add_participant_board(&firestore, &participant, board_id.clone()),
+    db::get(&firestore, board_id.to_string()),
   )
   .await;
   register?;
-  Ok(web::HttpResponse::Ok().json(BoardResponse::from_board(board?, &participant)))
+  Ok(HttpResponse::Ok().json(BoardResponse::from_board(board?, &participant)))
 }
 
+#[patch("boards/{board_id}")]
 pub async fn update(
   config: web::Data<Config>,
+  firestore: web::Data<Mutex<FirestoreV1Client>>,
+  firestore2: web::Data<FirestoreDb>,
   participant: Participant,
   board_id: web::Path<String>,
   board_message: web::Json<BoardMessage>,
-) -> Result<web::HttpResponse, Error> {
-  let mut firestore = firestore::get_client().await?;
-  let board = db::get(&mut firestore, &config, board_id.to_string()).await?;
+) -> Result<HttpResponse, Error> {
+  let firestore = firestore.into_inner();
+  let board = db::get(&firestore2, board_id.to_string()).await?;
   if board.owner != participant.id {
     return Err(Error::Forbidden);
   }
   let board = db::update(
-    &mut firestore,
+    firestore,
     &config,
     board_id.to_string(),
     board_message.into_inner(),
   )
   .await?;
-  Ok(web::HttpResponse::Ok().json(BoardResponse::from_board(board, &participant)))
+  Ok(HttpResponse::Ok().json(BoardResponse::from_board(board, &participant)))
 }
 
+#[delete("boards/{board_id}")]
 pub async fn delete(
   config: web::Data<Config>,
+  firestore: web::Data<Mutex<FirestoreV1Client>>,
+  firestore2: web::Data<FirestoreDb>,
   participant: Participant,
   board_id: web::Path<String>,
-) -> Result<web::HttpResponse, Error> {
-  let mut firestore = firestore::get_client().await?;
-  let board = db::get(&mut firestore, &config, board_id.to_string()).await?;
+) -> Result<HttpResponse, Error> {
+  let firestore = firestore.into_inner();
+  let board = db::get(&firestore2, board_id.to_string()).await?;
   if board.owner != participant.id {
     return Err(Error::Forbidden);
   }
-  db::delete(&mut firestore, &config, board_id.to_string()).await?;
-  Ok(web::HttpResponse::Ok().finish())
+  db::delete(firestore, &config, board_id.to_string()).await?;
+  Ok(HttpResponse::Ok().finish())
 }

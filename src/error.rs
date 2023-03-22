@@ -1,5 +1,6 @@
 use actix_web::http::StatusCode;
-use actix_web::{web, ResponseError};
+use actix_web::{HttpResponse, ResponseError};
+use firestore::errors::FirestoreError;
 use serde::Serialize;
 use serde_json::{json, to_string_pretty};
 use std::fmt::{Display, Formatter, Result as FmtResult};
@@ -20,7 +21,7 @@ impl Display for Error {
 }
 
 impl ResponseError for Error {
-  fn error_response(&self) -> web::HttpResponse {
+  fn error_response(&self) -> HttpResponse {
     let (status, message, log_message) = match self {
       Error::NotFound => (StatusCode::NOT_FOUND, "Not Found", None),
       Error::Forbidden => (StatusCode::FORBIDDEN, "Forbidden", None),
@@ -34,7 +35,7 @@ impl ResponseError for Error {
     if let Some(error) = log_message {
       error!("{}", error);
     }
-    web::HttpResponse::build(status).json(json!({ "error": message }))
+    HttpResponse::build(status).json(json!({ "error": message }))
   }
 }
 
@@ -65,7 +66,6 @@ where
 }
 
 impl InternalError for actix_http::error::Error {}
-impl InternalError for actix_http::client::SendRequestError {}
 impl InternalError for actix_http::error::PayloadError {}
 impl InternalError for serde_json::error::Error {}
 impl InternalError for std::string::FromUtf8Error {}
@@ -76,3 +76,4 @@ impl InternalError for gcp_auth::Error {}
 impl InternalError for csv::Error {}
 impl<W> InternalError for csv::IntoInnerError<W> {}
 impl InternalError for SystemTimeError {}
+impl InternalError for FirestoreError {}

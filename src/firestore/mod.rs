@@ -3,12 +3,13 @@ pub mod macros;
 
 use crate::error::Error;
 
-use futures::future::join;
-use gcp_auth::Token;
+// use futures::executor::block_on;
+use gcp_auth::{AuthenticationManager, Token};
 use tonic::{
   metadata::MetadataValue,
+  service::{interceptor::InterceptedService, Interceptor},
   transport::{Channel, ClientTlsConfig},
-  Request,
+  Status,
 };
 
 #[allow(warnings)]
@@ -27,36 +28,42 @@ pub mod google {
 }
 
 pub use google::firestore::*;
-pub type FirestoreV1Client = google::firestore::v1::firestore_client::FirestoreClient<Channel>;
+pub type FirestoreV1Client = google::firestore::v1::firestore_client::FirestoreClient<
+  InterceptedService<Channel, InsertAuthInterceptor>,
+>;
 
 const URL: &str = "https://firestore.googleapis.com";
 const DOMAIN: &str = "firestore.googleapis.com";
 const SCOPE: &str = "https://www.googleapis.com/auth/datastore";
 
-async fn get_token() -> Result<Token, Error> {
-  let token_manager = gcp_auth::init().await?;
-  Ok(token_manager.get_token(&[SCOPE]).await?)
+#[derive(Clone)]
+pub struct InsertAuthInterceptor {
+  token: Token,
 }
 
-pub async fn get_client() -> Result<FirestoreV1Client, Error> {
-  let tls = ClientTlsConfig::new().domain_name(DOMAIN);
-
-  let (channel, token_result) = join(
-    Channel::from_static(URL).tls_config(tls)?.connect(),
-    get_token(),
-  )
-  .await;
-
-  let token = token_result?;
-  let token_str = token.as_str();
-  let header_string = format!("Bearer {}", token_str);
-  let header_value = MetadataValue::from_str(&header_string).expect("parsed metadata string");
-
-  let client = FirestoreV1Client::with_interceptor(channel?, move |mut req: Request<()>| {
-    req
+impl Interceptor for InsertAuthInterceptor {
+  fn call(&mut self, mut request: tonic::Request<()>) -> Result<tonic::Request<()>, Status> {
+    let token_str = self.token.as_str();
+    let header_string = format!("Bearer {}", token_str);
+    let header_value: MetadataValue<_> = header_string.try_into().expect("parsed metadata string");
+    request
       .metadata_mut()
       .insert("authorization", header_value.clone());
-    Ok(req)
-  });
+    Ok(request)
+  }
+}
+
+pub async fn get_client(gcp_auth: AuthenticationManager) -> Result<FirestoreV1Client, Error> {
+  let tls = ClientTlsConfig::new().domain_name(DOMAIN);
+  let channel = Channel::from_static(URL).tls_config(tls)?.connect().await;
+  let client = google::firestore::v1::firestore_client::FirestoreClient::with_interceptor(
+    channel?,
+    InsertAuthInterceptor {
+      token: gcp_auth
+        .get_token(&[SCOPE])
+        .await
+        .map_err(|e| Status::internal(e.to_string()))?,
+    },
+  );
   Ok(client)
 }
