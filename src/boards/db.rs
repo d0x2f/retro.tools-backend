@@ -14,7 +14,7 @@ pub async fn new(
   participant: &Participant,
   board: BoardMessage,
 ) -> Result<Board, Error> {
-  let mut new_board = Into::<NewBoard>::into(board);
+  let mut new_board: NewBoard = board.into();
   new_board.owner = Some(FirestoreReference(format!(
     "{}/participants/{}",
     firestore.get_documents_path(),

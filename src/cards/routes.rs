@@ -257,7 +257,7 @@ pub async fn csv(
 ) -> Result<HttpResponse, Error> {
   let firestore = firestore.into_inner();
   let board = get_board(&firestore2, board_id.to_string()).await?;
-  let columns = get_columns(firestore.clone(), &config, board_id.to_string()).await?;
+  let columns = get_columns(&firestore2, board_id.to_string()).await?;
   let mut cards = db::list(firestore, &config, board_id.to_string()).await?;
   cards.sort_by(|a, b| b.column.cmp(&a.column));
   let mut csv_writer = CSVWriter::from_writer(vec![]);
