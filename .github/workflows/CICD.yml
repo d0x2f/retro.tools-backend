@@ -17,7 +17,6 @@ jobs:
           toolchain: stable
           components: clippy, rustfmt
           override: true
-      - run: ./scripts/fetch-protos.sh
       - name: Run clippy
         uses: actions-rs/clippy-check@v1
         with:
@@ -30,10 +29,10 @@ jobs:
     if: "!contains(github.event.head_commit.message, '[skip ci]') && github.ref == 'refs/heads/master'"
     steps:
       - uses: actions/checkout@v1
-      - id: 'auth'
-        uses: 'google-github-actions/auth@v0.4.0'
+      - id: "auth"
+        uses: "google-github-actions/auth@v0.4.0"
         with:
-          credentials_json: '${{ secrets.GCP_ACCOUNT_CREDENTIALS }}'
+          credentials_json: "${{ secrets.GCP_ACCOUNT_CREDENTIALS }}"
       - uses: google-github-actions/setup-gcloud@v0
       - name: Install gcloud Beta Components
         run: gcloud components install beta

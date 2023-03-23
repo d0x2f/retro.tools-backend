@@ -9,7 +9,6 @@ edition = "2021"
 dotenv = "^0.15"
 bytes = "^1.1.0"
 reqwest = { version = "^0.11.7", features = ["blocking"] }
-gcp_auth = "^0.7.5" # TODO: Won't need with firestore lib
 chrono = "^0.4.13"
 settimeout = "^0.1.2"
 tokio = "^1.26.0"
@@ -33,11 +32,3 @@ serde_json = "1.0"
 futures = "^0.3"
 futures-util = "^0.3.5"
 actix-cors = "^0.6.4"
-
-# gRPC TODO: Remove and rely on firestore lib
-tonic = { version = "0.8.3", features = ["tls", "tls-roots"] }
-prost-types = "0.11.8"
-prost = "0.11.8"
-
-[build-dependencies]
-tonic-build = "0.8.4" # Builds code from .proto files

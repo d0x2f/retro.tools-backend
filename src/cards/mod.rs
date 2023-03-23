@@ -2,7 +2,7 @@ mod db;
 pub mod models;
 pub mod routes;
 
-use firestore::FirestoreDb;
+use firestore::{FirestoreDb, FirestoreReference};
 
 use crate::boards;
 use crate::error::Error;
@@ -15,7 +15,12 @@ pub async fn assert_card_owner(
   board_id: String,
 ) -> Result<(), Error> {
   let board = boards::db::get(firestore, board_id).await?;
-  if board.owner == participant.id || card.owner == participant.id {
+  let participant_reference = FirestoreReference(format!(
+    "{}/participants/{}",
+    firestore.get_documents_path(),
+    participant.id
+  ));
+  if board.owner == participant_reference || card.owner == participant_reference {
     Ok(())
   } else {
     Err(Error::Forbidden)

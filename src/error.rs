@@ -39,15 +39,6 @@ impl ResponseError for Error {
   }
 }
 
-impl From<tonic::Status> for Error {
-  fn from(error: tonic::Status) -> Self {
-    match error.code() {
-      tonic::Code::NotFound => Error::NotFound,
-      _ => Error::Other(format!("{}", error)),
-    }
-  }
-}
-
 impl From<jwt_simple::Error> for Error {
   fn from(error: jwt_simple::Error) -> Self {
     Error::Other(format!("{}", error))
@@ -69,10 +60,7 @@ impl InternalError for actix_http::error::Error {}
 impl InternalError for actix_http::error::PayloadError {}
 impl InternalError for serde_json::error::Error {}
 impl InternalError for std::string::FromUtf8Error {}
-impl InternalError for tonic::metadata::errors::InvalidMetadataValue {}
 impl InternalError for reqwest::Error {}
-impl InternalError for tonic::transport::Error {}
-impl InternalError for gcp_auth::Error {}
 impl InternalError for csv::Error {}
 impl<W> InternalError for csv::IntoInnerError<W> {}
 impl InternalError for SystemTimeError {}

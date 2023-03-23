@@ -1,8 +1,6 @@
 #[macro_use]
 extern crate log;
 
-#[macro_use]
-mod firestore;
 mod boards;
 mod cards;
 mod cloudrun;
@@ -17,8 +15,6 @@ use actix_identity::IdentityMiddleware;
 use actix_session::{storage::CookieSessionStore, SessionMiddleware};
 use actix_web::cookie::Key;
 use actix_web::{http, middleware as ActixMiddleware, web::Data, App, HttpServer};
-use futures::lock::Mutex;
-use gcp_auth::AuthenticationManager;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -42,11 +38,6 @@ async fn main() -> std::io::Result<()> {
     }
 
     App::new()
-      .data_factory(|| async {
-        firestore::get_client(AuthenticationManager::new().await?)
-          .await
-          .map(Mutex::new)
-      })
       .data_factory(move || FirestoreDb::new(firestore_project.clone()))
       .app_data(Data::new(config.clone()))
       .wrap(ActixMiddleware::DefaultHeaders::new().add(("Cache-Control", "private")))

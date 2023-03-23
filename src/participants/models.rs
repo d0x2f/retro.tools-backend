@@ -8,8 +8,6 @@ use futures::future::Future;
 use serde::{Deserialize, Serialize};
 use std::pin::Pin;
 
-use crate::firestore::v1::Document;
-
 #[derive(Deserialize, Serialize, Clone)]
 pub struct Participant {
   pub id: String,
@@ -26,14 +24,6 @@ pub struct ParticipantInFirestore {
   pub _firestore_created: FirestoreTimestamp,
   pub created_at: FirestoreTimestamp,
   pub boards: Option<Vec<String>>,
-}
-
-impl From<Document> for Participant {
-  fn from(document: Document) -> Self {
-    Participant {
-      id: get_id!(document),
-    }
-  }
 }
 
 impl From<ParticipantInFirestore> for Participant {

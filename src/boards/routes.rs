@@ -1,5 +1,6 @@
 use actix_web::{delete, get, patch, post, web, HttpResponse};
 use firestore::FirestoreDb;
+use firestore::FirestoreReference;
 use futures::future::join;
 
 use super::db;
@@ -19,7 +20,17 @@ pub async fn new(
   board_message.cards_open.get_or_insert(true);
   let board = db::new(&firestore, &participant, board_message).await?;
   add_participant_board(&firestore, &participant, board.id.clone()).await?;
-  Ok(HttpResponse::Ok().json(BoardResponse::from_board(board, &participant)))
+  Ok(
+    HttpResponse::Ok().json(BoardResponse::from_board(
+      board,
+      &FirestoreReference(
+        firestore
+          .parent_path("participants", &participant.id)
+          .unwrap()
+          .into(),
+      ),
+    )),
+  )
 }
 
 #[get("boards")]
@@ -32,7 +43,17 @@ pub async fn list(
     HttpResponse::Ok().json(
       boards
         .into_iter()
-        .map(|board| BoardResponse::from_board(board, &participant))
+        .map(|board| {
+          BoardResponse::from_board(
+            board,
+            &FirestoreReference(
+              firestore
+                .parent_path("participants", &participant.id)
+                .unwrap()
+                .into(),
+            ),
+          )
+        })
         .collect::<Vec<BoardResponse>>(),
     ),
   )
@@ -50,7 +71,17 @@ pub async fn get(
   )
   .await;
   register?;
-  Ok(HttpResponse::Ok().json(BoardResponse::from_board(board?, &participant)))
+  Ok(
+    HttpResponse::Ok().json(BoardResponse::from_board(
+      board?,
+      &FirestoreReference(
+        firestore
+          .parent_path("participants", &participant.id)
+          .unwrap()
+          .into(),
+      ),
+    )),
+  )
 }
 
 #[patch("boards/{board_id}")]
@@ -60,13 +91,18 @@ pub async fn update(
   board_id: web::Path<String>,
   board_message: web::Json<BoardMessage>,
 ) -> Result<HttpResponse, Error> {
-  let firestore = firestore.into_inner();
   let board = db::get(&firestore, board_id.to_string()).await?;
-  if board.owner != participant.id {
+  let participant_reference = FirestoreReference(
+    firestore
+      .parent_path("participants", &participant.id)
+      .unwrap()
+      .into(),
+  );
+  if board.owner != participant_reference {
     return Err(Error::Forbidden);
   }
   let board = db::update(&firestore, board_id.to_string(), board_message.into_inner()).await?;
-  Ok(HttpResponse::Ok().json(BoardResponse::from_board(board, &participant)))
+  Ok(HttpResponse::Ok().json(BoardResponse::from_board(board, &participant_reference)))
 }
 
 #[delete("boards/{board_id}")]
@@ -75,9 +111,14 @@ pub async fn delete(
   participant: Participant,
   board_id: web::Path<String>,
 ) -> Result<HttpResponse, Error> {
-  let firestore = firestore.into_inner();
   let board = db::get(&firestore, board_id.to_string()).await?;
-  if board.owner != participant.id {
+  let participant_reference = FirestoreReference(
+    firestore
+      .parent_path("participants", &participant.id)
+      .unwrap()
+      .into(),
+  );
+  if board.owner != participant_reference {
     return Err(Error::Forbidden);
   }
   db::delete(&firestore, board_id.to_string()).await?;

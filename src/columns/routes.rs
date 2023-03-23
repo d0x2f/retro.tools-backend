@@ -1,4 +1,4 @@
-use firestore::FirestoreDb;
+use firestore::{FirestoreDb, FirestoreReference};
 
 use actix_web::{delete, get, patch, post, web, HttpResponse};
 
@@ -57,7 +57,13 @@ pub async fn update(
 ) -> Result<HttpResponse, Error> {
   let (board_id, column_id) = params.into_inner();
   let board = boards::db::get(&firestore, board_id.to_string()).await?;
-  if board.owner != participant.id {
+  let participant_reference = FirestoreReference(
+    firestore
+      .parent_path("participants", &participant.id)
+      .unwrap()
+      .into(),
+  );
+  if board.owner != participant_reference {
     return Err(Error::Forbidden);
   }
   let column = db::update(
@@ -78,8 +84,14 @@ pub async fn delete(
 ) -> Result<HttpResponse, Error> {
   let firestore = firestore.into_inner();
   let (board_id, column_id) = params.into_inner();
+  let participant_reference = FirestoreReference(
+    firestore
+      .parent_path("participants", &participant.id)
+      .unwrap()
+      .into(),
+  );
   let board = boards::db::get(&firestore, board_id.to_string()).await?;
-  if board.owner != participant.id {
+  if board.owner != participant_reference {
     return Err(Error::Forbidden);
   }
   db::delete(&firestore, board_id.to_string(), column_id.to_string()).await?;
