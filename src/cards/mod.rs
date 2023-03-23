@@ -12,7 +12,7 @@ pub async fn assert_card_owner(
   firestore: &FirestoreDb,
   participant: &Participant,
   card: &models::Card,
-  board_id: String,
+  board_id: &String,
 ) -> Result<(), Error> {
   let board = boards::db::get(firestore, board_id).await?;
   let participant_reference = FirestoreReference(format!(

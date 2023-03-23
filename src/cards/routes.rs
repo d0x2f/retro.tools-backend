@@ -20,7 +20,7 @@ pub async fn new(
   card_message: web::Json<CardMessage>,
 ) -> Result<HttpResponse, Error> {
   let (board_id, column_id) = params.into_inner();
-  assert_cards_allowed(&firestore, board_id.to_string()).await?;
+  assert_cards_allowed(&firestore, &board_id).await?;
   let mut card_message = card_message.into_inner();
   card_message.author.get_or_insert("".into());
   card_message.column = Some(format!(
@@ -38,7 +38,7 @@ pub async fn new(
     return Err(Error::BadRequest("Card text must be provided.".into()));
   }
 
-  let card = db::new(&firestore, &participant, board_id.to_string(), card_message).await?;
+  let card = db::new(&firestore, &participant, &board_id, card_message).await?;
   Ok(
     HttpResponse::Ok().json(CardResponse::from_card(
       card,
@@ -58,7 +58,7 @@ pub async fn list(
   participant: Participant,
   board_id: web::Path<String>,
 ) -> Result<HttpResponse, Error> {
-  let cards = db::list(&firestore, board_id.to_string()).await?;
+  let cards = db::list(&firestore, &board_id).await?;
   Ok(
     HttpResponse::Ok().json(
       cards
@@ -108,25 +108,11 @@ pub async fn update(
   card_message: web::Json<CardMessage>,
 ) -> Result<HttpResponse, Error> {
   let (board_id, card_id) = params.into_inner();
-  let mut card_message = card_message.into_inner();
-  card_message.column = match card_message.column {
-    Some(column) => Some(format!(
-      "{}/{}",
-      firestore.parent_path("boards", &board_id)?,
-      column
-    )),
-    None => None,
-  };
+  let card_message = card_message.into_inner();
 
   let card = db::get(&firestore, &board_id, &card_id).await?;
-  super::assert_card_owner(&firestore, &participant, &card, board_id.to_string()).await?;
-  let card = db::update(
-    &firestore,
-    board_id.to_string(),
-    card_id.to_string(),
-    card_message,
-  )
-  .await?;
+  super::assert_card_owner(&firestore, &participant, &card, &board_id).await?;
+  let card = db::update(&firestore, &board_id, &card_id, card_message).await?;
   Ok(
     HttpResponse::Ok().json(CardResponse::from_card(
       card,
@@ -146,11 +132,10 @@ pub async fn delete(
   participant: Participant,
   params: web::Path<(String, String)>,
 ) -> Result<HttpResponse, Error> {
-  let firestore = firestore.into_inner();
   let (board_id, card_id) = params.into_inner();
   let card = db::get(&firestore, &board_id, &card_id).await?;
-  super::assert_card_owner(&firestore, &participant, &card, board_id.to_string()).await?;
-  db::delete(&firestore, board_id.to_string(), card_id.to_string()).await?;
+  super::assert_card_owner(&firestore, &participant, &card, &board_id).await?;
+  db::delete(&firestore, &board_id, &card_id).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
@@ -160,16 +145,9 @@ pub async fn put_vote(
   participant: Participant,
   params: web::Path<(String, String)>,
 ) -> Result<HttpResponse, Error> {
-  let firestore = firestore.into_inner();
   let (board_id, card_id) = params.into_inner();
-  assert_voting_allowed(&firestore, board_id.to_string()).await?;
-  db::put_vote(
-    &firestore,
-    &participant,
-    board_id.to_string(),
-    card_id.to_string(),
-  )
-  .await?;
+  assert_voting_allowed(&firestore, &board_id).await?;
+  db::put_vote(&firestore, &participant, &board_id, &card_id).await?;
   Ok(HttpResponse::Created().finish())
 }
 
@@ -179,16 +157,9 @@ pub async fn delete_vote(
   participant: Participant,
   params: web::Path<(String, String)>,
 ) -> Result<HttpResponse, Error> {
-  let firestore = firestore.into_inner();
   let (board_id, card_id) = params.into_inner();
-  assert_voting_allowed(&firestore, board_id.to_string()).await?;
-  db::delete_vote(
-    &firestore,
-    &participant,
-    board_id.to_string(),
-    card_id.to_string(),
-  )
-  .await?;
+  assert_voting_allowed(&firestore, &board_id).await?;
+  db::delete_vote(&firestore, &participant, &board_id, &card_id).await?;
   Ok(HttpResponse::Created().finish())
 }
 
@@ -199,7 +170,6 @@ pub async fn put_reaction(
   params: web::Path<(String, String)>,
   react_message: web::Json<ReactMessage>,
 ) -> Result<HttpResponse, Error> {
-  let firestore = firestore.into_inner();
   let (board_id, card_id) = params.into_inner();
   db::put_reaction(
     &firestore,
@@ -229,10 +199,9 @@ pub async fn csv(
   _participant: Participant,
   board_id: web::Path<String>,
 ) -> Result<HttpResponse, Error> {
-  let firestore = firestore.into_inner();
-  let board = get_board(&firestore, board_id.to_string()).await?;
-  let columns = get_columns(&firestore, board_id.to_string()).await?;
-  let mut cards = db::list(&firestore, board_id.to_string()).await?;
+  let board = get_board(&firestore, &board_id).await?;
+  let columns = get_columns(&firestore, &board_id).await?;
+  let mut cards = db::list(&firestore, &board_id).await?;
   cards.sort_by(|a, b| b.column.0.cmp(&a.column.0));
   let mut csv_writer = CSVWriter::from_writer(vec![]);
   for card in cards.into_iter() {

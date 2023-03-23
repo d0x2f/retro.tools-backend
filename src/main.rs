@@ -44,11 +44,14 @@ async fn main() -> std::io::Result<()> {
       .wrap(cors)
       .wrap(IdentityMiddleware::default())
       .wrap(
-        SessionMiddleware::builder(CookieSessionStore::default(), Key::from(&config.secret_key))
-          .cookie_secure(config.secure_cookie)
-          .cookie_same_site(config.same_site)
-          .cookie_name("__session".into())
-          .build(),
+        SessionMiddleware::builder(
+          CookieSessionStore::default(),
+          Key::derive_from(&config.secret_key),
+        )
+        .cookie_secure(config.secure_cookie)
+        .cookie_same_site(config.same_site)
+        .cookie_name("__session".into())
+        .build(),
       )
       .wrap(ActixMiddleware::Logger::default())
       .service(boards::routes::list)
@@ -73,7 +76,6 @@ async fn main() -> std::io::Result<()> {
       .service(cards::routes::delete_reaction)
       .service(participants::routes::auth)
   })
-  .workers(1)
   .bind(format!("0.0.0.0:{}", port))?
   .run()
   .await

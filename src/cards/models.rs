@@ -9,12 +9,19 @@ use crate::error::Error;
 
 #[derive(Deserialize, Serialize)]
 pub struct CardMessage {
+  pub author: Option<String>,
+  pub text: Option<String>,
+  pub column: Option<String>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct CardChangeSet {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub author: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub text: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub column: Option<String>,
+  pub column: Option<FirestoreReference>,
 }
 
 #[derive(Deserialize, Serialize)]

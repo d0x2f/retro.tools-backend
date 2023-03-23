@@ -19,7 +19,7 @@ pub async fn new(
   board_message.voting_open.get_or_insert(true);
   board_message.cards_open.get_or_insert(true);
   let board = db::new(&firestore, &participant, board_message).await?;
-  add_participant_board(&firestore, &participant, board.id.clone()).await?;
+  add_participant_board(&firestore, &participant, &board.id).await?;
   Ok(
     HttpResponse::Ok().json(BoardResponse::from_board(
       board,
@@ -66,8 +66,8 @@ pub async fn get(
   board_id: web::Path<String>,
 ) -> Result<HttpResponse, Error> {
   let (register, board) = join(
-    add_participant_board(&firestore, &participant, board_id.clone()),
-    db::get(&firestore, board_id.to_string()),
+    add_participant_board(&firestore, &participant, &board_id),
+    db::get(&firestore, &board_id),
   )
   .await;
   register?;
@@ -91,7 +91,7 @@ pub async fn update(
   board_id: web::Path<String>,
   board_message: web::Json<BoardMessage>,
 ) -> Result<HttpResponse, Error> {
-  let board = db::get(&firestore, board_id.to_string()).await?;
+  let board = db::get(&firestore, &board_id).await?;
   let participant_reference = FirestoreReference(
     firestore
       .parent_path("participants", &participant.id)
@@ -101,7 +101,7 @@ pub async fn update(
   if board.owner != participant_reference {
     return Err(Error::Forbidden);
   }
-  let board = db::update(&firestore, board_id.to_string(), board_message.into_inner()).await?;
+  let board = db::update(&firestore, &board_id, board_message.into_inner()).await?;
   Ok(HttpResponse::Ok().json(BoardResponse::from_board(board, &participant_reference)))
 }
 
@@ -111,7 +111,7 @@ pub async fn delete(
   participant: Participant,
   board_id: web::Path<String>,
 ) -> Result<HttpResponse, Error> {
-  let board = db::get(&firestore, board_id.to_string()).await?;
+  let board = db::get(&firestore, &board_id).await?;
   let participant_reference = FirestoreReference(
     firestore
       .parent_path("participants", &participant.id)
@@ -121,6 +121,6 @@ pub async fn delete(
   if board.owner != participant_reference {
     return Err(Error::Forbidden);
   }
-  db::delete(&firestore, board_id.to_string()).await?;
+  db::delete(&firestore, &board_id).await?;
   Ok(HttpResponse::Ok().finish())
 }

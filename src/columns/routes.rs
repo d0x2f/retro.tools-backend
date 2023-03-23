@@ -15,13 +15,7 @@ pub async fn new(
   board_id: web::Path<String>,
   column_message: web::Json<ColumnMessage>,
 ) -> Result<HttpResponse, Error> {
-  let firestore = firestore.into_inner();
-  let column = db::new(
-    &firestore,
-    board_id.to_string(),
-    column_message.into_inner(),
-  )
-  .await?;
+  let column = db::new(&firestore, &board_id, column_message.into_inner()).await?;
   Ok(HttpResponse::Ok().json(column))
 }
 
@@ -31,8 +25,7 @@ pub async fn list(
   _participant: Participant,
   board_id: web::Path<String>,
 ) -> Result<HttpResponse, Error> {
-  let firestore = firestore.into_inner();
-  let columns = db::list(&firestore, board_id.to_string()).await?;
+  let columns = db::list(&firestore, &board_id).await?;
   Ok(HttpResponse::Ok().json(columns))
 }
 
@@ -42,9 +35,8 @@ pub async fn get(
   _participant: Participant,
   params: web::Path<(String, String)>,
 ) -> Result<HttpResponse, Error> {
-  let firestore = firestore.into_inner();
   let (board_id, column_id) = params.into_inner();
-  let column = db::get(&firestore, board_id.to_string(), column_id.to_string()).await;
+  let column = db::get(&firestore, &board_id, &column_id).await;
   Ok(HttpResponse::Ok().json(column?))
 }
 
@@ -56,7 +48,7 @@ pub async fn update(
   column_message: web::Json<ColumnMessage>,
 ) -> Result<HttpResponse, Error> {
   let (board_id, column_id) = params.into_inner();
-  let board = boards::db::get(&firestore, board_id.to_string()).await?;
+  let board = boards::db::get(&firestore, &board_id).await?;
   let participant_reference = FirestoreReference(
     firestore
       .parent_path("participants", &participant.id)
@@ -68,8 +60,8 @@ pub async fn update(
   }
   let column = db::update(
     &firestore,
-    board_id.to_string(),
-    column_id.to_string(),
+    &board_id,
+    &column_id,
     column_message.into_inner(),
   )
   .await?;
@@ -82,7 +74,6 @@ pub async fn delete(
   participant: Participant,
   params: web::Path<(String, String)>,
 ) -> Result<HttpResponse, Error> {
-  let firestore = firestore.into_inner();
   let (board_id, column_id) = params.into_inner();
   let participant_reference = FirestoreReference(
     firestore
@@ -90,10 +81,10 @@ pub async fn delete(
       .unwrap()
       .into(),
   );
-  let board = boards::db::get(&firestore, board_id.to_string()).await?;
+  let board = boards::db::get(&firestore, &board_id).await?;
   if board.owner != participant_reference {
     return Err(Error::Forbidden);
   }
-  db::delete(&firestore, board_id.to_string(), column_id.to_string()).await?;
+  db::delete(&firestore, &board_id, &column_id).await?;
   Ok(HttpResponse::Ok().finish())
 }

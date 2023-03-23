@@ -39,13 +39,12 @@ impl Config {
       _ => Environment::Production,
     };
 
-    // TODO: Fit existing 32 bit keys in to the new 64 bit one
     let secret_key = match env::var("SECRET_KEY") {
       Err(_) => match environment {
         Environment::Production => {
           panic!("No secret key provided despite being in production mode!")
         }
-        _ => vec![0_u8; 64],
+        _ => vec![0_u8; 32],
       },
       Ok(s) => s.as_bytes().to_owned(),
     };

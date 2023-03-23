@@ -49,13 +49,13 @@ pub async fn list(firestore: &FirestoreDb, participant: &Participant) -> Result<
   Ok(boards)
 }
 
-pub async fn get(firestore: &FirestoreDb, board_id: String) -> Result<Board, Error> {
+pub async fn get(firestore: &FirestoreDb, board_id: &String) -> Result<Board, Error> {
   firestore
     .fluent()
     .select()
     .by_id_in("boards")
     .obj::<BoardInFirestore>()
-    .one(&board_id)
+    .one(board_id)
     .await?
     .ok_or(Error::NotFound)
     .map(|board| board.into())
@@ -63,7 +63,7 @@ pub async fn get(firestore: &FirestoreDb, board_id: String) -> Result<Board, Err
 
 pub async fn update(
   firestore: &FirestoreDb,
-  board_id: String,
+  board_id: &String,
   board: BoardMessage,
 ) -> Result<Board, Error> {
   let serialised_board = serde_json::to_value(&board)?;
@@ -76,7 +76,7 @@ pub async fn update(
         .filter(|f| serialised_board.get(f).is_some()),
     )
     .in_col("boards")
-    .document_id(&board_id)
+    .document_id(board_id)
     .object(&board)
     .execute::<BoardInFirestore>()
     .await
@@ -84,12 +84,12 @@ pub async fn update(
     .map_err(|e| e.into())
 }
 
-pub async fn delete(firestore: &FirestoreDb, board_id: String) -> Result<(), Error> {
+pub async fn delete(firestore: &FirestoreDb, board_id: &String) -> Result<(), Error> {
   firestore
     .fluent()
     .delete()
     .from("boards")
-    .document_id(&board_id)
+    .document_id(board_id)
     .execute()
     .await
     .map_err(|e| e.into())

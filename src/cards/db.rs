@@ -13,7 +13,7 @@ use crate::participants::models::Participant;
 pub async fn new(
   firestore: &FirestoreDb,
   participant: &Participant,
-  board_id: String,
+  board_id: &String,
   card: CardMessage,
 ) -> Result<Card, Error> {
   let mut new_card: NewCard = card.try_into()?;
@@ -27,7 +27,7 @@ pub async fn new(
     .insert()
     .into("cards")
     .generate_document_id()
-    .parent(firestore.parent_path("boards", &board_id)?)
+    .parent(firestore.parent_path("boards", board_id)?)
     .object(&new_card)
     .execute::<CardInFirestore>()
     .await
@@ -35,12 +35,12 @@ pub async fn new(
     .map_err(|e| e.into())
 }
 
-pub async fn list(firestore: &FirestoreDb, board_id: String) -> Result<Vec<Card>, Error> {
+pub async fn list(firestore: &FirestoreDb, board_id: &String) -> Result<Vec<Card>, Error> {
   let mut object_stream: BoxStream<Option<CardInFirestore>> = firestore
     .fluent()
     .list()
     .from("cards")
-    .parent(firestore.parent_path("boards", &board_id)?)
+    .parent(firestore.parent_path("boards", board_id)?)
     .obj::<Option<CardInFirestore>>()
     .stream_all()
     .await?;
@@ -71,11 +71,22 @@ pub async fn get(
 
 pub async fn update(
   firestore: &FirestoreDb,
-  board_id: String,
-  card_id: String,
+  board_id: &String,
+  card_id: &String,
   card: CardMessage,
 ) -> Result<Card, Error> {
-  let serialised_card = serde_json::to_value(&card)?;
+  let change_set = CardChangeSet {
+    author: card.author,
+    text: card.text,
+    column: card.column.map(|c| {
+      FirestoreReference(format!(
+        "{}/columns/{}",
+        firestore.parent_path("boards", board_id).unwrap(),
+        c
+      ))
+    }),
+  };
+  let serialised_card = serde_json::to_value(&change_set)?;
   firestore
     .fluent()
     .update()
@@ -85,9 +96,9 @@ pub async fn update(
         .filter(|f| serialised_card.get(f).is_some()),
     )
     .in_col("cards")
-    .document_id(&card_id)
-    .parent(firestore.parent_path("boards", &board_id)?)
-    .object(&card)
+    .document_id(card_id)
+    .parent(firestore.parent_path("boards", board_id)?)
+    .object(&change_set)
     .execute::<CardInFirestore>()
     .await
     .map(|card| card.into())
@@ -96,15 +107,15 @@ pub async fn update(
 
 pub async fn delete(
   firestore: &FirestoreDb,
-  board_id: String,
-  card_id: String,
+  board_id: &String,
+  card_id: &String,
 ) -> Result<(), Error> {
   firestore
     .fluent()
     .delete()
     .from("cards")
-    .document_id(&card_id)
-    .parent(firestore.parent_path("boards", &board_id)?)
+    .document_id(card_id)
+    .parent(firestore.parent_path("boards", board_id)?)
     .execute()
     .await
     .map_err(|e| e.into())
@@ -113,16 +124,16 @@ pub async fn delete(
 pub async fn put_vote(
   firestore: &FirestoreDb,
   participant: &Participant,
-  board_id: String,
-  card_id: String,
+  board_id: &String,
+  card_id: &String,
 ) -> Result<(), Error> {
   let mut transaction = firestore.begin_transaction().await?;
   firestore
     .fluent()
     .update()
     .in_col("cards")
-    .document_id(&card_id)
-    .parent(firestore.parent_path("boards", &board_id)?)
+    .document_id(card_id)
+    .parent(firestore.parent_path("boards", board_id)?)
     .transforms(|t| {
       t.fields([t
         .field(path!(CardInFirestore::votes))
@@ -142,16 +153,16 @@ pub async fn put_vote(
 pub async fn delete_vote(
   firestore: &FirestoreDb,
   participant: &Participant,
-  board_id: String,
-  card_id: String,
+  board_id: &String,
+  card_id: &String,
 ) -> Result<(), Error> {
   let mut transaction = firestore.begin_transaction().await?;
   firestore
     .fluent()
     .update()
     .in_col("cards")
-    .document_id(&card_id)
-    .parent(firestore.parent_path("boards", &board_id)?)
+    .document_id(card_id)
+    .parent(firestore.parent_path("boards", board_id)?)
     .transforms(|t| {
       t.fields([t
         .field(path!(CardInFirestore::votes))

@@ -10,9 +10,9 @@ use crate::error::Error;
 
 pub async fn get_columns(
   firestore: &FirestoreDb,
-  board_id: String,
+  board_id: &String,
 ) -> Result<HashMap<String, models::Column>, Error> {
-  let columns = db::list(firestore, board_id.to_string()).await?;
+  let columns = db::list(firestore, board_id).await?;
   let mut map = HashMap::new();
   for column in columns {
     map.insert(column.id.clone(), column);

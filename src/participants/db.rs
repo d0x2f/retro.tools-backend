@@ -26,7 +26,7 @@ pub async fn new(firestore: &FirestoreDb) -> Result<Participant, Error> {
 pub async fn add_participant_board(
   firestore: &FirestoreDb,
   participant: &Participant,
-  board_id: String,
+  board_id: &String,
 ) -> Result<(), Error> {
   let mut transaction = firestore.begin_transaction().await?;
   firestore
