@@ -1,46 +1,26 @@
+use chrono::Utc;
 use firestore::path;
 use firestore::FirestoreDb;
 use firestore::FirestoreReference;
-use futures::lock::Mutex;
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::SystemTime;
 
 use super::models::*;
-use crate::config::Config;
 use crate::error::Error;
-use crate::firestore::v1::*;
-use crate::firestore::FirestoreV1Client;
 
-pub async fn new(
-  firestore: Arc<Mutex<FirestoreV1Client>>,
-  config: &Config,
-) -> Result<Participant, Error> {
-  let mut fields: HashMap<String, Value> = HashMap::new();
-  let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?;
-  fields.insert(
-    "created_at".into(),
-    timestamp_value!(now.as_secs() as i64, now.subsec_nanos() as i32),
-  );
-  let result = firestore
-    .lock()
+pub async fn new(firestore: &FirestoreDb) -> Result<Participant, Error> {
+  let new_participant = NewParticipant {
+    created_at: Utc::now().into(),
+  };
+
+  firestore
+    .fluent()
+    .insert()
+    .into("participants")
+    .generate_document_id()
+    .object(&new_participant)
+    .execute::<ParticipantInFirestore>()
     .await
-    .create_document(CreateDocumentRequest {
-      parent: format!(
-        "projects/{}/databases/(default)/documents",
-        config.firestore_project
-      ),
-      collection_id: "participants".into(),
-      document: Some(Document {
-        name: "".into(),
-        fields,
-        create_time: None,
-        update_time: None,
-      }),
-      ..Default::default()
-    })
-    .await?;
-  Ok(result.into_inner().into())
+    .map(|participant| participant.into())
+    .map_err(|e| e.into())
 }
 
 pub async fn add_participant_board(
@@ -56,7 +36,7 @@ pub async fn add_participant_board(
     .document_id(&participant.id)
     .transforms(|t| {
       t.fields([t
-        .field(path!(ParticipantBoardIds::boards))
+        .field(path!(ParticipantInFirestore::boards))
         .append_missing_elements([FirestoreReference(format!(
           "{}/boards/{}",
           firestore.get_documents_path(),
@@ -73,7 +53,7 @@ pub async fn get_participant_board_ids(
   firestore: &FirestoreDb,
   participant: &Participant,
 ) -> Result<Vec<String>, Error> {
-  let result: Option<ParticipantBoardIds> = firestore
+  let result: Option<ParticipantInFirestore> = firestore
     .fluent()
     .select()
     .by_id_in("participants")
@@ -85,6 +65,7 @@ pub async fn get_participant_board_ids(
     Ok(
       participant
         .boards
+        .unwrap_or(vec![])
         .into_iter()
         .map(|id| id.split('/').last().unwrap().to_string())
         .collect(),
