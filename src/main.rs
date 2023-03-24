@@ -52,7 +52,7 @@ async fn main() -> std::io::Result<()> {
         )
         .cookie_secure(config.secure_cookie)
         .cookie_same_site(config.same_site)
-        .cookie_name("id".into())
+        .cookie_name("__session".into())
         .session_lifecycle(PersistentSession::default().session_ttl(
           Duration::seconds(60 * 60 * 24 * 30), // 30 days
         ))
