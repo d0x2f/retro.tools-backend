@@ -1,10 +1,8 @@
-use crate::config::Config;
 use crate::error;
 use actix_identity::Identity;
 use actix_web::dev::Payload;
-use actix_web::web::Data;
 use actix_web::{FromRequest, HttpRequest};
-use firestore::{FirestoreDb, FirestoreTimestamp};
+use firestore::FirestoreTimestamp;
 use futures::future::Future;
 use serde::{Deserialize, Serialize};
 use std::pin::Pin;
@@ -41,11 +39,7 @@ impl FromRequest for Participant {
   fn from_request(req: &HttpRequest, _: &mut Payload) -> Self::Future {
     let req = req.clone();
     Box::pin(async move {
-      let firestore = req.app_data::<Data<FirestoreDb>>().unwrap();
-      let config = req.app_data::<Data<Config>>().unwrap();
       super::new(
-        config,
-        firestore,
         Identity::from_request(&req, &mut Payload::None),
         req.clone(),
       )
