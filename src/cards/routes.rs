@@ -1,31 +1,31 @@
+use ::csv::Writer as CSVWriter;
 use actix_web::http::header::{
   ContentDisposition, DispositionParam, DispositionType, CONTENT_DISPOSITION,
 };
-use actix_web::web;
+use actix_web::{delete, get, patch, post, put, web, HttpResponse};
+use firestore::{FirestoreDb, FirestoreReference};
 
 use super::db;
 use super::models::*;
 use crate::boards::*;
 use crate::columns::get_columns;
-use crate::config::Config;
 use crate::error::Error;
-use crate::firestore;
 use crate::participants::models::Participant;
 
+#[post("boards/{board_id}/columns/{column_id}/cards")]
 pub async fn new(
-  config: web::Data<Config>,
+  firestore: web::Data<FirestoreDb>,
   participant: Participant,
   params: web::Path<(String, String)>,
   card_message: web::Json<CardMessage>,
-) -> Result<web::HttpResponse, Error> {
-  let mut firestore = firestore::get_client().await?;
+) -> Result<HttpResponse, Error> {
   let (board_id, column_id) = params.into_inner();
-  assert_cards_allowed(&mut firestore, &config, board_id.to_string()).await?;
+  assert_cards_allowed(&firestore, &board_id).await?;
   let mut card_message = card_message.into_inner();
   card_message.author.get_or_insert("".into());
-  card_message.column = Some(to_column_reference!(
-    config.firestore_project,
-    board_id.to_string(),
+  card_message.column = Some(format!(
+    "{}/columns/{}",
+    firestore.parent_path("boards", &board_id)?,
     column_id
   ));
 
@@ -38,220 +38,178 @@ pub async fn new(
     return Err(Error::BadRequest("Card text must be provided.".into()));
   }
 
-  let card = db::new(
-    &mut firestore,
-    &config,
-    &participant,
-    board_id.to_string(),
-    card_message,
+  let card = db::new(&firestore, &participant, &board_id, card_message).await?;
+  Ok(
+    HttpResponse::Ok().json(CardResponse::from_card(
+      card,
+      &FirestoreReference(
+        firestore
+          .parent_path("participants", &participant.id)
+          .unwrap()
+          .into(),
+      ),
+    )),
   )
-  .await?;
-  Ok(web::HttpResponse::Ok().json(CardResponse::from_card(&config, card, &participant)))
 }
 
+#[get("boards/{board_id}/cards")]
 pub async fn list(
-  config: web::Data<Config>,
+  firestore: web::Data<FirestoreDb>,
   participant: Participant,
   board_id: web::Path<String>,
-) -> Result<web::HttpResponse, Error> {
-  let mut firestore = firestore::get_client().await?;
-  let cards = db::list(&mut firestore, &config, board_id.to_string()).await?;
+) -> Result<HttpResponse, Error> {
+  let cards = db::list(&firestore, &board_id).await?;
   Ok(
-    web::HttpResponse::Ok().json::<Vec<CardResponse>>(
+    HttpResponse::Ok().json(
       cards
         .into_iter()
-        .map(|card| CardResponse::from_card(&config, card, &participant))
-        .collect(),
+        .map(|card| {
+          CardResponse::from_card(
+            card,
+            &FirestoreReference(
+              firestore
+                .parent_path("participants", &participant.id)
+                .unwrap()
+                .into(),
+            ),
+          )
+        })
+        .collect::<Vec<CardResponse>>(),
     ),
   )
 }
 
+#[get("boards/{board_id}/cards/{card_id}")]
 pub async fn get(
-  config: web::Data<Config>,
+  firestore: web::Data<FirestoreDb>,
   participant: Participant,
   params: web::Path<(String, String)>,
-) -> Result<web::HttpResponse, Error> {
-  let mut firestore = firestore::get_client().await?;
+) -> Result<HttpResponse, Error> {
   let (board_id, card_id) = params.into_inner();
-  let card = db::get(
-    &mut firestore,
-    &config,
-    board_id.to_string(),
-    card_id.to_string(),
+  let card = db::get(&firestore, &board_id, &card_id).await?;
+  Ok(
+    HttpResponse::Ok().json(CardResponse::from_card(
+      card,
+      &FirestoreReference(
+        firestore
+          .parent_path("participants", &participant.id)
+          .unwrap()
+          .into(),
+      ),
+    )),
   )
-  .await?;
-  Ok(web::HttpResponse::Ok().json(CardResponse::from_card(&config, card, &participant)))
 }
 
+#[patch("boards/{board_id}/cards/{card_id}")]
 pub async fn update(
-  config: web::Data<Config>,
+  firestore: web::Data<FirestoreDb>,
   participant: Participant,
   params: web::Path<(String, String)>,
   card_message: web::Json<CardMessage>,
-) -> Result<web::HttpResponse, Error> {
-  let mut firestore = firestore::get_client().await?;
+) -> Result<HttpResponse, Error> {
   let (board_id, card_id) = params.into_inner();
-  let mut card_message = card_message.into_inner();
-  card_message.column = match card_message.column {
-    Some(column) => Some(to_column_reference!(
-      config.firestore_project,
-      board_id,
-      column
+  let card_message = card_message.into_inner();
+
+  let card = db::get(&firestore, &board_id, &card_id).await?;
+  super::assert_card_owner(&firestore, &participant, &card, &board_id).await?;
+  let card = db::update(&firestore, &board_id, &card_id, card_message).await?;
+  Ok(
+    HttpResponse::Ok().json(CardResponse::from_card(
+      card,
+      &FirestoreReference(
+        firestore
+          .parent_path("participants", &participant.id)
+          .unwrap()
+          .into(),
+      ),
     )),
-    None => None,
-  };
-
-  let card = db::get(
-    &mut firestore,
-    &config,
-    board_id.to_string(),
-    card_id.to_string(),
   )
-  .await?;
-  super::assert_card_owner(
-    &mut firestore,
-    &config,
-    &participant,
-    &card,
-    board_id.to_string(),
-  )
-  .await?;
-  let card = db::update(
-    &mut firestore,
-    &config,
-    board_id.to_string(),
-    card_id.to_string(),
-    card_message,
-  )
-  .await?;
-  Ok(web::HttpResponse::Ok().json(CardResponse::from_card(&config, card, &participant)))
 }
 
+#[delete("boards/{board_id}/cards/{card_id}")]
 pub async fn delete(
-  config: web::Data<Config>,
+  firestore: web::Data<FirestoreDb>,
   participant: Participant,
   params: web::Path<(String, String)>,
-) -> Result<web::HttpResponse, Error> {
-  let mut firestore = firestore::get_client().await?;
+) -> Result<HttpResponse, Error> {
   let (board_id, card_id) = params.into_inner();
-  let card = db::get(
-    &mut firestore,
-    &config,
-    board_id.to_string(),
-    card_id.to_string(),
-  )
-  .await?;
-  super::assert_card_owner(
-    &mut firestore,
-    &config,
-    &participant,
-    &card,
-    board_id.to_string(),
-  )
-  .await?;
-  db::delete(
-    &mut firestore,
-    &config,
-    board_id.to_string(),
-    card_id.to_string(),
-  )
-  .await?;
-  Ok(web::HttpResponse::Ok().finish())
+  let card = db::get(&firestore, &board_id, &card_id).await?;
+  super::assert_card_owner(&firestore, &participant, &card, &board_id).await?;
+  db::delete(&firestore, &board_id, &card_id).await?;
+  Ok(HttpResponse::Ok().finish())
 }
 
+#[put("boards/{board_id}/cards/{card_id}/vote")]
 pub async fn put_vote(
-  config: web::Data<Config>,
+  firestore: web::Data<FirestoreDb>,
   participant: Participant,
   params: web::Path<(String, String)>,
-) -> Result<web::HttpResponse, Error> {
-  let mut firestore = firestore::get_client().await?;
+) -> Result<HttpResponse, Error> {
   let (board_id, card_id) = params.into_inner();
-  assert_voting_allowed(&mut firestore, &config, board_id.to_string()).await?;
-  db::put_vote(
-    &mut firestore,
-    &config,
-    &participant,
-    board_id.to_string(),
-    card_id.to_string(),
-  )
-  .await?;
-  Ok(web::HttpResponse::Created().finish())
+  assert_voting_allowed(&firestore, &board_id).await?;
+  db::put_vote(&firestore, &participant, &board_id, &card_id).await?;
+  Ok(HttpResponse::Created().finish())
 }
 
+#[delete("boards/{board_id}/cards/{card_id}/vote")]
 pub async fn delete_vote(
-  config: web::Data<Config>,
+  firestore: web::Data<FirestoreDb>,
   participant: Participant,
   params: web::Path<(String, String)>,
-) -> Result<web::HttpResponse, Error> {
-  let mut firestore = firestore::get_client().await?;
+) -> Result<HttpResponse, Error> {
   let (board_id, card_id) = params.into_inner();
-  assert_voting_allowed(&mut firestore, &config, board_id.to_string()).await?;
-  db::delete_vote(
-    &mut firestore,
-    &config,
-    &participant,
-    board_id.to_string(),
-    card_id.to_string(),
-  )
-  .await?;
-  Ok(web::HttpResponse::Created().finish())
+  assert_voting_allowed(&firestore, &board_id).await?;
+  db::delete_vote(&firestore, &participant, &board_id, &card_id).await?;
+  Ok(HttpResponse::Created().finish())
 }
 
+#[put("boards/{board_id}/cards/{card_id}/react")]
 pub async fn put_reaction(
-  config: web::Data<Config>,
+  firestore: web::Data<FirestoreDb>,
   participant: Participant,
   params: web::Path<(String, String)>,
   react_message: web::Json<ReactMessage>,
-) -> Result<web::HttpResponse, Error> {
-  let mut firestore = firestore::get_client().await?;
+) -> Result<HttpResponse, Error> {
   let (board_id, card_id) = params.into_inner();
   db::put_reaction(
-    &mut firestore,
-    &config,
+    &firestore,
     &participant,
-    board_id.to_string(),
-    card_id.to_string(),
-    react_message.emoji.clone(),
+    &board_id,
+    &card_id,
+    &react_message.emoji,
   )
   .await?;
-  Ok(web::HttpResponse::Created().finish())
+  Ok(HttpResponse::Created().finish())
 }
 
+#[delete("boards/{board_id}/cards/{card_id}/react")]
 pub async fn delete_reaction(
-  config: web::Data<Config>,
+  firestore: web::Data<FirestoreDb>,
   participant: Participant,
   params: web::Path<(String, String)>,
-) -> Result<web::HttpResponse, Error> {
-  let mut firestore = firestore::get_client().await?;
+) -> Result<HttpResponse, Error> {
   let (board_id, card_id) = params.into_inner();
-  db::delete_reaction(
-    &mut firestore,
-    &config,
-    &participant,
-    board_id.to_string(),
-    card_id.to_string(),
-  )
-  .await?;
-  Ok(web::HttpResponse::Created().finish())
+  db::delete_reaction(&firestore, &participant, &board_id, &card_id).await?;
+  Ok(HttpResponse::Created().finish())
 }
 
+#[get("boards/{board_id}/csv")]
 pub async fn csv(
-  config: web::Data<Config>,
+  firestore: web::Data<FirestoreDb>,
   _participant: Participant,
   board_id: web::Path<String>,
-) -> Result<web::HttpResponse, Error> {
-  let mut firestore = firestore::get_client().await?;
-  let board = get_board(&mut firestore, &config, board_id.to_string()).await?;
-  let columns = get_columns(&mut firestore, &config, board_id.to_string()).await?;
-  let mut cards = db::list(&mut firestore, &config, board_id.to_string()).await?;
-  cards.sort_by(|a, b| b.column.cmp(&a.column));
-  let mut csv_writer = csv::Writer::from_writer(vec![]);
+) -> Result<HttpResponse, Error> {
+  let board = get_board(&firestore, &board_id).await?;
+  let columns = get_columns(&firestore, &board_id).await?;
+  let mut cards = db::list(&firestore, &board_id).await?;
+  cards.sort_by(|a, b| b.column.0.cmp(&a.column.0));
+  let mut csv_writer = CSVWriter::from_writer(vec![]);
   for card in cards.into_iter() {
     csv_writer.serialize(CardCSVRow::from_card(card, &columns))?;
   }
   Ok(
-    web::HttpResponse::Ok()
-      .set_header(
+    HttpResponse::Ok()
+      .insert_header((
         CONTENT_DISPOSITION,
         ContentDisposition {
           disposition: DispositionType::Attachment,
@@ -260,7 +218,7 @@ pub async fn csv(
             board.name, board.created_at
           ))],
         },
-      )
+      ))
       .body(String::from_utf8(csv_writer.into_inner()?)?),
   )
 }

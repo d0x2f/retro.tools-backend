@@ -4,13 +4,11 @@ WORKDIR /build
 
 COPY . .
 
-RUN apt-get update && apt-get install -y wget unzip ca-certificates
-RUN ./scripts/fetch-protos.sh
-RUN rustup component add rustfmt
+RUN apt-get update && apt-get install -y ca-certificates
 
 RUN cargo build --release
 
-ENV TINI_VERSION v0.18.0
+ENV TINI_VERSION v0.19.0
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini-static-muslc-amd64 /tini
 RUN chmod +x /tini
 RUN mkdir /tmp_tmp

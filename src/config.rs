@@ -1,4 +1,4 @@
-use actix_http::cookie::SameSite;
+use actix_web::cookie::SameSite;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs::File;
@@ -30,7 +30,7 @@ pub struct Config {
 }
 
 impl Config {
-  pub async fn from_env() -> Config {
+  pub fn from_env() -> Config {
     let environment = match env::var("ENVIRONMENT") {
       Ok(env_string) => match env_string.to_lowercase().as_str() {
         "development" => Environment::Development,

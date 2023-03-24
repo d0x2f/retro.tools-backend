@@ -17,7 +17,6 @@ jobs:
           toolchain: stable
           components: clippy, rustfmt
           override: true
-      - run: ./scripts/fetch-protos.sh
       - name: Run clippy
         uses: actions-rs/clippy-check@v1
         with:

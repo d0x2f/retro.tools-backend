@@ -1,4 +1,4 @@
-use actix_web::web;
+use actix_web::{get, web, HttpResponse};
 use jwt_simple::prelude::{Claims, Duration, RS256KeyPair, RSAKeyPairLike};
 use serde::{Deserialize, Serialize};
 
@@ -17,10 +17,11 @@ struct GoogleClaims {
 const AUD: &str =
   "https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit";
 
+#[get("auth")]
 pub async fn auth(
   config: web::Data<Config>,
   participant: Participant,
-) -> Result<web::HttpResponse, Error> {
+) -> Result<HttpResponse, Error> {
   let key_pair = RS256KeyPair::from_pem(&config.firebase_credentials.private_key)?;
 
   let google_claims = GoogleClaims {
@@ -32,5 +33,5 @@ pub async fn auth(
   let claims = Claims::with_custom_claims(google_claims, Duration::from_hours(1));
   let token = key_pair.sign(claims)?;
 
-  Ok(web::HttpResponse::Ok().body(token))
+  Ok(HttpResponse::Ok().body(token))
 }
