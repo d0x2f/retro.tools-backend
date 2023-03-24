@@ -12,7 +12,9 @@ mod participants;
 use ::firestore::FirestoreDb;
 use actix_cors::Cors;
 use actix_identity::IdentityMiddleware;
+use actix_session::config::PersistentSession;
 use actix_session::{storage::CookieSessionStore, SessionMiddleware};
+use actix_web::cookie::time::Duration;
 use actix_web::cookie::Key;
 use actix_web::{http, middleware as ActixMiddleware, web::Data, App, HttpServer};
 
@@ -51,6 +53,9 @@ async fn main() -> std::io::Result<()> {
         .cookie_secure(config.secure_cookie)
         .cookie_same_site(config.same_site)
         .cookie_name("id".into())
+        .session_lifecycle(PersistentSession::default().session_ttl(
+          Duration::seconds(60 * 60 * 24 * 30), // 30 days
+        ))
         .build(),
       )
       .wrap(ActixMiddleware::Logger::default())
