@@ -1,3 +1,4 @@
+use crate::config::Config;
 use crate::error;
 use actix_identity::Identity;
 use actix_web::dev::Payload;
@@ -22,7 +23,6 @@ pub struct NewParticipant {
 pub struct ParticipantInFirestore {
   pub _firestore_id: String,
   pub _firestore_created: FirestoreTimestamp,
-  pub created_at: FirestoreTimestamp,
   pub boards: Option<Vec<String>>,
 }
 
@@ -42,7 +42,9 @@ impl FromRequest for Participant {
     let req = req.clone();
     Box::pin(async move {
       let firestore = req.app_data::<Data<FirestoreDb>>().unwrap();
+      let config = req.app_data::<Data<Config>>().unwrap();
       super::new(
+        config,
         firestore,
         Identity::from_request(&req, &mut Payload::None),
         req.clone(),

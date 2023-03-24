@@ -50,7 +50,7 @@ async fn main() -> std::io::Result<()> {
         )
         .cookie_secure(config.secure_cookie)
         .cookie_same_site(config.same_site)
-        .cookie_name("__session".into())
+        .cookie_name("id".into())
         .build(),
       )
       .wrap(ActixMiddleware::Logger::default())
