@@ -3,15 +3,15 @@ pub mod models;
 pub mod routes;
 
 use ::firestore::FirestoreDb;
+use actix_http::Payload;
 use actix_identity::Identity;
 use actix_web::cookie::Cookie;
 use actix_web::cookie::CookieJar;
 use actix_web::cookie::Key;
-use actix_web::error::Error as ActixError;
 use actix_web::web::Data;
+use actix_web::FromRequest;
 use actix_web::HttpMessage;
 use actix_web::HttpRequest;
-use core::future::Future;
 
 use crate::config::Config;
 use crate::error::Error;
@@ -29,11 +29,8 @@ fn extract_legacy_session(req: &HttpRequest) -> Option<Participant> {
   })
 }
 
-pub async fn new(
-  identity: impl Future<Output = Result<Identity, ActixError>>,
-  req: HttpRequest,
-) -> Result<Participant, Error> {
-  let identity = identity.await;
+pub async fn new(req: HttpRequest) -> Result<Participant, Error> {
+  let identity = Identity::from_request(&req, &mut Payload::None).await;
   Ok(match identity {
     Ok(s) => Participant {
       id: s.id().unwrap(),

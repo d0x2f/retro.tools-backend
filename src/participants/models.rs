@@ -1,5 +1,4 @@
 use crate::error;
-use actix_identity::Identity;
 use actix_web::dev::Payload;
 use actix_web::{FromRequest, HttpRequest};
 use firestore::FirestoreTimestamp;
@@ -38,12 +37,6 @@ impl FromRequest for Participant {
 
   fn from_request(req: &HttpRequest, _: &mut Payload) -> Self::Future {
     let req = req.clone();
-    Box::pin(async move {
-      super::new(
-        Identity::from_request(&req, &mut Payload::None),
-        req.clone(),
-      )
-      .await
-    })
+    Box::pin(async move { super::new(req).await })
   }
 }
