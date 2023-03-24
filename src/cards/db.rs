@@ -1,284 +1,262 @@
-use std::convert::TryFrom;
+use firestore::path;
+use firestore::paths;
+use firestore::FirestoreDb;
+use firestore::FirestoreReference;
+use futures::stream::BoxStream;
+use futures::StreamExt;
 use std::convert::TryInto;
-use std::time::SystemTime;
 
 use super::models::*;
-use crate::config::Config;
 use crate::error::Error;
-use crate::firestore::v1::*;
-use crate::firestore::FirestoreV1Client;
 use crate::participants::models::Participant;
 
 pub async fn new(
-  firestore: &mut FirestoreV1Client,
-  config: &Config,
+  firestore: &FirestoreDb,
   participant: &Participant,
-  board_id: String,
+  board_id: &String,
   card: CardMessage,
 ) -> Result<Card, Error> {
-  let mut document: Document = card.into();
-  document.fields.insert(
-    "owner".into(),
-    reference_value!(to_participant_reference!(
-      config.firestore_project,
-      participant.id
-    )),
-  );
-  let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?;
-  document.fields.insert(
-    "created_at".into(),
-    timestamp_value!(now.as_secs() as i64, now.subsec_nanos() as i32),
-  );
-  let result = firestore
-    .create_document(CreateDocumentRequest {
-      parent: format!(
-        "projects/{}/databases/(default)/documents/boards/{}",
-        config.firestore_project, board_id
-      ),
-      collection_id: "cards".into(),
-      document: Some(document),
-      ..Default::default()
-    })
-    .await?;
-  Card::try_from(result.into_inner())
+  let mut new_card: NewCard = card.try_into()?;
+  new_card.owner = Some(FirestoreReference(format!(
+    "{}/participants/{}",
+    firestore.get_documents_path(),
+    participant.id
+  )));
+  firestore
+    .fluent()
+    .insert()
+    .into("cards")
+    .generate_document_id()
+    .parent(firestore.parent_path("boards", board_id)?)
+    .object(&new_card)
+    .execute::<CardInFirestore>()
+    .await
+    .map(|card| card.into())
+    .map_err(|e| e.into())
 }
 
-pub async fn list(
-  firestore: &mut FirestoreV1Client,
-  config: &Config,
-  board_id: String,
-) -> Result<Vec<Card>, Error> {
-  let result = firestore
-    .list_documents(ListDocumentsRequest {
-      parent: format!(
-        "projects/{}/databases/(default)/documents/boards/{}",
-        config.firestore_project, board_id
-      ),
-      collection_id: "cards".into(),
-      page_size: 200,
-      ..Default::default()
-    })
+pub async fn list(firestore: &FirestoreDb, board_id: &String) -> Result<Vec<Card>, Error> {
+  let mut object_stream: BoxStream<Option<CardInFirestore>> = firestore
+    .fluent()
+    .list()
+    .from("cards")
+    .parent(firestore.parent_path("boards", board_id)?)
+    .obj::<Option<CardInFirestore>>()
+    .stream_all()
     .await?;
-  let documents = result.into_inner().documents;
-  let (valid_documents, _): (Vec<_>, Vec<_>) = documents
-    .into_iter()
-    .map(Card::try_from)
-    .partition(Result::is_ok);
-  Ok(valid_documents.into_iter().map(Result::unwrap).collect())
+
+  let mut cards: Vec<Card> = vec![];
+  while let Some(Some(card)) = object_stream.next().await {
+    cards.push(card.into());
+  }
+  Ok(cards)
 }
 
 pub async fn get(
-  firestore: &mut FirestoreV1Client,
-  config: &Config,
-  board_id: String,
-  card_id: String,
+  firestore: &FirestoreDb,
+  board_id: &String,
+  card_id: &String,
 ) -> Result<Card, Error> {
-  let result = firestore
-    .get_document(GetDocumentRequest {
-      name: format!(
-        "projects/{}/databases/(default)/documents/boards/{}/cards/{}",
-        config.firestore_project, board_id, card_id
-      ),
-      ..Default::default()
-    })
-    .await?;
-  result.into_inner().try_into()
+  firestore
+    .fluent()
+    .select()
+    .by_id_in("cards")
+    .parent(firestore.parent_path("boards", board_id)?)
+    .obj::<CardInFirestore>()
+    .one(&card_id)
+    .await?
+    .ok_or(Error::NotFound)
+    .map(|card| card.into())
 }
 
 pub async fn update(
-  firestore: &mut FirestoreV1Client,
-  config: &Config,
-  board_id: String,
-  card_id: String,
+  firestore: &FirestoreDb,
+  board_id: &String,
+  card_id: &String,
   card: CardMessage,
 ) -> Result<Card, Error> {
-  let mut document: Document = card.into();
-  document.name = format!(
-    "projects/{}/databases/(default)/documents/boards/{}/cards/{}",
-    config.firestore_project, board_id, card_id
-  );
-  let result = firestore
-    .update_document(UpdateDocumentRequest {
-      document: Some(document.clone()),
-      update_mask: Some(DocumentMask {
-        field_paths: document.fields.keys().cloned().collect(),
-      }),
-      ..Default::default()
-    })
-    .await?;
-  result.into_inner().try_into()
+  let change_set = CardChangeSet {
+    author: card.author,
+    text: card.text,
+    column: card.column.map(|c| {
+      FirestoreReference(format!(
+        "{}/columns/{}",
+        firestore.parent_path("boards", board_id).unwrap(),
+        c
+      ))
+    }),
+  };
+  let serialised_card = serde_json::to_value(&change_set)?;
+  firestore
+    .fluent()
+    .update()
+    .fields(
+      paths!(CardMessage::{column, author, text})
+        .into_iter()
+        .filter(|f| serialised_card.get(f).is_some()),
+    )
+    .in_col("cards")
+    .document_id(card_id)
+    .parent(firestore.parent_path("boards", board_id)?)
+    .object(&change_set)
+    .execute::<CardInFirestore>()
+    .await
+    .map(|card| card.into())
+    .map_err(|e| e.into())
 }
 
 pub async fn delete(
-  firestore: &mut FirestoreV1Client,
-  config: &Config,
-  board_id: String,
-  card_id: String,
+  firestore: &FirestoreDb,
+  board_id: &String,
+  card_id: &String,
 ) -> Result<(), Error> {
-  let name = format!(
-    "projects/{}/databases/(default)/documents/boards/{}/cards/{}",
-    config.firestore_project, board_id, card_id
-  );
   firestore
-    .delete_document(DeleteDocumentRequest {
-      name,
-      ..Default::default()
-    })
-    .await?;
-  Ok(())
+    .fluent()
+    .delete()
+    .from("cards")
+    .document_id(card_id)
+    .parent(firestore.parent_path("boards", board_id)?)
+    .execute()
+    .await
+    .map_err(|e| e.into())
 }
 
 pub async fn put_vote(
-  firestore: &mut FirestoreV1Client,
-  config: &Config,
+  firestore: &FirestoreDb,
   participant: &Participant,
-  board_id: String,
-  card_id: String,
+  board_id: &String,
+  card_id: &String,
 ) -> Result<(), Error> {
-  let participant_doc_id = to_participant_reference!(config.firestore_project, participant.id);
-  let card_doc_id = to_card_reference!(config.firestore_project, board_id, card_id);
+  let mut transaction = firestore.begin_transaction().await?;
   firestore
-    .batch_write(BatchWriteRequest {
-      database: format!("projects/{}/databases/(default)", config.firestore_project),
-      writes: vec![Write {
-        operation: Some(write::Operation::Transform(DocumentTransform {
-          document: card_doc_id,
-          field_transforms: vec![document_transform::FieldTransform {
-            field_path: "votes".into(),
-            transform_type: Some(
-              document_transform::field_transform::TransformType::AppendMissingElements(
-                ArrayValue {
-                  values: vec![reference_value!(participant_doc_id)],
-                },
-              ),
-            ),
-          }],
-        })),
-        ..Default::default()
-      }],
-      ..Default::default()
+    .fluent()
+    .update()
+    .in_col("cards")
+    .document_id(card_id)
+    .parent(firestore.parent_path("boards", board_id)?)
+    .transforms(|t| {
+      t.fields([t
+        .field(path!(CardInFirestore::votes))
+        .append_missing_elements([FirestoreReference(
+          firestore
+            .parent_path("participants", &participant.id)
+            .unwrap()
+            .into(),
+        )])])
     })
-    .await?
-    .into_inner();
+    .only_transform()
+    .add_to_transaction(&mut transaction)?;
+  transaction.commit().await?;
   Ok(())
 }
 
 pub async fn delete_vote(
-  firestore: &mut FirestoreV1Client,
-  config: &Config,
+  firestore: &FirestoreDb,
   participant: &Participant,
-  board_id: String,
-  card_id: String,
+  board_id: &String,
+  card_id: &String,
 ) -> Result<(), Error> {
-  let participant_doc_id = to_participant_reference!(config.firestore_project, participant.id);
-  let card_doc_id = to_card_reference!(config.firestore_project, board_id, card_id);
+  let mut transaction = firestore.begin_transaction().await?;
   firestore
-    .batch_write(BatchWriteRequest {
-      database: format!("projects/{}/databases/(default)", config.firestore_project),
-      writes: vec![Write {
-        operation: Some(write::Operation::Transform(DocumentTransform {
-          document: card_doc_id,
-          field_transforms: vec![document_transform::FieldTransform {
-            field_path: "votes".into(),
-            transform_type: Some(
-              document_transform::field_transform::TransformType::RemoveAllFromArray(ArrayValue {
-                values: vec![reference_value!(participant_doc_id)],
-              }),
-            ),
-          }],
-        })),
-        ..Default::default()
-      }],
-      ..Default::default()
+    .fluent()
+    .update()
+    .in_col("cards")
+    .document_id(card_id)
+    .parent(firestore.parent_path("boards", board_id)?)
+    .transforms(|t| {
+      t.fields([t
+        .field(path!(CardInFirestore::votes))
+        .remove_all_from_array([FirestoreReference(
+          firestore
+            .parent_path("participants", &participant.id)
+            .unwrap()
+            .into(),
+        )])])
     })
-    .await?
-    .into_inner();
+    .only_transform()
+    .add_to_transaction(&mut transaction)?;
+  transaction.commit().await?;
   Ok(())
 }
 
 pub async fn put_reaction(
-  firestore: &mut FirestoreV1Client,
-  config: &Config,
+  firestore: &FirestoreDb,
   participant: &Participant,
-  board_id: String,
-  card_id: String,
-  emoji: String,
+  board_id: &String,
+  card_id: &String,
+  emoji: &String,
 ) -> Result<(), Error> {
-  let participant_doc_id = to_participant_reference!(config.firestore_project, participant.id);
-  let card_doc_id = to_card_reference!(config.firestore_project, board_id, card_id);
-
   // Delete an existing reaction first
-  delete_reaction(firestore, config, participant, board_id, card_id).await?;
+  delete_reaction(firestore, participant, board_id, card_id).await?;
 
+  let mut transaction = firestore.begin_transaction().await?;
   firestore
-    .batch_write(BatchWriteRequest {
-      database: format!("projects/{}/databases/(default)", config.firestore_project),
-      writes: vec![Write {
-        operation: Some(write::Operation::Transform(DocumentTransform {
-          document: card_doc_id,
-          field_transforms: vec![document_transform::FieldTransform {
-            field_path: format!("reactions.`{}`", emoji),
-            transform_type: Some(
-              document_transform::field_transform::TransformType::AppendMissingElements(
-                ArrayValue {
-                  values: vec![reference_value!(participant_doc_id)],
-                },
-              ),
-            ),
-          }],
-        })),
-        ..Default::default()
-      }],
-      ..Default::default()
+    .fluent()
+    .update()
+    .in_col("cards")
+    .document_id(card_id)
+    .parent(firestore.parent_path("boards", board_id)?)
+    .transforms(|t| {
+      t.fields([t
+        .field(format!("reactions.`{}`", emoji))
+        .append_missing_elements([FirestoreReference(
+          firestore
+            .parent_path("participants", &participant.id)
+            .unwrap()
+            .into(),
+        )])])
     })
-    .await?
-    .into_inner();
+    .only_transform()
+    .add_to_transaction(&mut transaction)?;
+  transaction.commit().await?;
   Ok(())
 }
 
 pub async fn delete_reaction(
-  firestore: &mut FirestoreV1Client,
-  config: &Config,
+  firestore: &FirestoreDb,
   participant: &Participant,
-  board_id: String,
-  card_id: String,
+  board_id: &String,
+  card_id: &String,
 ) -> Result<(), Error> {
-  let participant_doc_id = to_participant_reference!(config.firestore_project, participant.id);
-  let card_doc_id = to_card_reference!(config.firestore_project, board_id, card_id);
-  let card = get(firestore, config, board_id, card_id).await?;
+  let card = get(firestore, board_id, card_id).await?;
+  let participant_reference = FirestoreReference(
+    firestore
+      .parent_path("participants", &participant.id)
+      .unwrap()
+      .into(),
+  );
 
   // Find which emoji the participant has reacted with
   let mut reaction: Option<String> = None;
   for (emoji, participants) in card.reactions {
-    if participants.contains(&participant_doc_id) {
+    if participants.contains(&participant_reference.0) {
       reaction = Some(emoji);
     }
   }
 
-  if let Some(emoji) = reaction {
-    firestore
-      .batch_write(BatchWriteRequest {
-        database: format!("projects/{}/databases/(default)", config.firestore_project),
-        writes: vec![Write {
-          operation: Some(write::Operation::Transform(DocumentTransform {
-            document: card_doc_id,
-            field_transforms: vec![document_transform::FieldTransform {
-              field_path: format!("reactions.`{}`", emoji),
-              transform_type: Some(
-                document_transform::field_transform::TransformType::RemoveAllFromArray(
-                  ArrayValue {
-                    values: vec![reference_value!(participant_doc_id)],
-                  },
-                ),
-              ),
-            }],
-          })),
-          ..Default::default()
-        }],
-        ..Default::default()
-      })
-      .await?
-      .into_inner();
-  }
+  let Some(emoji) = reaction else {
+    return Ok(());
+  };
+
+  let mut transaction = firestore.begin_transaction().await?;
+  firestore
+    .fluent()
+    .update()
+    .in_col("cards")
+    .document_id(card_id)
+    .parent(firestore.parent_path("boards", board_id)?)
+    .transforms(|t| {
+      t.fields([t
+        .field(format!("reactions.`{}`", emoji))
+        .remove_all_from_array([FirestoreReference(
+          firestore
+            .parent_path("participants", &participant.id)
+            .unwrap()
+            .into(),
+        )])])
+    })
+    .only_transform()
+    .add_to_transaction(&mut transaction)?;
+  transaction.commit().await?;
   Ok(())
 }

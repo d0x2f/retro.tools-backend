@@ -2,33 +2,43 @@ pub mod db;
 pub mod models;
 pub mod routes;
 
-use actix_http::error::Error as ActixError;
+use ::firestore::FirestoreDb;
+use actix_http::Payload;
 use actix_identity::Identity;
-use futures::future::Ready;
+use actix_web::cookie::Cookie;
+use actix_web::cookie::CookieJar;
+use actix_web::cookie::Key;
+use actix_web::web::Data;
+use actix_web::FromRequest;
+use actix_web::HttpMessage;
+use actix_web::HttpRequest;
 
 use crate::config::Config;
 use crate::error::Error;
-use crate::firestore;
 use models::Participant;
 
-pub async fn new(
-  config: Config,
-  identity: Ready<Result<Identity, ActixError>>,
-  legacy_id: Option<String>,
-) -> Result<Participant, Error> {
-  let mut firestore = firestore::get_client().await?;
-  let identity = identity.await?;
-  Ok(match identity.identity() {
-    Some(s) => Participant { id: s },
-    None => {
-      if let Some(legacy_id) = legacy_id {
-        if let Ok(participant) = db::get(&mut firestore, &config, &legacy_id).await {
-          identity.remember(participant.id.clone());
-          return Ok(participant);
-        }
-      }
-      let participant = db::new(&mut firestore, &config).await?;
-      identity.remember(participant.id.clone());
+fn extract_legacy_session(req: &HttpRequest) -> Option<Participant> {
+  let config = req.app_data::<Data<Config>>().unwrap();
+  let legacy_session_cookie = req.cookie("__session")?;
+  let legacy_session = legacy_session_cookie.value().to_string();
+  let mut jar = CookieJar::new();
+  jar.add(Cookie::new("__session", legacy_session));
+  let key = Key::derive_from(&config.secret_key);
+  Some(Participant {
+    id: jar.private(&key).get("__session")?.value().to_string(),
+  })
+}
+
+pub async fn new(req: HttpRequest) -> Result<Participant, Error> {
+  let identity = Identity::from_request(&req, &mut Payload::None).await;
+  Ok(match identity {
+    Ok(s) => Participant {
+      id: s.id().unwrap(),
+    },
+    _ => {
+      let firestore = req.app_data::<Data<FirestoreDb>>().unwrap();
+      let participant = extract_legacy_session(&req).unwrap_or(db::new(firestore).await?);
+      Identity::login(&req.extensions(), participant.id.clone())?;
       participant
     }
   })
