@@ -67,7 +67,7 @@ pub async fn get_participant_board_ids(
         .boards
         .unwrap_or(vec![])
         .into_iter()
-        .map(|id| id.split('/').last().unwrap().to_string())
+        .map(|id| id.split('/').next_back().unwrap().to_string())
         .collect(),
     )
   } else {

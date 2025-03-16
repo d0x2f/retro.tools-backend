@@ -1,3 +1,4 @@
+use actix_identity::error::LoginError;
 use actix_web::http::StatusCode;
 use actix_web::{HttpResponse, ResponseError};
 use firestore::errors::FirestoreError;
@@ -65,3 +66,4 @@ impl InternalError for csv::Error {}
 impl<W> InternalError for csv::IntoInnerError<W> {}
 impl InternalError for SystemTimeError {}
 impl InternalError for FirestoreError {}
+impl InternalError for LoginError {}

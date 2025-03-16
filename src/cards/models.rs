@@ -117,8 +117,8 @@ impl From<CardInFirestore> for Card {
       column: card.column,
       author: card.author,
       text: card.text,
-      votes: card.votes.unwrap_or(vec![]),
-      reactions: card.reactions.unwrap_or(HashMap::new()),
+      votes: card.votes.unwrap_or_default(),
+      reactions: card.reactions.unwrap_or_default(),
     }
   }
 }
@@ -126,12 +126,12 @@ impl From<CardInFirestore> for Card {
 impl CardCSVRow {
   pub fn from_card(card: Card, columns: &HashMap<String, Column>) -> CardCSVRow {
     CardCSVRow {
-      column: match columns.get(&card.column.0.split('/').last().unwrap().to_string()) {
+      column: match columns.get(&card.column.0.split('/').next_back().unwrap().to_string()) {
         Some(column) => column
           .name
           .clone()
           .split('.')
-          .last()
+          .next_back()
           .unwrap_or(&column.name)
           .into(),
         _ => "Unknown Column".into(),
@@ -148,7 +148,7 @@ impl CardResponse {
   pub fn from_card(card: Card, participant_id: &FirestoreReference) -> CardResponse {
     CardResponse {
       id: card.id,
-      column: card.column.0.split('/').last().unwrap().to_string(),
+      column: card.column.0.split('/').next_back().unwrap().to_string(),
       owner: &card.owner == participant_id,
       author: card.author,
       text: card.text,
