@@ -4,7 +4,8 @@ WORKDIR /build
 
 COPY . .
 
-RUN apt-get update && apt-get install -y ca-certificates
+RUN apt-get update && apt-get install -y ca-certificates clang && \
+    ln -s /usr/bin/g++ /usr/bin/x86_64-linux-musl-g++
 
 RUN cargo build --release
 
