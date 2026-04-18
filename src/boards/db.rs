@@ -94,3 +94,105 @@ pub async fn delete(firestore: &FirestoreDb, board_id: &String) -> Result<(), Er
     .await
     .map_err(|e| e.into())
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::boards::models::BoardMessage;
+  use crate::participants::models::Participant;
+
+  // Run with: FIRESTORE_EMULATOR_HOST=localhost:8080 cargo test -- --ignored
+  async fn emulator_db() -> FirestoreDb {
+    use chrono::Utc;
+    use firestore::FirestoreDbOptions;
+    use gcloud_sdk::{ExternalJwtFunctionSource, Token, TokenSourceType};
+    // The emulator ignores auth entirely; supply a fake token to bypass ADC.
+    let token_source = ExternalJwtFunctionSource::new(|| async {
+      Ok(Token::new(
+        "Bearer".to_string(),
+        // Minimal JWT the emulator accepts: base64url(header).base64url(payload).
+        // The emulator checks format but not signature.
+        "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJ0ZXN0In0.".into(),
+        Utc::now() + chrono::Duration::hours(1),
+      ))
+    });
+    FirestoreDb::with_options_token_source(
+      FirestoreDbOptions::new("test-project".to_string()),
+      vec![],
+      TokenSourceType::ExternalSource(Box::new(token_source)),
+    )
+    .await
+    .unwrap()
+  }
+
+  fn test_participant() -> Participant {
+    Participant { id: "integration-test-participant".to_string() }
+  }
+
+  fn board_msg(name: &str) -> BoardMessage {
+    BoardMessage {
+      name: Some(name.to_string()),
+      cards_open: Some(true),
+      voting_open: Some(false),
+      ice_breaking: None,
+      data: None,
+    }
+  }
+
+  #[tokio::test]
+  #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
+  async fn new_board_can_be_retrieved_by_id() {
+    let db = emulator_db().await;
+    let participant = test_participant();
+    let board = new(&db, &participant, board_msg("Integration Test Board")).await.unwrap();
+    let fetched = get(&db, &board.id).await.unwrap();
+    assert_eq!(fetched.id, board.id);
+    assert_eq!(fetched.name, "Integration Test Board");
+    assert!(fetched.cards_open);
+    assert!(!fetched.voting_open);
+    delete(&db, &board.id).await.unwrap();
+  }
+
+  #[tokio::test]
+  #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
+  async fn get_nonexistent_board_returns_not_found() {
+    let db = emulator_db().await;
+    let result = get(&db, &"nonexistent-board-id-xyz".to_string()).await;
+    assert!(matches!(result, Err(crate::error::Error::NotFound)));
+  }
+
+  #[tokio::test]
+  #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
+  async fn update_board_changes_fields() {
+    let db = emulator_db().await;
+    let participant = test_participant();
+    let board = new(&db, &participant, board_msg("Before Update")).await.unwrap();
+    let updated = update(
+      &db,
+      &board.id,
+      BoardMessage {
+        name: Some("After Update".to_string()),
+        cards_open: Some(false),
+        voting_open: None,
+        ice_breaking: None,
+        data: None,
+      },
+    )
+    .await
+    .unwrap();
+    assert_eq!(updated.name, "After Update");
+    assert!(!updated.cards_open);
+    delete(&db, &board.id).await.unwrap();
+  }
+
+  #[tokio::test]
+  #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
+  async fn delete_board_makes_it_unretrievable() {
+    let db = emulator_db().await;
+    let participant = test_participant();
+    let board = new(&db, &participant, board_msg("To Be Deleted")).await.unwrap();
+    delete(&db, &board.id).await.unwrap();
+    let result = get(&db, &board.id).await;
+    assert!(matches!(result, Err(crate::error::Error::NotFound)));
+  }
+}

@@ -2842,6 +2842,7 @@ dependencies = [
  "firestore",
  "futures",
  "futures-util",
+ "gcloud-sdk",
  "jwt-simple",
  "log",
  "reqwest",

@@ -68,3 +68,61 @@ impl From<ColumnInFirestore> for Column {
     }
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use chrono::Utc;
+  use firestore::FirestoreTimestamp;
+
+  fn column_in_firestore(id: &str, position: Option<i64>) -> ColumnInFirestore {
+    ColumnInFirestore {
+      _firestore_id: id.to_string(),
+      _firestore_created: FirestoreTimestamp(Utc::now()),
+      name: "What went well".to_string(),
+      created_at: None,
+      data: serde_json::Value::Object(serde_json::Map::new()),
+      position,
+    }
+  }
+
+  #[test]
+  fn column_message_all_none_uses_defaults() {
+    let msg = ColumnMessage {
+      name: None,
+      data: None,
+      position: None,
+    };
+    let c: NewColumn = msg.into();
+    assert_eq!(c.name, "");
+    assert_eq!(c.data, serde_json::Value::Object(serde_json::Map::new()));
+    assert!(c.position.is_none());
+  }
+
+  #[test]
+  fn column_message_explicit_values_preserved() {
+    let msg = ColumnMessage {
+      name: Some("Action Items".to_string()),
+      data: Some(serde_json::json!({"color": "blue"})),
+      position: Some(3),
+    };
+    let c: NewColumn = msg.into();
+    assert_eq!(c.name, "Action Items");
+    assert_eq!(c.data, serde_json::json!({"color": "blue"}));
+    assert_eq!(c.position, Some(3));
+  }
+
+  #[test]
+  fn column_in_firestore_preserves_position() {
+    let c: Column = column_in_firestore("col1", Some(2)).into();
+    assert_eq!(c.id, "col1");
+    assert_eq!(c.name, "What went well");
+    assert_eq!(c.position, 2);
+  }
+
+  #[test]
+  fn column_in_firestore_position_none_defaults_to_zero() {
+    let c: Column = column_in_firestore("col2", None).into();
+    assert_eq!(c.position, 0);
+  }
+}

@@ -22,6 +22,20 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --all-features -- -Dwarnings
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+      - name: Start Firestore emulator
+        run: firebase emulators:start --only firestore --project test-project &
+      - name: Wait for Firestore emulator
+        run: timeout 60 bash -c 'until curl -sf http://localhost:8080; do sleep 2; done'
+      - name: Run tests
+        env:
+          FIRESTORE_EMULATOR_HOST: localhost:8080
+        run: cargo test -- --include-ignored
 
   cd:
     runs-on: ubuntu-latest
