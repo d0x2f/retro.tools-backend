@@ -9,6 +9,20 @@ use crate::error::Error;
 use crate::participants::db::*;
 use crate::participants::models::Participant;
 
+fn check_update_permission(
+  board: &Board,
+  participant: &FirestoreReference,
+  message: &BoardMessage,
+) -> Result<(), Error> {
+  if !board.anyone_is_owner && board.owner != *participant {
+    return Err(Error::Forbidden);
+  }
+  if message.anyone_is_owner.is_some() && board.owner != *participant {
+    return Err(Error::Forbidden);
+  }
+  Ok(())
+}
+
 #[post("boards")]
 pub async fn new(
   firestore: web::Data<FirestoreDb>,
@@ -98,10 +112,9 @@ pub async fn update(
       .unwrap()
       .into(),
   );
-  if board.owner != participant_reference {
-    return Err(Error::Forbidden);
-  }
-  let board = db::update(&firestore, &board_id, board_message.into_inner()).await?;
+  let board_message = board_message.into_inner();
+  check_update_permission(&board, &participant_reference, &board_message)?;
+  let board = db::update(&firestore, &board_id, board_message).await?;
   Ok(HttpResponse::Ok().json(BoardResponse::from_board(board, &participant_reference)))
 }
 
@@ -118,9 +131,88 @@ pub async fn delete(
       .unwrap()
       .into(),
   );
-  if board.owner != participant_reference {
+  if !board.anyone_is_owner && board.owner != participant_reference {
     return Err(Error::Forbidden);
   }
   db::delete(&firestore, &board_id).await?;
   Ok(HttpResponse::Ok().finish())
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use chrono::Utc;
+  use firestore::FirestoreReference;
+  use serde_json::Map;
+
+  fn ref_(s: &str) -> FirestoreReference {
+    FirestoreReference(s.to_string())
+  }
+
+  fn make_board(owner: &str, anyone_is_owner: bool) -> Board {
+    Board {
+      id: "board1".to_string(),
+      name: "Test".to_string(),
+      cards_open: true,
+      voting_open: true,
+      ice_breaking: "".to_string(),
+      created_at: Utc::now().timestamp(),
+      owner: ref_(owner),
+      anyone_is_owner,
+      data: serde_json::Value::Object(Map::new()),
+    }
+  }
+
+  fn msg(anyone_is_owner: Option<bool>) -> BoardMessage {
+    BoardMessage {
+      name: None,
+      cards_open: None,
+      voting_open: None,
+      ice_breaking: None,
+      data: None,
+      anyone_is_owner,
+    }
+  }
+
+  #[test]
+  fn owner_can_update_normally() {
+    let board = make_board("participants/owner", false);
+    assert!(check_update_permission(&board, &ref_("participants/owner"), &msg(None)).is_ok());
+  }
+
+  #[test]
+  fn non_owner_blocked_when_anyone_is_owner_false() {
+    let board = make_board("participants/owner", false);
+    assert!(check_update_permission(&board, &ref_("participants/other"), &msg(None)).is_err());
+  }
+
+  #[test]
+  fn non_owner_allowed_when_anyone_is_owner_true() {
+    let board = make_board("participants/owner", true);
+    assert!(check_update_permission(&board, &ref_("participants/other"), &msg(None)).is_ok());
+  }
+
+  #[test]
+  fn non_owner_cannot_toggle_anyone_is_owner_off() {
+    let board = make_board("participants/owner", true);
+    assert!(
+      check_update_permission(&board, &ref_("participants/other"), &msg(Some(false))).is_err()
+    );
+  }
+
+  #[test]
+  fn non_owner_cannot_toggle_anyone_is_owner_on() {
+    let board = make_board("participants/owner", false);
+    assert!(
+      check_update_permission(&board, &ref_("participants/other"), &msg(Some(true))).is_err()
+    );
+  }
+
+  #[test]
+  fn owner_can_toggle_anyone_is_owner() {
+    let board = make_board("participants/owner", true);
+    assert!(
+      check_update_permission(&board, &ref_("participants/owner"), &msg(Some(false))).is_ok()
+    );
+  }
 }

@@ -71,7 +71,7 @@ pub async fn update(
     .fluent()
     .update()
     .fields(
-      paths!(BoardMessage::{name, cards_open, voting_open, ice_breaking, data})
+      paths!(BoardMessage::{name, cards_open, voting_open, ice_breaking, data, anyone_is_owner})
         .into_iter()
         .filter(|f| serialised_board.get(f).is_some()),
     )
@@ -136,6 +136,7 @@ mod tests {
       voting_open: Some(false),
       ice_breaking: None,
       data: None,
+      anyone_is_owner: None,
     }
   }
 
@@ -176,12 +177,65 @@ mod tests {
         voting_open: None,
         ice_breaking: None,
         data: None,
+        anyone_is_owner: None,
       },
     )
     .await
     .unwrap();
     assert_eq!(updated.name, "After Update");
     assert!(!updated.cards_open);
+    delete(&db, &board.id).await.unwrap();
+  }
+
+  #[tokio::test]
+  #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
+  async fn new_board_with_anyone_is_owner_true_persists() {
+    let db = emulator_db().await;
+    let participant = test_participant();
+    let board = new(
+      &db,
+      &participant,
+      BoardMessage {
+        name: Some("Anyone Is Owner Board".to_string()),
+        cards_open: Some(true),
+        voting_open: Some(true),
+        ice_breaking: None,
+        data: None,
+        anyone_is_owner: Some(true),
+      },
+    )
+    .await
+    .unwrap();
+    assert!(board.anyone_is_owner);
+    let fetched = get(&db, &board.id).await.unwrap();
+    assert!(fetched.anyone_is_owner);
+    delete(&db, &board.id).await.unwrap();
+  }
+
+  #[tokio::test]
+  #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
+  async fn update_board_anyone_is_owner_persists() {
+    let db = emulator_db().await;
+    let participant = test_participant();
+    let board = new(&db, &participant, board_msg("Toggle Anyone Is Owner")).await.unwrap();
+    assert!(!board.anyone_is_owner);
+    let updated = update(
+      &db,
+      &board.id,
+      BoardMessage {
+        name: None,
+        cards_open: None,
+        voting_open: None,
+        ice_breaking: None,
+        data: None,
+        anyone_is_owner: Some(true),
+      },
+    )
+    .await
+    .unwrap();
+    assert!(updated.anyone_is_owner);
+    let fetched = get(&db, &board.id).await.unwrap();
+    assert!(fetched.anyone_is_owner);
     delete(&db, &board.id).await.unwrap();
   }
 
