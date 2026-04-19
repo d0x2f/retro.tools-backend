@@ -5,8 +5,17 @@ use actix_web::{delete, get, patch, post, web, HttpResponse};
 use super::db;
 use super::models::ColumnMessage;
 use crate::boards;
+use crate::boards::models::Board;
 use crate::error::Error;
 use crate::participants::models::Participant;
+
+fn check_board_owner_permission(board: &Board, participant: &FirestoreReference) -> Result<(), Error> {
+  if board.owner != *participant {
+    Err(Error::Forbidden)
+  } else {
+    Ok(())
+  }
+}
 
 #[post("boards/{board_id}/columns")]
 pub async fn new(
@@ -55,9 +64,7 @@ pub async fn update(
       .unwrap()
       .into(),
   );
-  if board.owner != participant_reference {
-    return Err(Error::Forbidden);
-  }
+  check_board_owner_permission(&board, &participant_reference)?;
   let column = db::update(
     &firestore,
     &board_id,
@@ -82,9 +89,68 @@ pub async fn delete(
       .into(),
   );
   let board = boards::db::get(&firestore, &board_id).await?;
-  if board.owner != participant_reference {
-    return Err(Error::Forbidden);
-  }
+  check_board_owner_permission(&board, &participant_reference)?;
   db::delete(&firestore, &board_id, &column_id).await?;
   Ok(HttpResponse::Ok().finish())
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use chrono::Utc;
+  use serde_json::Map;
+
+  fn ref_(s: &str) -> FirestoreReference {
+    FirestoreReference(s.to_string())
+  }
+
+  fn make_board(owner: &str) -> Board {
+    Board {
+      id: "board1".to_string(),
+      name: "Test".to_string(),
+      cards_open: true,
+      voting_open: true,
+      ice_breaking: "".to_string(),
+      created_at: Utc::now().timestamp(),
+      owner: ref_(owner),
+      anyone_is_owner: false,
+      data: serde_json::Value::Object(Map::new()),
+    }
+  }
+
+  #[test]
+  fn board_owner_can_update_column() {
+    let board = make_board("participants/owner");
+    assert!(check_board_owner_permission(&board, &ref_("participants/owner")).is_ok());
+  }
+
+  #[test]
+  fn non_owner_cannot_update_column() {
+    let board = make_board("participants/owner");
+    assert!(check_board_owner_permission(&board, &ref_("participants/other")).is_err());
+  }
+
+  #[test]
+  fn non_owner_column_update_returns_forbidden() {
+    let board = make_board("participants/owner");
+    assert!(matches!(
+      check_board_owner_permission(&board, &ref_("participants/other")),
+      Err(Error::Forbidden)
+    ));
+  }
+
+  #[test]
+  fn board_owner_can_delete_column() {
+    let board = make_board("participants/owner");
+    assert!(check_board_owner_permission(&board, &ref_("participants/owner")).is_ok());
+  }
+
+  #[test]
+  fn non_owner_cannot_delete_column() {
+    let board = make_board("participants/owner");
+    assert!(matches!(
+      check_board_owner_permission(&board, &ref_("participants/other")),
+      Err(Error::Forbidden)
+    ));
+  }
 }

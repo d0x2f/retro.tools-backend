@@ -12,6 +12,14 @@ use crate::columns::get_columns;
 use crate::error::Error;
 use crate::participants::models::Participant;
 
+fn validate_card_text(card_message: &CardMessage) -> Result<(), Error> {
+  match &card_message.text {
+    Some(text) if text.is_empty() => Err(Error::BadRequest("Empty cards are not allowed.".into())),
+    None => Err(Error::BadRequest("Card text must be provided.".into())),
+    Some(_) => Ok(()),
+  }
+}
+
 #[post("boards/{board_id}/columns/{column_id}/cards")]
 pub async fn new(
   firestore: web::Data<FirestoreDb>,
@@ -29,14 +37,7 @@ pub async fn new(
     column_id
   ));
 
-  // Empty cards are not allowed
-  if let Some(text) = &card_message.text {
-    if text.is_empty() {
-      return Err(Error::BadRequest("Empty cards are not allowed.".into()));
-    }
-  } else {
-    return Err(Error::BadRequest("Card text must be provided.".into()));
-  }
+  validate_card_text(&card_message)?;
 
   let card = db::new(&firestore, &participant, &board_id, card_message).await?;
   Ok(
@@ -221,4 +222,44 @@ pub async fn csv(
       ))
       .body(String::from_utf8(csv_writer.into_inner()?)?),
   )
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn msg(text: Option<&str>) -> CardMessage {
+    CardMessage { author: None, text: text.map(|s| s.to_string()), column: None }
+  }
+
+  #[test]
+  fn non_empty_text_is_valid() {
+    assert!(validate_card_text(&msg(Some("Hello"))).is_ok());
+  }
+
+  #[test]
+  fn empty_text_is_bad_request() {
+    assert!(matches!(validate_card_text(&msg(Some(""))), Err(Error::BadRequest(_))));
+  }
+
+  #[test]
+  fn empty_text_error_message() {
+    match validate_card_text(&msg(Some(""))) {
+      Err(Error::BadRequest(s)) => assert_eq!(s, "Empty cards are not allowed."),
+      other => panic!("expected BadRequest, got {other:?}"),
+    }
+  }
+
+  #[test]
+  fn missing_text_is_bad_request() {
+    assert!(matches!(validate_card_text(&msg(None)), Err(Error::BadRequest(_))));
+  }
+
+  #[test]
+  fn missing_text_error_message() {
+    match validate_card_text(&msg(None)) {
+      Err(Error::BadRequest(s)) => assert_eq!(s, "Card text must be provided."),
+      other => panic!("expected BadRequest, got {other:?}"),
+    }
+  }
 }
