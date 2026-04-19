@@ -54,3 +54,18 @@ jobs:
         run: gcloud auth configure-docker us-east1-docker.pkg.dev && docker push us-east1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/retrograde/retrograde:latest
       - name: Deploy new cloudrun revision
         run: gcloud run deploy retrotools --image us-east1-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/retrograde/retrograde:latest --platform managed --region=us-east1 --project=${{ secrets.GCP_PROJECT }}
+
+  deploy-firestore-rules:
+    runs-on: ubuntu-latest
+    needs: ci
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && github.ref == 'refs/heads/master'"
+    steps:
+      - uses: actions/checkout@v1
+      - id: auth
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: "${{ secrets.GCP_ACCOUNT_CREDENTIALS }}"
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+      - name: Deploy Firestore rules
+        run: firebase deploy --only firestore:rules --project ${{ secrets.GCP_PROJECT }}

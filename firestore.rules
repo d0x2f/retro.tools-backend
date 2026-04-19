@@ -1,0 +1,28 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Allow read access if user is a board participant
+    match /boards/{boardId} {
+      allow read: if isAuthenticated() && isBoardParticipant(boardId);
+    }
+
+    match /boards/{boardId}/{_=**} {
+      allow read: if isAuthenticated() && isBoardParticipant(boardId);
+    }
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isBoardParticipant(boardId) {
+      return
+        exists(/databases/$(database)/documents/participants/$(request.auth.uid)) &&
+        /databases/%28default%29/documents/boards/$(boardId) in get(/databases/$(database)/documents/participants/$(request.auth.uid)).data.boards
+    }
+  }
+}
