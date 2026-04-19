@@ -241,6 +241,46 @@ mod tests {
 
   #[tokio::test]
   #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
+  async fn update_board_anyone_is_owner_toggle_off_persists() {
+    let db = emulator_db().await;
+    let participant = test_participant();
+    let board = new(
+      &db,
+      &participant,
+      BoardMessage {
+        name: Some("Anyone Is Owner Board".to_string()),
+        cards_open: Some(true),
+        voting_open: Some(true),
+        ice_breaking: None,
+        data: None,
+        anyone_is_owner: Some(true),
+      },
+    )
+    .await
+    .unwrap();
+    assert!(board.anyone_is_owner);
+    let updated = update(
+      &db,
+      &board.id,
+      BoardMessage {
+        name: None,
+        cards_open: None,
+        voting_open: None,
+        ice_breaking: None,
+        data: None,
+        anyone_is_owner: Some(false),
+      },
+    )
+    .await
+    .unwrap();
+    assert!(!updated.anyone_is_owner);
+    let fetched = get(&db, &board.id).await.unwrap();
+    assert!(!fetched.anyone_is_owner);
+    delete(&db, &board.id).await.unwrap();
+  }
+
+  #[tokio::test]
+  #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
   async fn delete_board_makes_it_unretrievable() {
     let db = emulator_db().await;
     let participant = test_participant();
