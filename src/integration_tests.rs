@@ -16,7 +16,7 @@ use crate::cards;
 use crate::columns;
 use crate::config::{Config, Environment, GoogleAccountKey};
 
-// ── test infrastructure ──────────────────────────────────────────────────────
+// ── test infrastructure ────────────────────────────────���─────────────────────
 
 async fn emulator_db() -> FirestoreDb {
   let token_source = ExternalJwtFunctionSource::new(|| async {
@@ -111,13 +111,13 @@ async fn body_json(resp: actix_web::dev::ServiceResponse<impl actix_web::body::M
   serde_json::from_slice(&bytes).expect("response body should be valid JSON")
 }
 
-// ── boards ───────────────────────────────────────────────────────────────────
+// ── boards ───────────────────────────────���───────────────────────────────��───
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn board_create_returns_200_with_correct_fields() {
   let db = emulator_db().await;
-  let app = make_app!(db);
+  let app = make_app!(db.clone());
 
   let resp = test::call_service(
     &app,
@@ -134,14 +134,14 @@ async fn board_create_returns_200_with_correct_fields() {
   assert_eq!(json["owner"], true);
   assert_eq!(json["anyone_is_owner"], false);
 
-  emulator_db().await;
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn board_create_defaults_cards_and_voting_open_to_true() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
 
   let resp = test::call_service(
     &app,
@@ -155,7 +155,7 @@ async fn board_create_defaults_cards_and_voting_open_to_true() {
   assert_eq!(json["cards_open"], true);
   assert_eq!(json["voting_open"], true);
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
@@ -166,14 +166,14 @@ async fn board_list_returns_200_with_array() {
   let resp = test::call_service(&app, TestRequest::get().uri("/boards").to_request()).await;
 
   assert_eq!(resp.status(), StatusCode::OK);
-  let json = body_json(resp).await;
-  assert!(json.is_array());
+  assert!(body_json(resp).await.is_array());
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn board_get_returns_200() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
 
   let create_resp = test::call_service(
     &app,
@@ -194,7 +194,7 @@ async fn board_get_returns_200() {
   assert_eq!(json["id"], board_id.as_str());
   assert_eq!(json["name"], "Fetch Me");
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
@@ -214,7 +214,8 @@ async fn board_get_nonexistent_returns_404() {
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn board_update_as_owner_returns_200() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
 
   let create_resp = test::call_service(
     &app,
@@ -237,13 +238,14 @@ async fn board_update_as_owner_returns_200() {
   assert_eq!(resp.status(), StatusCode::OK);
   assert_eq!(body_json(resp).await["name"], "After");
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn board_update_as_non_owner_returns_403() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
 
   // Participant A creates the board
   let create_resp = test::call_service(
@@ -270,13 +272,14 @@ async fn board_update_as_non_owner_returns_403() {
 
   assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn board_update_as_non_owner_with_anyone_is_owner_returns_200() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
 
   // Participant A creates the board with anyone_is_owner=true
   let create_resp = test::call_service(
@@ -306,7 +309,7 @@ async fn board_update_as_non_owner_with_anyone_is_owner_returns_200() {
 
   assert_eq!(resp.status(), StatusCode::OK);
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
@@ -337,7 +340,8 @@ async fn board_delete_as_owner_returns_200() {
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn board_delete_as_non_owner_returns_403() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
 
   let create_resp = test::call_service(
     &app,
@@ -361,7 +365,7 @@ async fn board_delete_as_non_owner_returns_403() {
 
   assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
@@ -378,7 +382,7 @@ async fn board_delete_nonexistent_returns_404() {
   assert_eq!(resp.status(), StatusCode::NOT_FOUND);
 }
 
-// ── columns ──────────────────────────────────────────────────────────────────
+// ── columns ──────────────────────────────────────────────────────────────���───
 
 async fn setup_board(app: &impl actix_web::dev::Service<actix_http::Request, Response = actix_web::dev::ServiceResponse<impl actix_web::body::MessageBody>, Error = actix_web::Error>) -> (String, Cookie<'static>) {
   let resp = test::call_service(
@@ -394,7 +398,8 @@ async fn setup_board(app: &impl actix_web::dev::Service<actix_http::Request, Res
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn column_create_returns_200_with_column_fields() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
   let (board_id, cookie) = setup_board(&app).await;
 
   let resp = test::call_service(
@@ -408,16 +413,16 @@ async fn column_create_returns_200_with_column_fields() {
   .await;
 
   assert_eq!(resp.status(), StatusCode::OK);
-  let json = body_json(resp).await;
-  assert_eq!(json["name"], "Went Well");
+  assert_eq!(body_json(resp).await["name"], "Went Well");
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn column_list_returns_200_with_array() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
   let (board_id, cookie) = setup_board(&app).await;
 
   test::call_service(
@@ -442,13 +447,14 @@ async fn column_list_returns_200_with_array() {
   assert_eq!(resp.status(), StatusCode::OK);
   assert!(body_json(resp).await.is_array());
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn column_get_returns_200() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
   let (board_id, cookie) = setup_board(&app).await;
 
   let col_resp = test::call_service(
@@ -474,13 +480,14 @@ async fn column_get_returns_200() {
   assert_eq!(resp.status(), StatusCode::OK);
   assert_eq!(body_json(resp).await["id"], col_id.as_str());
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn column_update_as_owner_returns_200() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
   let (board_id, cookie) = setup_board(&app).await;
 
   let col_resp = test::call_service(
@@ -507,13 +514,14 @@ async fn column_update_as_owner_returns_200() {
   assert_eq!(resp.status(), StatusCode::OK);
   assert_eq!(body_json(resp).await["name"], "After");
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn column_update_as_non_owner_returns_403() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
   let (board_id, cookie) = setup_board(&app).await;
 
   let col_resp = test::call_service(
@@ -543,13 +551,14 @@ async fn column_update_as_non_owner_returns_403() {
 
   assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn column_delete_as_owner_returns_200() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
   let (board_id, cookie) = setup_board(&app).await;
 
   let col_resp = test::call_service(
@@ -574,13 +583,14 @@ async fn column_delete_as_owner_returns_200() {
 
   assert_eq!(resp.status(), StatusCode::OK);
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn column_delete_as_non_owner_returns_403() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
   let (board_id, cookie) = setup_board(&app).await;
 
   let col_resp = test::call_service(
@@ -609,7 +619,7 @@ async fn column_delete_as_non_owner_returns_403() {
 
   assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 // ── cards ─────────────────────────────────────────────────────────────────────
@@ -640,7 +650,8 @@ async fn setup_board_and_column(app: &impl actix_web::dev::Service<actix_http::R
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn card_create_returns_200_with_card_fields() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
   let (board_id, col_id, cookie) = setup_board_and_column(&app).await;
 
   let resp = test::call_service(
@@ -659,13 +670,14 @@ async fn card_create_returns_200_with_card_fields() {
   assert_eq!(json["owner"], true);
   assert_eq!(json["column"], col_id.as_str());
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn card_create_empty_text_returns_400() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
   let (board_id, col_id, cookie) = setup_board_and_column(&app).await;
 
   let resp = test::call_service(
@@ -680,13 +692,14 @@ async fn card_create_empty_text_returns_400() {
 
   assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn card_create_missing_text_returns_400() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
   let (board_id, col_id, cookie) = setup_board_and_column(&app).await;
 
   let resp = test::call_service(
@@ -701,13 +714,14 @@ async fn card_create_missing_text_returns_400() {
 
   assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn card_create_when_cards_closed_returns_403() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
 
   let board_resp = test::call_service(
     &app,
@@ -743,13 +757,14 @@ async fn card_create_when_cards_closed_returns_403() {
 
   assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn card_list_returns_200_with_array() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
   let (board_id, col_id, cookie) = setup_board_and_column(&app).await;
 
   test::call_service(
@@ -776,13 +791,14 @@ async fn card_list_returns_200_with_array() {
   assert!(json.is_array());
   assert_eq!(json.as_array().unwrap().len(), 1);
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn card_get_returns_200() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
   let (board_id, col_id, cookie) = setup_board_and_column(&app).await;
 
   let card_resp = test::call_service(
@@ -808,13 +824,14 @@ async fn card_get_returns_200() {
   assert_eq!(resp.status(), StatusCode::OK);
   assert_eq!(body_json(resp).await["id"], card_id.as_str());
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn card_update_as_card_owner_returns_200() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
   let (board_id, col_id, cookie) = setup_board_and_column(&app).await;
 
   let card_resp = test::call_service(
@@ -841,13 +858,14 @@ async fn card_update_as_card_owner_returns_200() {
   assert_eq!(resp.status(), StatusCode::OK);
   assert_eq!(body_json(resp).await["text"], "Updated");
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn card_update_as_non_owner_returns_403() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
   let (board_id, col_id, cookie) = setup_board_and_column(&app).await;
 
   let card_resp = test::call_service(
@@ -877,13 +895,14 @@ async fn card_update_as_non_owner_returns_403() {
 
   assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn card_delete_as_card_owner_returns_200() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
   let (board_id, col_id, cookie) = setup_board_and_column(&app).await;
 
   let card_resp = test::call_service(
@@ -908,13 +927,14 @@ async fn card_delete_as_card_owner_returns_200() {
 
   assert_eq!(resp.status(), StatusCode::OK);
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn card_delete_as_board_owner_returns_200() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
   let (board_id, col_id, owner_cookie) = setup_board_and_column(&app).await;
 
   // Participant B creates a card
@@ -955,13 +975,14 @@ async fn card_delete_as_board_owner_returns_200() {
 
   assert_eq!(resp.status(), StatusCode::OK);
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn card_vote_returns_201() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
   let (board_id, col_id, cookie) = setup_board_and_column(&app).await;
 
   let card_resp = test::call_service(
@@ -986,13 +1007,14 @@ async fn card_vote_returns_201() {
 
   assert_eq!(resp.status(), StatusCode::CREATED);
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn card_vote_when_voting_closed_returns_403() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
 
   let board_resp = test::call_service(
     &app,
@@ -1038,13 +1060,14 @@ async fn card_vote_when_voting_closed_returns_403() {
 
   assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn card_delete_vote_returns_201() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
   let (board_id, col_id, cookie) = setup_board_and_column(&app).await;
 
   let card_resp = test::call_service(
@@ -1078,13 +1101,14 @@ async fn card_delete_vote_returns_201() {
 
   assert_eq!(resp.status(), StatusCode::CREATED);
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn card_react_returns_201() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
   let (board_id, col_id, cookie) = setup_board_and_column(&app).await;
 
   let card_resp = test::call_service(
@@ -1110,13 +1134,14 @@ async fn card_react_returns_201() {
 
   assert_eq!(resp.status(), StatusCode::CREATED);
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn card_delete_react_returns_201() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
   let (board_id, col_id, cookie) = setup_board_and_column(&app).await;
 
   let card_resp = test::call_service(
@@ -1151,13 +1176,14 @@ async fn card_delete_react_returns_201() {
 
   assert_eq!(resp.status(), StatusCode::CREATED);
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn board_csv_returns_200_with_attachment_header() {
-  let app = make_app!(emulator_db().await);
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
   let (board_id, col_id, cookie) = setup_board_and_column(&app).await;
 
   test::call_service(
@@ -1188,5 +1214,5 @@ async fn board_csv_returns_200_with_attachment_header() {
     .unwrap();
   assert!(content_disposition.contains("attachment"));
 
-  boards::db::delete(&emulator_db().await, &board_id).await.unwrap();
+  boards::db::delete(&db, &board_id).await.unwrap();
 }
