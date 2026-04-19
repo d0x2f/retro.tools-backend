@@ -376,6 +376,122 @@ async fn delete_as_board_owner_returns_200() {
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
+async fn update_as_non_owner_with_open_permission_returns_200() {
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
+
+  let board_resp = actix_web::test::call_service(
+    &app,
+    TestRequest::post()
+      .uri("/boards")
+      .set_json(json!({"open_permission": true}))
+      .to_request(),
+  )
+  .await;
+  let owner_cookie = session_cookie(&board_resp);
+  let board_id = body_json(board_resp).await["id"].as_str().unwrap().to_string();
+
+  let col_resp = actix_web::test::call_service(
+    &app,
+    TestRequest::post()
+      .uri(&format!("/boards/{board_id}/columns"))
+      .cookie(owner_cookie.clone())
+      .set_json(json!({"name": "Col"}))
+      .to_request(),
+  )
+  .await;
+  let col_id = body_json(col_resp).await["id"].as_str().unwrap().to_string();
+
+  let card_resp = actix_web::test::call_service(
+    &app,
+    TestRequest::post()
+      .uri(&format!("/boards/{board_id}/columns/{col_id}/cards"))
+      .cookie(owner_cookie)
+      .set_json(json!({"text": "Original"}))
+      .to_request(),
+  )
+  .await;
+  let card_id = body_json(card_resp).await["id"].as_str().unwrap().to_string();
+
+  let list_resp =
+    actix_web::test::call_service(&app, TestRequest::get().uri("/boards").to_request()).await;
+  let cookie_b = session_cookie(&list_resp);
+
+  let resp = actix_web::test::call_service(
+    &app,
+    TestRequest::patch()
+      .uri(&format!("/boards/{board_id}/cards/{card_id}"))
+      .cookie(cookie_b)
+      .set_json(json!({"text": "Updated by non-owner"}))
+      .to_request(),
+  )
+  .await;
+
+  assert_eq!(resp.status(), StatusCode::OK);
+  assert_eq!(body_json(resp).await["text"], "Updated by non-owner");
+
+  boards::db::delete(&db, &board_id).await.unwrap();
+}
+
+#[tokio::test]
+#[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
+async fn delete_as_non_owner_with_open_permission_returns_200() {
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
+
+  let board_resp = actix_web::test::call_service(
+    &app,
+    TestRequest::post()
+      .uri("/boards")
+      .set_json(json!({"open_permission": true}))
+      .to_request(),
+  )
+  .await;
+  let owner_cookie = session_cookie(&board_resp);
+  let board_id = body_json(board_resp).await["id"].as_str().unwrap().to_string();
+
+  let col_resp = actix_web::test::call_service(
+    &app,
+    TestRequest::post()
+      .uri(&format!("/boards/{board_id}/columns"))
+      .cookie(owner_cookie.clone())
+      .set_json(json!({"name": "Col"}))
+      .to_request(),
+  )
+  .await;
+  let col_id = body_json(col_resp).await["id"].as_str().unwrap().to_string();
+
+  let card_resp = actix_web::test::call_service(
+    &app,
+    TestRequest::post()
+      .uri(&format!("/boards/{board_id}/columns/{col_id}/cards"))
+      .cookie(owner_cookie)
+      .set_json(json!({"text": "To be deleted"}))
+      .to_request(),
+  )
+  .await;
+  let card_id = body_json(card_resp).await["id"].as_str().unwrap().to_string();
+
+  let list_resp =
+    actix_web::test::call_service(&app, TestRequest::get().uri("/boards").to_request()).await;
+  let cookie_b = session_cookie(&list_resp);
+
+  let resp = actix_web::test::call_service(
+    &app,
+    TestRequest::delete()
+      .uri(&format!("/boards/{board_id}/cards/{card_id}"))
+      .cookie(cookie_b)
+      .to_request(),
+  )
+  .await;
+
+  assert_eq!(resp.status(), StatusCode::OK);
+
+  boards::db::delete(&db, &board_id).await.unwrap();
+}
+
+#[tokio::test]
+#[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn vote_returns_201() {
   let db = emulator_db().await;
   let app = make_app!(db.clone());

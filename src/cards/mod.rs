@@ -20,7 +20,7 @@ pub async fn assert_card_owner(
     firestore.get_documents_path(),
     participant.id
   ));
-  if board.owner == participant_reference || card.owner == participant_reference {
+  if board.owner == participant_reference || card.owner == participant_reference || board.open_permission {
     Ok(())
   } else {
     Err(Error::Forbidden)
