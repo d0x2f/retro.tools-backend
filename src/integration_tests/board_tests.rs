@@ -24,7 +24,7 @@ async fn create_returns_200_with_correct_fields() {
   assert_eq!(json["cards_open"], true);
   assert_eq!(json["voting_open"], true);
   assert_eq!(json["owner"], true);
-  assert_eq!(json["anyone_is_owner"], false);
+  assert_eq!(json["open_permission"], false);
 
   boards::db::delete(&db, &board_id).await.unwrap();
 }
@@ -169,7 +169,7 @@ async fn update_as_non_owner_returns_403() {
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
-async fn update_as_non_owner_with_anyone_is_owner_returns_200() {
+async fn update_as_non_owner_with_open_permission_returns_200() {
   let db = emulator_db().await;
   let app = make_app!(db.clone());
 
@@ -177,7 +177,7 @@ async fn update_as_non_owner_with_anyone_is_owner_returns_200() {
     &app,
     TestRequest::post()
       .uri("/boards")
-      .set_json(json!({"name": "Open Board", "anyone_is_owner": true}))
+      .set_json(json!({"name": "Open Board", "open_permission": true}))
       .to_request(),
   )
   .await;

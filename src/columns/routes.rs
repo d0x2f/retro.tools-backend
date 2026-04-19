@@ -113,7 +113,7 @@ mod tests {
       ice_breaking: "".to_string(),
       created_at: Utc::now().timestamp(),
       owner: ref_(owner),
-      anyone_is_owner: false,
+      open_permission: false,
       data: serde_json::Value::Object(Map::new()),
     }
   }
