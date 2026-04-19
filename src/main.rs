@@ -9,6 +9,9 @@ mod config;
 mod error;
 mod participants;
 
+#[cfg(test)]
+mod integration_tests;
+
 use ::firestore::FirestoreDb;
 use actix_cors::Cors;
 use actix_identity::IdentityMiddleware;
