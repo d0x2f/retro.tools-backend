@@ -14,10 +14,12 @@ use serde_json::Value;
 use crate::config::{Config, Environment, GoogleAccountKey};
 
 pub(super) async fn emulator_db() -> FirestoreDb {
+  // "owner" is the Firebase emulator's magic token that bypasses security rules,
+  // matching the credential used by Firebase Admin SDKs in emulator mode.
   let token_source = ExternalJwtFunctionSource::new(|| async {
     Ok(Token::new(
       "Bearer".to_string(),
-      "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJ0ZXN0In0.".into(),
+      "owner".into(),
       Utc::now() + chrono::Duration::hours(1),
     ))
   });

@@ -106,13 +106,12 @@ mod tests {
     use chrono::Utc;
     use firestore::FirestoreDbOptions;
     use gcloud_sdk::{ExternalJwtFunctionSource, Token, TokenSourceType};
-    // The emulator ignores auth entirely; supply a fake token to bypass ADC.
+    // "owner" is the Firebase emulator's magic token that bypasses security rules,
+    // matching the credential used by Firebase Admin SDKs in emulator mode.
     let token_source = ExternalJwtFunctionSource::new(|| async {
       Ok(Token::new(
         "Bearer".to_string(),
-        // Minimal JWT the emulator accepts: base64url(header).base64url(payload).
-        // The emulator checks format but not signature.
-        "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJ0ZXN0In0.".into(),
+        "owner".into(),
         Utc::now() + chrono::Duration::hours(1),
       ))
     });
