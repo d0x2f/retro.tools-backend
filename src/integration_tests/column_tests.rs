@@ -166,7 +166,7 @@ async fn update_as_non_owner_returns_403() {
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
-async fn update_as_non_owner_with_open_permission_still_returns_403() {
+async fn update_as_non_owner_with_open_permission_returns_200() {
   let db = emulator_db().await;
   let app = make_app!(db.clone());
 
@@ -206,7 +206,7 @@ async fn update_as_non_owner_with_open_permission_still_returns_403() {
   )
   .await;
 
-  assert_eq!(resp.status(), StatusCode::FORBIDDEN);
+  assert_eq!(resp.status(), StatusCode::OK);
 
   boards::db::delete(&db, &board_id).await.unwrap();
 }

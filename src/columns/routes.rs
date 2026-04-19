@@ -10,10 +10,10 @@ use crate::error::Error;
 use crate::participants::models::Participant;
 
 fn check_board_owner_permission(board: &Board, participant: &FirestoreReference) -> Result<(), Error> {
-  if board.owner != *participant {
-    Err(Error::Forbidden)
-  } else {
+  if board.owner == *participant || board.open_permission {
     Ok(())
+  } else {
+    Err(Error::Forbidden)
   }
 }
 
@@ -131,5 +131,12 @@ mod tests {
       check_board_owner_permission(&board, &ref_("participants/other")),
       Err(Error::Forbidden)
     ));
+  }
+
+  #[test]
+  fn non_owner_is_permitted_when_open_permission() {
+    let mut board = make_board("participants/owner");
+    board.open_permission = true;
+    assert!(check_board_owner_permission(&board, &ref_("participants/other")).is_ok());
   }
 }
