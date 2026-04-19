@@ -22,10 +22,10 @@ fn check_update_permission(
   message: &BoardMessage,
 ) -> Result<(), Error> {
   let is_owner = board.owner == *participant;
-  if !is_owner && !board.anyone_is_owner {
+  if !is_owner && !board.open_permission {
     return Err(Error::Forbidden);
   }
-  if !is_owner && message.anyone_is_owner.is_some() {
+  if !is_owner && message.open_permission.is_some() {
     return Err(Error::Forbidden);
   }
   Ok(())
@@ -155,7 +155,7 @@ mod tests {
     FirestoreReference(s.to_string())
   }
 
-  fn make_board(owner: &str, anyone_is_owner: bool) -> Board {
+  fn make_board(owner: &str, open_permission: bool) -> Board {
     Board {
       id: "board1".to_string(),
       name: "Test".to_string(),
@@ -164,19 +164,19 @@ mod tests {
       ice_breaking: "".to_string(),
       created_at: Utc::now().timestamp(),
       owner: ref_(owner),
-      anyone_is_owner,
+      open_permission,
       data: serde_json::Value::Object(Map::new()),
     }
   }
 
-  fn msg(anyone_is_owner: Option<bool>) -> BoardMessage {
+  fn msg(open_permission: Option<bool>) -> BoardMessage {
     BoardMessage {
       name: None,
       cards_open: None,
       voting_open: None,
       ice_breaking: None,
       data: None,
-      anyone_is_owner,
+      open_permission,
     }
   }
 
@@ -193,7 +193,7 @@ mod tests {
   }
 
   #[test]
-  fn non_owner_cannot_delete_even_when_anyone_is_owner() {
+  fn non_owner_cannot_delete_even_when_open_permission() {
     let board = make_board("participants/owner", true);
     assert!(check_delete_permission(&board, &ref_("participants/other")).is_err());
   }
@@ -205,19 +205,19 @@ mod tests {
   }
 
   #[test]
-  fn non_owner_blocked_when_anyone_is_owner_false() {
+  fn non_owner_blocked_when_open_permission_false() {
     let board = make_board("participants/owner", false);
     assert!(check_update_permission(&board, &ref_("participants/other"), &msg(None)).is_err());
   }
 
   #[test]
-  fn non_owner_allowed_when_anyone_is_owner_true() {
+  fn non_owner_allowed_when_open_permission_true() {
     let board = make_board("participants/owner", true);
     assert!(check_update_permission(&board, &ref_("participants/other"), &msg(None)).is_ok());
   }
 
   #[test]
-  fn non_owner_cannot_toggle_anyone_is_owner_off() {
+  fn non_owner_cannot_toggle_open_permission_off() {
     let board = make_board("participants/owner", true);
     assert!(
       check_update_permission(&board, &ref_("participants/other"), &msg(Some(false))).is_err()
@@ -225,7 +225,7 @@ mod tests {
   }
 
   #[test]
-  fn non_owner_cannot_toggle_anyone_is_owner_on() {
+  fn non_owner_cannot_toggle_open_permission_on() {
     let board = make_board("participants/owner", false);
     assert!(
       check_update_permission(&board, &ref_("participants/other"), &msg(Some(true))).is_err()
@@ -233,7 +233,7 @@ mod tests {
   }
 
   #[test]
-  fn owner_can_toggle_anyone_is_owner_on() {
+  fn owner_can_toggle_open_permission_on() {
     let board = make_board("participants/owner", false);
     assert!(
       check_update_permission(&board, &ref_("participants/owner"), &msg(Some(true))).is_ok()
@@ -241,7 +241,7 @@ mod tests {
   }
 
   #[test]
-  fn owner_can_toggle_anyone_is_owner_off() {
+  fn owner_can_toggle_open_permission_off() {
     let board = make_board("participants/owner", true);
     assert!(
       check_update_permission(&board, &ref_("participants/owner"), &msg(Some(false))).is_ok()

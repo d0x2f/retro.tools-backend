@@ -71,7 +71,7 @@ pub async fn update(
     .fluent()
     .update()
     .fields(
-      paths!(BoardMessage::{name, cards_open, voting_open, ice_breaking, data, anyone_is_owner})
+      paths!(BoardMessage::{name, cards_open, voting_open, ice_breaking, data, open_permission})
         .into_iter()
         .filter(|f| serialised_board.get(f).is_some()),
     )
@@ -136,7 +136,7 @@ mod tests {
       voting_open: Some(false),
       ice_breaking: None,
       data: None,
-      anyone_is_owner: None,
+      open_permission: None,
     }
   }
 
@@ -177,7 +177,7 @@ mod tests {
         voting_open: None,
         ice_breaking: None,
         data: None,
-        anyone_is_owner: None,
+        open_permission: None,
       },
     )
     .await
@@ -189,7 +189,7 @@ mod tests {
 
   #[tokio::test]
   #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
-  async fn new_board_with_anyone_is_owner_true_persists() {
+  async fn new_board_with_open_permission_true_persists() {
     let db = emulator_db().await;
     let participant = test_participant();
     let board = new(
@@ -201,24 +201,24 @@ mod tests {
         voting_open: Some(true),
         ice_breaking: None,
         data: None,
-        anyone_is_owner: Some(true),
+        open_permission: Some(true),
       },
     )
     .await
     .unwrap();
-    assert!(board.anyone_is_owner);
+    assert!(board.open_permission);
     let fetched = get(&db, &board.id).await.unwrap();
-    assert!(fetched.anyone_is_owner);
+    assert!(fetched.open_permission);
     delete(&db, &board.id).await.unwrap();
   }
 
   #[tokio::test]
   #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
-  async fn update_board_anyone_is_owner_persists() {
+  async fn update_board_open_permission_persists() {
     let db = emulator_db().await;
     let participant = test_participant();
     let board = new(&db, &participant, board_msg("Toggle Anyone Is Owner")).await.unwrap();
-    assert!(!board.anyone_is_owner);
+    assert!(!board.open_permission);
     let updated = update(
       &db,
       &board.id,
@@ -228,20 +228,20 @@ mod tests {
         voting_open: None,
         ice_breaking: None,
         data: None,
-        anyone_is_owner: Some(true),
+        open_permission: Some(true),
       },
     )
     .await
     .unwrap();
-    assert!(updated.anyone_is_owner);
+    assert!(updated.open_permission);
     let fetched = get(&db, &board.id).await.unwrap();
-    assert!(fetched.anyone_is_owner);
+    assert!(fetched.open_permission);
     delete(&db, &board.id).await.unwrap();
   }
 
   #[tokio::test]
   #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
-  async fn update_board_anyone_is_owner_toggle_off_persists() {
+  async fn update_board_open_permission_toggle_off_persists() {
     let db = emulator_db().await;
     let participant = test_participant();
     let board = new(
@@ -253,12 +253,12 @@ mod tests {
         voting_open: Some(true),
         ice_breaking: None,
         data: None,
-        anyone_is_owner: Some(true),
+        open_permission: Some(true),
       },
     )
     .await
     .unwrap();
-    assert!(board.anyone_is_owner);
+    assert!(board.open_permission);
     let updated = update(
       &db,
       &board.id,
@@ -268,14 +268,14 @@ mod tests {
         voting_open: None,
         ice_breaking: None,
         data: None,
-        anyone_is_owner: Some(false),
+        open_permission: Some(false),
       },
     )
     .await
     .unwrap();
-    assert!(!updated.anyone_is_owner);
+    assert!(!updated.open_permission);
     let fetched = get(&db, &board.id).await.unwrap();
-    assert!(!fetched.anyone_is_owner);
+    assert!(!fetched.open_permission);
     delete(&db, &board.id).await.unwrap();
   }
 

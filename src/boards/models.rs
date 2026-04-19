@@ -16,7 +16,7 @@ pub struct BoardMessage {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub data: Option<serde_json::Value>,
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub anyone_is_owner: Option<bool>,
+  pub open_permission: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -28,7 +28,7 @@ pub struct Board {
   pub ice_breaking: String,
   pub created_at: i64,
   pub owner: FirestoreReference,
-  pub anyone_is_owner: bool,
+  pub open_permission: bool,
   pub data: serde_json::Value,
 }
 
@@ -40,7 +40,7 @@ pub struct NewBoard {
   pub ice_breaking: Option<String>,
   pub created_at: FirestoreTimestamp,
   pub owner: Option<FirestoreReference>,
-  pub anyone_is_owner: bool,
+  pub open_permission: bool,
   pub data: serde_json::Value,
 }
 
@@ -54,7 +54,7 @@ pub struct BoardInFirestore {
   pub ice_breaking: Option<String>,
   pub created_at: Option<FirestoreTimestamp>,
   pub owner: FirestoreReference,
-  pub anyone_is_owner: Option<bool>,
+  pub open_permission: Option<bool>,
   pub data: serde_json::Value,
 }
 
@@ -67,7 +67,7 @@ impl From<BoardMessage> for NewBoard {
       ice_breaking: board.ice_breaking,
       created_at: FirestoreTimestamp(Utc::now()),
       owner: None,
-      anyone_is_owner: board.anyone_is_owner.unwrap_or(false),
+      open_permission: board.open_permission.unwrap_or(false),
       data: board
         .data
         .unwrap_or_else(|| serde_json::Value::Object(Map::new())),
@@ -89,7 +89,7 @@ impl From<BoardInFirestore> for Board {
         .0
         .timestamp(),
       owner: board.owner,
-      anyone_is_owner: board.anyone_is_owner.unwrap_or(false),
+      open_permission: board.open_permission.unwrap_or(false),
       data: board.data,
     }
   }
@@ -104,7 +104,7 @@ pub struct BoardResponse {
   pub ice_breaking: String,
   pub created_at: i64,
   pub owner: bool,
-  pub anyone_is_owner: bool,
+  pub open_permission: bool,
   pub data: serde_json::Value,
 }
 
@@ -118,7 +118,7 @@ impl BoardResponse {
       ice_breaking: board.ice_breaking,
       created_at: board.created_at,
       owner: &board.owner == participant_id,
-      anyone_is_owner: board.anyone_is_owner,
+      open_permission: board.open_permission,
       data: board.data,
     }
   }
@@ -144,7 +144,7 @@ mod tests {
       ice_breaking: Some("How are you?".to_string()),
       created_at: None,
       owner: ref_(owner),
-      anyone_is_owner: None,
+      open_permission: None,
       data: serde_json::Value::Object(serde_json::Map::new()),
     }
   }
@@ -157,7 +157,7 @@ mod tests {
       voting_open: None,
       ice_breaking: None,
       data: None,
-      anyone_is_owner: None,
+      open_permission: None,
     };
     let b: NewBoard = msg.into();
     assert_eq!(b.name, "");
@@ -176,7 +176,7 @@ mod tests {
       voting_open: Some(false),
       ice_breaking: Some("Icebreaker!".to_string()),
       data: Some(serde_json::json!({"key": "value"})),
-      anyone_is_owner: None,
+      open_permission: None,
     };
     let b: NewBoard = msg.into();
     assert_eq!(b.name, "My Retro");
@@ -219,57 +219,57 @@ mod tests {
   }
 
   #[test]
-  fn board_response_owner_false_for_non_owner_even_when_anyone_is_owner() {
+  fn board_response_owner_false_for_non_owner_even_when_open_permission() {
     let participant = ref_("participants/user2");
     let mut raw = board_in_firestore("b1", "participants/user1");
-    raw.anyone_is_owner = Some(true);
+    raw.open_permission = Some(true);
     let board: Board = raw.into();
     let resp = BoardResponse::from_board(board, &participant);
     assert!(!resp.owner);
-    assert!(resp.anyone_is_owner);
+    assert!(resp.open_permission);
   }
 
   #[test]
-  fn board_response_anyone_is_owner_false_by_default() {
+  fn board_response_open_permission_false_by_default() {
     let participant = ref_("participants/user1");
     let board: Board = board_in_firestore("b1", "participants/user1").into();
     let resp = BoardResponse::from_board(board, &participant);
-    assert!(!resp.anyone_is_owner);
+    assert!(!resp.open_permission);
   }
 
   #[test]
-  fn board_in_firestore_anyone_is_owner_none_defaults_to_false() {
+  fn board_in_firestore_open_permission_none_defaults_to_false() {
     let raw = board_in_firestore("b1", "participants/user1");
     let board: Board = raw.into();
-    assert!(!board.anyone_is_owner);
+    assert!(!board.open_permission);
   }
 
   #[test]
-  fn board_message_anyone_is_owner_none_defaults_to_false() {
+  fn board_message_open_permission_none_defaults_to_false() {
     let msg = BoardMessage {
       name: None,
       cards_open: None,
       voting_open: None,
       ice_breaking: None,
       data: None,
-      anyone_is_owner: None,
+      open_permission: None,
     };
     let b: NewBoard = msg.into();
-    assert!(!b.anyone_is_owner);
+    assert!(!b.open_permission);
   }
 
   #[test]
-  fn board_message_anyone_is_owner_true_is_preserved() {
+  fn board_message_open_permission_true_is_preserved() {
     let msg = BoardMessage {
       name: None,
       cards_open: None,
       voting_open: None,
       ice_breaking: None,
       data: None,
-      anyone_is_owner: Some(true),
+      open_permission: Some(true),
     };
     let b: NewBoard = msg.into();
-    assert!(b.anyone_is_owner);
+    assert!(b.open_permission);
   }
 
   #[test]

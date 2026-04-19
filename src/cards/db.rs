@@ -304,7 +304,7 @@ mod tests {
         voting_open: Some(true),
         ice_breaking: None,
         data: None,
-        anyone_is_owner: None,
+        open_permission: None,
       },
     )
     .await
