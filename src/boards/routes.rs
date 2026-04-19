@@ -9,15 +9,23 @@ use crate::error::Error;
 use crate::participants::db::*;
 use crate::participants::models::Participant;
 
+fn check_delete_permission(board: &Board, participant: &FirestoreReference) -> Result<(), Error> {
+  if board.owner != *participant {
+    return Err(Error::Forbidden);
+  }
+  Ok(())
+}
+
 fn check_update_permission(
   board: &Board,
   participant: &FirestoreReference,
   message: &BoardMessage,
 ) -> Result<(), Error> {
-  if !board.anyone_is_owner && board.owner != *participant {
+  let is_owner = board.owner == *participant;
+  if !is_owner && !board.anyone_is_owner {
     return Err(Error::Forbidden);
   }
-  if message.anyone_is_owner.is_some() && board.owner != *participant {
+  if !is_owner && message.anyone_is_owner.is_some() {
     return Err(Error::Forbidden);
   }
   Ok(())
@@ -131,9 +139,7 @@ pub async fn delete(
       .unwrap()
       .into(),
   );
-  if !board.anyone_is_owner && board.owner != participant_reference {
-    return Err(Error::Forbidden);
-  }
+  check_delete_permission(&board, &participant_reference)?;
   db::delete(&firestore, &board_id).await?;
   Ok(HttpResponse::Ok().finish())
 }
@@ -172,6 +178,24 @@ mod tests {
       data: None,
       anyone_is_owner,
     }
+  }
+
+  #[test]
+  fn owner_can_delete() {
+    let board = make_board("participants/owner", false);
+    assert!(check_delete_permission(&board, &ref_("participants/owner")).is_ok());
+  }
+
+  #[test]
+  fn non_owner_cannot_delete() {
+    let board = make_board("participants/owner", false);
+    assert!(check_delete_permission(&board, &ref_("participants/other")).is_err());
+  }
+
+  #[test]
+  fn non_owner_cannot_delete_even_when_anyone_is_owner() {
+    let board = make_board("participants/owner", true);
+    assert!(check_delete_permission(&board, &ref_("participants/other")).is_err());
   }
 
   #[test]

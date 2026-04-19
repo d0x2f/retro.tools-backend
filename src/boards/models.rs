@@ -117,7 +117,7 @@ impl BoardResponse {
       voting_open: board.voting_open,
       ice_breaking: board.ice_breaking,
       created_at: board.created_at,
-      owner: board.anyone_is_owner || &board.owner == participant_id,
+      owner: &board.owner == participant_id,
       anyone_is_owner: board.anyone_is_owner,
       data: board.data,
     }
@@ -219,13 +219,13 @@ mod tests {
   }
 
   #[test]
-  fn board_response_owner_true_when_anyone_is_owner() {
+  fn board_response_owner_false_for_non_owner_even_when_anyone_is_owner() {
     let participant = ref_("participants/user2");
     let mut raw = board_in_firestore("b1", "participants/user1");
     raw.anyone_is_owner = Some(true);
     let board: Board = raw.into();
     let resp = BoardResponse::from_board(board, &participant);
-    assert!(resp.owner);
+    assert!(!resp.owner);
     assert!(resp.anyone_is_owner);
   }
 
