@@ -233,7 +233,15 @@ mod tests {
   }
 
   #[test]
-  fn owner_can_toggle_anyone_is_owner() {
+  fn owner_can_toggle_anyone_is_owner_on() {
+    let board = make_board("participants/owner", false);
+    assert!(
+      check_update_permission(&board, &ref_("participants/owner"), &msg(Some(true))).is_ok()
+    );
+  }
+
+  #[test]
+  fn owner_can_toggle_anyone_is_owner_off() {
     let board = make_board("participants/owner", true);
     assert!(
       check_update_permission(&board, &ref_("participants/owner"), &msg(Some(false))).is_ok()
