@@ -260,6 +260,42 @@ async fn update_as_non_owner_returns_403() {
 
 #[tokio::test]
 #[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
+async fn delete_as_non_owner_returns_403() {
+  let db = emulator_db().await;
+  let app = make_app!(db.clone());
+  let (board_id, col_id, cookie) = setup_board_and_column(&app).await;
+
+  let card_resp = actix_web::test::call_service(
+    &app,
+    TestRequest::post()
+      .uri(&format!("/boards/{board_id}/columns/{col_id}/cards"))
+      .cookie(cookie)
+      .set_json(json!({"text": "Mine"}))
+      .to_request(),
+  )
+  .await;
+  let card_id = body_json(card_resp).await["id"].as_str().unwrap().to_string();
+
+  let list_resp =
+    actix_web::test::call_service(&app, TestRequest::get().uri("/boards").to_request()).await;
+  let cookie_b = session_cookie(&list_resp);
+
+  let resp = actix_web::test::call_service(
+    &app,
+    TestRequest::delete()
+      .uri(&format!("/boards/{board_id}/cards/{card_id}"))
+      .cookie(cookie_b)
+      .to_request(),
+  )
+  .await;
+
+  assert_eq!(resp.status(), StatusCode::FORBIDDEN);
+
+  boards::db::delete(&db, &board_id).await.unwrap();
+}
+
+#[tokio::test]
+#[ignore = "requires Firestore emulator: FIRESTORE_EMULATOR_HOST=localhost:8080"]
 async fn delete_as_card_owner_returns_200() {
   let db = emulator_db().await;
   let app = make_app!(db.clone());

@@ -119,34 +119,13 @@ mod tests {
   }
 
   #[test]
-  fn board_owner_can_update_column() {
+  fn board_owner_is_permitted() {
     let board = make_board("participants/owner");
     assert!(check_board_owner_permission(&board, &ref_("participants/owner")).is_ok());
   }
 
   #[test]
-  fn non_owner_cannot_update_column() {
-    let board = make_board("participants/owner");
-    assert!(check_board_owner_permission(&board, &ref_("participants/other")).is_err());
-  }
-
-  #[test]
-  fn non_owner_column_update_returns_forbidden() {
-    let board = make_board("participants/owner");
-    assert!(matches!(
-      check_board_owner_permission(&board, &ref_("participants/other")),
-      Err(Error::Forbidden)
-    ));
-  }
-
-  #[test]
-  fn board_owner_can_delete_column() {
-    let board = make_board("participants/owner");
-    assert!(check_board_owner_permission(&board, &ref_("participants/owner")).is_ok());
-  }
-
-  #[test]
-  fn non_owner_cannot_delete_column() {
+  fn non_owner_is_forbidden() {
     let board = make_board("participants/owner");
     assert!(matches!(
       check_board_owner_permission(&board, &ref_("participants/other")),
