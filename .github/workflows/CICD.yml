@@ -43,7 +43,7 @@ jobs:
           credentials_json: "${{ secrets.GCP_ACCOUNT_CREDENTIALS }}"
       - uses: google-github-actions/setup-gcloud@v1
       - name: Buildah build
-        run: ./build.sh --image $IMAGE
+        run: buildah unshare ./build.sh --image $IMAGE
       - name: Buildah push
         run: |
           gcloud auth print-access-token | buildah login -u oauth2accesstoken --password-stdin us-east1-docker.pkg.dev
