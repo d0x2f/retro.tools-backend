@@ -47,6 +47,8 @@ echo "==> Building"
 buildah run --env RUSTFLAGS="-C target-cpu=x86-64-v3" "$build" -- cargo build --release
 
 if [ -n "$BUILDER_IMAGE" ]; then
+  echo "==> Installing clippy"
+  buildah run "$build" -- rustup component add clippy
   echo "==> Compiling tests"
   buildah run "$build" -- cargo test --no-run
   echo "==> Committing builder: $BUILDER_IMAGE"
